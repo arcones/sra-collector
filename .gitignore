@@ -1,0 +1,11 @@
+# IDE
+.idea
+
+# Infra
+infra/.terraform
+**/*.zip
+
+# Python
+infra/lambda/user_query/python3/.coverage
+**/.pytest_cache
+**/__pycache__/
