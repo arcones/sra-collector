@@ -1,0 +1,6 @@
+# IDE
+.idea
+
+# Infra
+infra/.terraform
+infra/*.zip
