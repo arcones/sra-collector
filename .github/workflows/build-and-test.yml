@@ -12,6 +12,8 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'poetry'
-      - run: cd python3 && poetry install
-      - run: cd python3 && poetry run coverage run -m pytest
+      - run: poetry install
+        working-directory: python3
+      - run: poetry run coverage run -m pytest
+        working-directory: python3
 ## Step for TF rm -rf infra/user-query.zip && cd python/user-query && zip ../../infra/user-query.zip user-query.py && cd ../../infra && terraform apply -auto-approve && cd ..
