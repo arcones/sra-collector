@@ -1,19 +1,19 @@
 name: Build & Test
 on: [push]
 jobs:
-  CI-CD:
+  python3:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python3
     steps:
       - uses: actions/checkout@v4
       - name: Install poetry
-        working-directory: python3
         run: pipx install poetry
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'poetry'
       - run: poetry install
-        working-directory: python3
       - run: poetry run coverage run -m pytest
-        working-directory: python3
 ## Step for TF rm -rf infra/user-query.zip && cd python/user-query && zip ../../infra/user-query.zip user-query.py && cd ../../infra && terraform apply -auto-approve && cd ..
