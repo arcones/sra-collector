@@ -4,3 +4,8 @@
 # Infra
 infra/.terraform
 infra/*.zip
+
+# Python
+python3/.coverage
+**/.pytest_cache
+**/__pycache__/

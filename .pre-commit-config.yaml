@@ -3,3 +3,30 @@ repos:
   rev: v1.83.6
   hooks:
     - id: terraform_fmt
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+    - id: check-yaml
+    - id: check-json
+    - id: check-toml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+    - id: double-quote-string-fixer
+    - id: name-tests-test
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.10.0
+  hooks:
+    - id: python-no-log-warn
+- repo: https://github.com/python-jsonschema/check-jsonschema
+  rev: 0.27.1
+  hooks:
+    - id: check-github-actions
+    - id: check-github-workflows
+- repo: https://github.com/asottile/reorder-python-imports
+  rev: v3.12.0
+  hooks:
+    - id: reorder-python-imports
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.15.0
+  hooks:
+    - id: pyupgrade

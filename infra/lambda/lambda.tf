@@ -2,7 +2,7 @@ resource "aws_lambda_function" "user_query" {
   filename         = "user-query.zip"
   function_name    = "user-query"
   role             = aws_iam_role.user_query_lambda_role.arn
-  handler          = "lambda.lambda_handler"
+  handler          = "user-query.lambda_handler"
   runtime          = "python3.11"
   source_code_hash = filebase64sha256("user-query.zip")
 }

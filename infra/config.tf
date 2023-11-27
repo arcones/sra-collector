@@ -12,9 +12,11 @@ terraform {
     region  = "eu-central-1"
     key     = "dev/terraform.tfstate"
     encrypt = true
+    profile = "arcones-admin"
   }
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = "arcones-admin"
 }
