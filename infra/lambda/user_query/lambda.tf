@@ -1,10 +1,11 @@
 resource "aws_lambda_function" "user_query" {
-  filename         = "user-query.zip"
-  function_name    = "user-query"
+  function_name    = var.lambda_name
+  s3_bucket        = var.s3_bucket_id
+  s3_key           = aws_s3_object.lambda_user_query.key
   role             = aws_iam_role.user_query_lambda_role.arn
-  handler          = "user-query.lambda_handler"
+  handler          = "${var.lambda_name}.handler"
   runtime          = "python3.11"
-  source_code_hash = filebase64sha256("user-query.zip")
+  source_code_hash = data.archive_file.lambda_user_query.output_base64sha256
 }
 
 resource "aws_lambda_permission" "lambda_permission" {

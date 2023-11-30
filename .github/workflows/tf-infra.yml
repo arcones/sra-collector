@@ -1,0 +1,8 @@
+name: Python3 Build & Test
+on: [push]
+jobs:
+  tf:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra

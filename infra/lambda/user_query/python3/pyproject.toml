@@ -1,17 +1,14 @@
 [tool.poetry]
-name = "sra-collector-lambdas"
-version = "0.1.0"
-description = ""
+name = "sra-collector-user_query-lambda"
+version = "0.0.1"
+description = "Lambda function that manages SRA queries comming from users"
 authors = ["Marta Arcones <marta.arcones@alumnos.upm.es>"]
 license = "GPL-3.0"
-readme = "README.md"
-packages = [{include = "sra_collector_lambdas"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 pytest = "^7.4.3"
 coverage = "^7.3.2"
-
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,11 +1,11 @@
-name: Build & Test
+name: Python3 Build & Test
 on: [push]
 jobs:
   python3:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: python3
+        working-directory: infra/lambda/user_query/python3
     steps:
       - uses: actions/checkout@v4
       - name: Install poetry
@@ -16,4 +16,3 @@ jobs:
           cache: 'poetry'
       - run: poetry install
       - run: poetry run coverage run -m pytest
-## Step for TF rm -rf infra/user-query.zip && cd python/user-query && zip ../../infra/user-query.zip user-query.py && cd ../../infra && terraform apply -auto-approve && cd ..
