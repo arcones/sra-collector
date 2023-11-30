@@ -12,7 +12,6 @@ terraform {
     region  = "eu-central-1"
     key     = "dev/terraform.tfstate"
     encrypt = true
-    profile = "arcones-admin"
   }
 }
 
