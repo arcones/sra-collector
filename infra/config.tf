@@ -17,6 +17,5 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.aws_region
-  profile = "arcones-admin"
+  region = var.aws_region
 }
