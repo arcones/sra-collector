@@ -1,5 +1,9 @@
 name: Terraform Infra
-on: [push]
+on:
+  workflow_run:
+    workflows: ["Python3 Build & Test"]
+    types:
+      - completed
 jobs:
   tf:
     runs-on: ubuntu-latest
