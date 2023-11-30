@@ -1,4 +1,4 @@
-name: Python3 Build & Test
+name: Terraform Infra
 on: [push]
 jobs:
   tf:
@@ -6,3 +6,7 @@ jobs:
     defaults:
       run:
         working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terraform init
+        run: terraform init
