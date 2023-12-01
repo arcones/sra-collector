@@ -33,3 +33,14 @@ jobs:
         run: terraform init
       - name: Terraform apply
         run: terraform apply -auto-approve
+  integration-test:
+    needs: tf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+      - name: Run API tests
+        run: postman collection run "3452487-aebc1b5e-f2b1-4180-899f-e9e6781f911a" --integration-id "153979-${{ github.run_id }}"
