@@ -42,5 +42,3 @@ resource "aws_apigatewayv2_route" "query_study_hierarchy" {
   route_key = "GET /query-study-hierarchy"
   target    = "integrations/${aws_apigatewayv2_integration.user_query.id}"
 }
-
-//TODO add lambda description
