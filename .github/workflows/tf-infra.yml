@@ -1,7 +1,8 @@
-name: Terraform Infra
+name: tf-infra
 on:
   workflow_run:
-    workflows: [Python3 Build & Test]
+    workflows:
+      - python3-build-and-test
     types:
       - completed
 jobs:

@@ -1,5 +1,7 @@
-name: Python3 Build & Test
-on: [push]
+name: python3-build-and-test
+on:
+  - push
+  - pull_request
 jobs:
   python3:
     runs-on: ubuntu-latest
