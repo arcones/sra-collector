@@ -17,7 +17,9 @@ def handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps(study_list)
+        'body': json.dumps({
+            'study_ids': study_list
+        })
     }
 
 
