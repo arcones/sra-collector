@@ -29,10 +29,11 @@ resource "aws_apigatewayv2_stage" "user_query_lambda" {
 }
 
 resource "aws_apigatewayv2_integration" "user_query" {
-  api_id             = aws_apigatewayv2_api.sra_collector_api.id
-  integration_uri    = module.lambda.user_query_invoke_arn
-  integration_type   = "AWS_PROXY"
-  integration_method = "POST"
+  api_id                 = aws_apigatewayv2_api.sra_collector_api.id
+  integration_uri        = module.lambda.user_query_invoke_arn
+  integration_type       = "AWS_PROXY"
+  integration_method     = "POST"
+  payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "query_study_hierarchy" {
