@@ -33,6 +33,7 @@ resource "aws_apigatewayv2_integration" "user_query" {
   integration_uri    = module.lambda.user_query_invoke_arn
   integration_type   = "AWS_PROXY"
   integration_method = "POST"
+  #  payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "query_study_hierarchy" {
@@ -41,3 +42,5 @@ resource "aws_apigatewayv2_route" "query_study_hierarchy" {
   route_key = "GET /query-study-hierarchy"
   target    = "integrations/${aws_apigatewayv2_integration.user_query.id}"
 }
+
+//TODO add lambda description

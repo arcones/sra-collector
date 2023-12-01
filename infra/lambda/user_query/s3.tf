@@ -1,7 +1,7 @@
 data "archive_file" "lambda_user_query" {
   type = "zip"
 
-  source_file = "${path.module}/python3/${var.lambda_name}.py"
+  source_file = "${path.module}/python3/user_query/${var.lambda_name}.py"
   output_path = "${path.module}/${var.lambda_name}.zip"
 }
 
