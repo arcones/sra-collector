@@ -1,10 +1,11 @@
 import json
 import logging
 
-import requests
+import urllib3
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 BATCH_SIZE = 500
+http = urllib3.PoolManager()
 
 
 def handler(event, context):
@@ -40,7 +41,7 @@ def _paginated_esearch(url: str) -> list[int]:
     paginated_url = url + f'&retmax={BATCH_SIZE}&usehistory=y'
     idlist = []
     while True:
-        response = json.loads(requests.get(f'{paginated_url}&retstart={retstart}').text)
+        response = json.loads(http.request('GET', f'{paginated_url}&retstart={retstart}').data)
         idlist += response['esearchresult']['idlist']
         if int(response['esearchresult']['retmax']) < BATCH_SIZE:
             return idlist
