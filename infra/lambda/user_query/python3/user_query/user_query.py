@@ -3,7 +3,10 @@ import logging
 
 import urllib3
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger('user_query')
+logger.setLevel(logging.INFO)
+
 BATCH_SIZE = 500
 http = urllib3.PoolManager()
 
@@ -11,7 +14,7 @@ http = urllib3.PoolManager()
 def handler(event, context):
     request_body = json.loads(event['body'])
     ncbi_query = request_body['ncbi_query']
-    logging.info(f'Query received for keyword {ncbi_query}')
+    logger.info(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
 
@@ -25,17 +28,17 @@ def handler(event, context):
 
 
 def get_study_list(search_keyword: str) -> list[int]:
-    logging.info(f'Get study list for keyword {search_keyword}...')
+    logger.info(f'Get study list for keyword {search_keyword}...')
     idlist = esearch_study_list(search_keyword)
-    logging.info(f'Done get study list for keyword {search_keyword}')
+    logger.info(f'Done get study list for keyword {search_keyword}')
     return idlist
 
 
 def esearch_study_list(keyword: str) -> list[int]:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={keyword}'
-    logging.debug(f'HTTP GET started ==> {url}')
+    logger.debug(f'HTTP GET started ==> {url}')
     response = _paginated_esearch(url)
-    logging.debug(f'HTTP GET finished ==> {url}')
+    logger.debug(f'HTTP GET finished ==> {url}')
     return response
 
 
