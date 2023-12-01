@@ -34,6 +34,7 @@ jobs:
       - name: Terraform apply
         run: terraform apply -auto-approve
   integration-test:
+    needs: tf
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
