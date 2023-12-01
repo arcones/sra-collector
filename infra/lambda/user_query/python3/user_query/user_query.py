@@ -6,5 +6,5 @@ def handler(event, context):
     message = 'The query {} results will be sent to {}'.format(request_body['ncbi_query'], request_body['mail'])
     return {
         'statusCode': 200,
-        'message': message
+        'body': message
     }
