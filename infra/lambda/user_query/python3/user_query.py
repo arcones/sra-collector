@@ -27,14 +27,7 @@ def handler(event, context):
             MessageBody=study
         )
 
-    return {
-        'statusCode': 200
-        # ,
-        # 'headers': {'content-type': 'application/json'},
-        # 'body': json.dumps({
-        #     'study_ids': study_list
-        # })
-    }
+    return {'statusCode': 200}
 
 
 def get_study_list(search_keyword: str) -> list[int]:
