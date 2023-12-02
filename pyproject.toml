@@ -1,15 +1,15 @@
 [tool.poetry]
-name = "sra-collector-user_query-lambda"
+name = "sra-collector"
 version = "0.0.1"
-description = "Lambda function that manages SRA queries comming from users"
+description = "Collect NIH SRA metadata of several studies in one search"
 authors = ["Marta Arcones <marta.arcones@alumnos.upm.es>"]
 license = "GPL-3.0"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pytest = "^7.4.3"
-coverage = "^7.3.2"
-urllib3 = "^2.1.0"
+urllib3 = "^2.0.7"
+botocore = "^1.33.6"
+boto3 = "^1.33.6"
 
 [build-system]
 requires = ["poetry-core"]

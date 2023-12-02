@@ -1,6 +1,7 @@
 import json
 import logging
 
+import boto3
 import urllib3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -10,6 +11,8 @@ logger.setLevel(logging.INFO)
 BATCH_SIZE = 500
 http = urllib3.PoolManager()
 
+sqs = boto3.client('sqs')
+
 
 def handler(event, context):
     request_body = json.loads(event['body'])
@@ -18,12 +21,19 @@ def handler(event, context):
 
     study_list = get_study_list(ncbi_query)
 
+    for study in study_list:
+        sqs.send_message(
+            QueueUrl='https://sqs.eu-centrla-1.amazonaws.com/120715685161/user_query_queue',
+            MessageBody=study
+        )
+
     return {
-        'statusCode': 200,
-        'headers': {'content-type': 'application/json'},
-        'body': json.dumps({
-            'study_ids': study_list
-        })
+        'statusCode': 200
+        # ,
+        # 'headers': {'content-type': 'application/json'},
+        # 'body': json.dumps({
+        #     'study_ids': study_list
+        # })
     }
 
 
