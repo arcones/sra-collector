@@ -1,4 +1,4 @@
-name: test-and-deploy
+name: deploy-and-test
 on:
   - push
   - pull_request
