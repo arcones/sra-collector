@@ -1,8 +1,8 @@
 import sys
 
-from user_query import handler
+sys.path.append('infra/lambda/user_query/python3')
 
-sys.path.append('infra/lambda/user-query/python3')
+from user_query import handler
 
 S_QUERY = 'stroke AND single cell rna seq AND musculus'
 

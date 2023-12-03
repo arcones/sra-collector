@@ -5,9 +5,6 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tests
     steps:
       - uses: actions/checkout@v4
       - run: pipx install poetry
@@ -16,7 +13,7 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
       - run: poetry install
-      - run: cd unit-tests && poetry run pytest
+      - run: poetry run pytest tests/user-query/unit_test.py
   tf:
     runs-on: ubuntu-latest
     needs: unit-tests
@@ -45,4 +42,5 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'poetry'
-      - run: cd integration-tests && poetry run pytest
+      - run: poetry install
+      - run: poetry run pytest tests/user-query/integration_test.py
