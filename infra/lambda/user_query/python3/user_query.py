@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 BATCH_SIZE = 500
 http = urllib3.PoolManager()
 
-sqs = boto3.client('sqs')
+sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
@@ -27,7 +27,11 @@ def handler(event, context):
             MessageBody=study
         )
 
-    return {'statusCode': 200}
+    return {
+        'statusCode': 200,
+        'headers': {'content-type': 'application/json'},
+        'body': ''
+    }
 
 
 def get_study_list(search_keyword: str) -> list[int]:
