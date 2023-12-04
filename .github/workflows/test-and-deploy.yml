@@ -1,29 +1,25 @@
 name: test-and-deploy
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 on:
   - push
   - pull_request
 jobs:
-  python3:
+  unit-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/lambda/user_query/python3
     steps:
       - uses: actions/checkout@v4
-      - name: Install poetry
-        run: pipx install poetry
+      - run: pipx install poetry
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'poetry'
       - run: poetry install
-      - run: poetry run coverage run -m pytest
+      - run: poetry run pytest tests/user-query/unit_test.py
   tf:
-    needs: python3
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    needs: unit-tests
     defaults:
       run:
         working-directory: infra
@@ -33,14 +29,15 @@ jobs:
         run: terraform init
       - name: Terraform apply
         run: terraform apply -auto-approve
-  integration-test:
+  integrations-tests:
     needs: tf
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Postman CLI
-        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
-      - name: Login to Postman CLI
-        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
-      - name: Run API tests
-        run: postman collection run "3452487-aebc1b5e-f2b1-4180-899f-e9e6781f911a" --integration-id "153979-${{ github.run_id }}"
+      - run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - run: poetry install
+      - run: poetry run pytest tests/user-query/integration_test.py

@@ -13,3 +13,7 @@ variable "aws_apigatewayv2_api_execution_arn" {
 variable "s3_bucket_id" {
   type = string
 }
+
+variable "user_query_sqs_arn" {
+  type = string
+}
