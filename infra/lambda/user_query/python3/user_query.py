@@ -23,14 +23,13 @@ def handler(event, context):
 
     for study_id in study_list:
         sqs.send_message(
-            QueueUrl='https://sqs.eu-centrla-1.amazonaws.com/120715685161/user_query_queue',
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_queue',
             MessageBody=json.dumps({'study_id': study_id})
         )
 
     return {
         'statusCode': 200,
-        'headers': {'content-type': 'application/json'},
-        'body': ''
+        'headers': {'content-type': 'application/json'}
     }
 
 
