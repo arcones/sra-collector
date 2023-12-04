@@ -21,10 +21,10 @@ def handler(event, context):
 
     study_list = get_study_list(ncbi_query)
 
-    for study in study_list:
+    for study_id in study_list:
         sqs.send_message(
             QueueUrl='https://sqs.eu-centrla-1.amazonaws.com/120715685161/user_query_queue',
-            MessageBody=study
+            MessageBody=json.dumps({'study_id': study_id})
         )
 
     return {
