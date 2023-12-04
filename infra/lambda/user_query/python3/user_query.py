@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 import boto3
 import urllib3
@@ -20,11 +21,12 @@ def handler(event, context):
     logger.info(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
+    request_id = datetime.now()
 
     for study_id in study_list:
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_queue',
-            MessageBody=json.dumps({'study_id': study_id})
+            MessageBody=json.dumps({'request_id': request_id,'study_id': study_id})
         )
 
     return {

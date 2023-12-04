@@ -1,5 +1,3 @@
-import json
-
 import urllib3
 
 ENDPOINT = 'https://hxtfx8byeb.execute-api.eu-central-1.amazonaws.com/user_query_lambda_stage/query-study-hierarchy'
