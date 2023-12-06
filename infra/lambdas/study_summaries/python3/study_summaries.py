@@ -26,19 +26,14 @@ def handler(event, context):
         for record in event['Records']:
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
-            logger.info(f'Study request received {study_request}')
 
             url = f'{base_url}&id={study_id}'
             retries_count = 1
             while retries_count < NCBI_RETRY_MAX:
                 response = http.request('GET', url)
                 if response.status == 200:
-                    summary = json.loads(response.data)
-                    logger.debug(f'Study summary from study {study_id} is {summary}')
-                    return sqs.send_message(
-                        QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
-                        MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(study_id, summary)})
-                    )
+                    summary = json.loads(response.data)['result'][study_id]
+                    _summary_process(study_request, summary)
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
@@ -46,8 +41,34 @@ def handler(event, context):
             raise Exception(f'Unable to fetch {study_id} in {NCBI_RETRY_MAX} attempts')
 
 
-def _extract_gse_from_summaries(study_id, summary) -> str:
-    study_summary_payload = summary['result'][study_id]
-    logger.debug(f'Extracting GSE from {study_summary_payload}')
-    if study_summary_payload['entrytype'] == 'GSE':
-        return study_summary_payload['accession']
+def _summary_process(study_request, summary):
+    logger.debug(f"Study summary from study {study_request['study_id']} is {summary}")
+    gse = _extract_gse_from_summaries(summary)
+    srps = _extract_srp_from_summaries(summary)
+
+    if len(srps) > 0:
+        logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
+        message = {**study_request, 'gse': gse, 'srps': srps}
+        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue', MessageBody=json.dumps(message))
+    else:
+        logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
+        message = {**study_request, 'gse': gse}
+        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue', MessageBody=json.dumps(message))
+
+
+def _extract_gse_from_summaries(summary) -> str:
+    if summary['entrytype'] == 'GSE':
+        return summary['accession']
+    else:
+        logger.error(f'For summary {summary} there are none GSE entrytype')
+
+
+def _extract_srp_from_summaries(summary) -> list[str]:
+    logger.debug(f'Extracting SRPs from {summary}')
+    srps = []
+    if summary['extrelations']:
+        for extrelation in summary['extrelations']:
+            sra_targetobject = extrelation['targetobject']
+            if sra_targetobject.startswith('SRP'):
+                srps.append(sra_targetobject)
+    return srps

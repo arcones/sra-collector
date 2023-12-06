@@ -63,7 +63,7 @@ resource "aws_iam_role_policy" "user_query_sqs_policy" {
       {
         Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
-        Resource = var.study_summaries_sqs_arn
+        Resource = [var.study_summaries_sqs_arn, var.pending_srp_sqs_arn]
       },
     ]
   })
