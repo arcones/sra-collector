@@ -6,7 +6,7 @@ import urllib3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 NCBI_RETRY_MAX = 50
 
@@ -25,14 +25,16 @@ def handler(event, context):
 
         for record in event['Records']:
             study_request = json.loads(record['body'])
+            study_id = study_request['study_id']
             logger.info(f'Study request received {study_request}')
 
-            url = f"{base_url}&id={study_request['study_id']}"
+            url = f'{base_url}&id={study_id}'
             retries_count = 1
             while retries_count < NCBI_RETRY_MAX:
                 response = http.request('GET', url)
                 if response.status == 200:
                     summary = json.loads(response.data)
+                    logger.debug(f'Study summary from study {study_id} is {summary}')
                     return sqs.send_message(
                         QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
                         MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(summary)})
@@ -41,10 +43,11 @@ def handler(event, context):
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
                     logger.info(f'Retries incremented to {retries_count}')
-            raise Exception(f"Unable to fetch {study_request['study_id']} in {NCBI_RETRY_MAX} attempts")
+            raise Exception(f'Unable to fetch {study_id} in {NCBI_RETRY_MAX} attempts')
 
 
 def _extract_gse_from_summaries(summary) -> str:
     summary_payload = summary['result']
+    logger.debug(f"Extracting GSE from {summary['result']}")
     if summary_payload['entrytype'] == 'GSE':
         return summary_payload['accession']
