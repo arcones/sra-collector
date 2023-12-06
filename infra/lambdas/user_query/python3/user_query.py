@@ -7,7 +7,7 @@ import urllib3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG) ## TODO reduce log level
 
 BATCH_SIZE = 500
 http = urllib3.PoolManager()
@@ -33,6 +33,7 @@ def handler(event, context):
             }),
             MessageGroupId=f'{request_id}_{study_id}'
         )
+        logger.debug(f'Pushed event for {study_id} to study_ids_queue queue')
 
         return {
             'statusCode': 201,
