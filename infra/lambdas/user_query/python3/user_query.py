@@ -34,11 +34,11 @@ def handler(event, context):
         )
         logger.debug(f'Pushed event for {study_id} to study_ids_queue queue')
 
-        return {
-            'statusCode': 201,
-            'body': json.dumps(request_info),
-            'headers': {'content-type': 'application/json'}
-        }
+    return {
+        'statusCode': 201,
+        'body': json.dumps(request_info),
+        'headers': {'content-type': 'application/json'}
+    }
 
 
 def get_study_list(search_keyword: str) -> list[int]:
