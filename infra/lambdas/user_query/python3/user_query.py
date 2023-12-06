@@ -33,7 +33,7 @@ def handler(event, context):
             })
         )
 
-    logger.info(f"Pushed {request_info['study_count']} event/s study_ids_queue queue")
+    logger.info(f"Pushed {request_info['study_count']} message/s to study ids queue")
 
     return {
         'statusCode': 201,
