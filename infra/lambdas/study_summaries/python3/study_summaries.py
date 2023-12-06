@@ -6,9 +6,7 @@ import urllib3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.DEBUG) ## TODO reduce log level
-
-NCBI_RETRY_MAX = 50
+logger.setLevel(logging.DEBUG)  ## TODO reduce log level
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -29,18 +27,15 @@ def handler(event, context):
             study_id = study_request['study_id']
 
             url = f'{base_url}&id={study_id}'
-            retries_count = 1
-            while retries_count < NCBI_RETRY_MAX:
+            response_status = 0
+
+            while response_status != 200:
                 response = http.request('GET', url)
-                if response.status == 200:
-                    summary = json.loads(response.data)['result'][study_id]
-                    _summary_process(study_request, summary, record['attributes']['MessageGroupId'])
-                    retries_count = NCBI_RETRY_MAX
-                else:
-                    logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
-                    retries_count += 1
-                    logger.info(f'Retries incremented to {retries_count}')
-            raise Exception(f'Unable to fetch {study_id} in {NCBI_RETRY_MAX} attempts')
+                response_status = response.status
+                summary = json.loads(response.data)['result'][study_id]
+                _summary_process(study_request, summary, record['attributes']['MessageGroupId'])
+
+            return {'statusCode': 200}
 
 
 def _summary_process(study_request, summary, message_group_id):
@@ -57,7 +52,6 @@ def _summary_process(study_request, summary, message_group_id):
             MessageGroupId=message_group_id
         )
         logger.debug(f'Finished process for {message_group_id}, pushed message to study_summaries_queue')
-        return True
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
@@ -67,7 +61,6 @@ def _summary_process(study_request, summary, message_group_id):
             MessageGroupId=message_group_id
         )
         logger.debug(f'Finished process for {message_group_id}, pushed message to pending_srp_queue')
-        return True
 
 
 def _extract_gse_from_summaries(summary) -> str:
