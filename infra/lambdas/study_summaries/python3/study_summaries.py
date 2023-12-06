@@ -11,6 +11,8 @@ logger.setLevel(logging.INFO)
 NCBI_RETRY_MAX = 50
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
+sqs = boto3.client('sqs', region_name='eu-central-1')
+
 http = urllib3.PoolManager()
 
 
@@ -30,10 +32,19 @@ def handler(event, context):
             while retries_count < NCBI_RETRY_MAX:
                 response = http.request('GET', url)
                 if response.status == 200:
-                    logger.info(json.loads(response.data))
-                    return
+                    summary = response.data
+                    return sqs.send_message(
+                        QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
+                        MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(summary)})
+                    )
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
                     logger.info(f'Retries incremented to {retries_count}')
             raise Exception(f"Unable to fetch {study_request['study_id']} in {NCBI_RETRY_MAX} attempts")
+
+
+def _extract_gse_from_summaries(summary) -> str:
+    summary_payload = summary['result']
+    if summary_payload['entrytype'] == 'GSE':
+        return summary_payload['accession']

@@ -56,3 +56,19 @@ resource "aws_iam_role_policy" "study_summaries_secret_policy" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "user_query_sqs_policy" {
+  name = "user_query_lambda_sqs"
+  role = aws_iam_role.study_summaries_lambda_role.name
+  policy = jsonencode({
+    Statement = [
+      {
+        Action = [
+          "sqs:sendmessage",
+        ]
+        Effect   = "Allow"
+        Resource = var.study_summaries_sqs_arn
+      },
+    ]
+  })
+}
