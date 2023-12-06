@@ -6,7 +6,7 @@ import urllib3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG) ## TODO reduce log level
 
 NCBI_RETRY_MAX = 50
 
@@ -24,6 +24,7 @@ def handler(event, context):
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
 
         for record in event['Records']:
+            logger.debug(f'Record received {record}')
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
 
@@ -49,11 +50,17 @@ def _summary_process(study_request, summary):
     if len(srps) > 0:
         logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
-        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo', MessageBody=json.dumps(message))
+        return sqs.send_message(
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo',
+            MessageBody=json.dumps(message)
+        )
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
-        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo', MessageBody=json.dumps(message))
+        return sqs.send_message(
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo',
+            MessageBody=json.dumps(message)
+        )
 
 
 def _extract_gse_from_summaries(summary) -> str:
