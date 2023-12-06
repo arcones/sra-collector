@@ -37,7 +37,7 @@ def handler(event, context):
                     logger.debug(f'Study summary from study {study_id} is {summary}')
                     return sqs.send_message(
                         QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
-                        MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(summary)})
+                        MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(study_id, summary)})
                     )
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
