@@ -6,6 +6,10 @@ on:
   - push
   - pull_request
 jobs:
+  purge-queues:
+    runs-on: ubuntu-latest
+    steps:
+      - run: aws sts get-caller-identity
   unit-tests:
     runs-on: ubuntu-latest
     steps:
