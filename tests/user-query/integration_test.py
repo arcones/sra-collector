@@ -9,4 +9,4 @@ S_QUERY = 'stroke AND single cell rna seq AND musculus'
 def test_xs_request():
     request_body = {'ncbi_query': S_QUERY}
     response = http.request('GET', ENDPOINT, json=request_body)
-    assert 200 == response.status
+    assert 201 == response.status

@@ -21,16 +21,18 @@ def handler(event, context):
     logger.info(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
+    study_count = len(study_list)
     request_id = round(time())
 
     for study_id in study_list:
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
-            MessageBody=json.dumps({'request_id': request_id,'study_id': study_id})
+            MessageBody=json.dumps({'request_id': request_id, 'study_id': study_id, 'study_count': study_count})
         )
 
     return {
-        'statusCode': 200,
+        'statusCode': 201,
+        'message': {'study_count': study_count},
         'headers': {'content-type': 'application/json'}
     }
 
