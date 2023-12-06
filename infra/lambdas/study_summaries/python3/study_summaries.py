@@ -24,6 +24,7 @@ def handler(event, context):
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
 
         for record in event['Records']:
+            logger.debug(f'Record received {record}')
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
 
