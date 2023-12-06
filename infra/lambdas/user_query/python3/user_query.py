@@ -26,12 +26,11 @@ def handler(event, context):
 
     for study_id in study_list:
         sqs.send_message(
-            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue.fifo',
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
             MessageBody=json.dumps({
                 'request_info': request_info,
                 'study_id': study_id
-            }),
-            MessageGroupId=f'{request_id}_{study_id}'
+            })
         )
         logger.debug(f'Pushed event for {study_id} to study_ids_queue queue')
 

@@ -47,18 +47,16 @@ def _summary_process(study_request, summary, message_group_id):
         logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
         sqs.send_message(
-            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo',
-            MessageBody=json.dumps(message),
-            MessageGroupId=message_group_id # TODO sigue haciendo falta?
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
+            MessageBody=json.dumps(message)
         )
         logger.debug(f'Finished process for {message_group_id}, pushed message to study_summaries_queue')
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
         sqs.send_message(
-            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo',
-            MessageBody=json.dumps(message),
-            MessageGroupId=message_group_id
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue',
+            MessageBody=json.dumps(message)
         )
         logger.debug(f'Finished process for {message_group_id}, pushed message to pending_srp_queue')
 
