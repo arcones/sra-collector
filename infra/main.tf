@@ -6,5 +6,6 @@ module "lambdas" {
   s3_bucket_id                       = aws_s3_bucket.lambdas.id
   study_ids_sqs_arn                  = aws_sqs_queue.study_ids_queue.arn
   study_summaries_sqs_arn            = aws_sqs_queue.study_summaries_queue.arn
+  pending_srp_sqs_arn                = aws_sqs_queue.pending_srp_queue.arn
   ncbi_api_key_secret_arn            = aws_secretsmanager_secret.ncbi_api_key.arn
 }
