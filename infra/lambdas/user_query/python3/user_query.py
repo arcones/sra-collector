@@ -21,21 +21,23 @@ def handler(event, context):
     logger.info(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
-    study_count = len(study_list)
     request_id = round(time())
+    request_info = {'request_id': request_id, 'study_count': len(study_list)}
 
     for study_id in study_list:
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
-            MessageBody=json.dumps({'request_id': request_id, 'study_id': study_id, 'study_count': study_count})
+            MessageBody=json.dumps({
+                'request_info': request_info,
+                'study_id': study_id
+            })
         )
 
-    return {
-        'statusCode': 201,
-        'message': {'study_count': study_count},
-        'headers': {'content-type': 'application/json'}
-    }
-
+        return {
+            'statusCode': 201,
+            'message': {'request_info': request_info},
+            'headers': {'content-type': 'application/json'}
+        }
 
 def get_study_list(search_keyword: str) -> list[int]:
     logger.info(f'Get study list for keyword {search_keyword}...')
@@ -43,14 +45,12 @@ def get_study_list(search_keyword: str) -> list[int]:
     logger.info(f'Done get study list for keyword {search_keyword}')
     return idlist
 
-
 def esearch_study_list(keyword: str) -> list[int]:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={keyword}'
     logger.debug(f'HTTP GET started ==> {url}')
     response = _paginated_esearch(url)
     logger.debug(f'HTTP GET finished ==> {url}')
     return response
-
 
 def _paginated_esearch(url: str) -> list[int]:
     retstart = 0
