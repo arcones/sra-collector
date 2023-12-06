@@ -32,7 +32,7 @@ def handler(event, context):
 
     return {
         'statusCode': 201,
-        'body': {'study_count': study_count},
+        'message': {'study_count': study_count},
         'headers': {'content-type': 'application/json'}
     }
 
