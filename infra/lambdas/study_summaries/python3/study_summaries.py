@@ -16,6 +16,7 @@ http = urllib3.PoolManager()
 
 def handler(event, context):
     if event:
+        logger.debug(f'Event received {event}')
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
