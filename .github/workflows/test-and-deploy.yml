@@ -9,7 +9,14 @@ jobs:
   purge-queues:
     runs-on: ubuntu-latest
     steps:
-      - run: aws sts get-caller-identity
+      - uses: actions/checkout@v4
+      - run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - run: poetry install
+      - run: poetry run python ./utils/purge-queues.py
   unit-tests:
     runs-on: ubuntu-latest
     steps:
