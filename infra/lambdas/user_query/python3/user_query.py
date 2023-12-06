@@ -36,7 +36,7 @@ def handler(event, context):
 
         return {
             'statusCode': 201,
-            'body': json.dumps({'request_info': request_info}),
+            'body': json.dumps(request_info),
             'headers': {'content-type': 'application/json'}
         }
 
