@@ -46,8 +46,8 @@ def handler(event, context):
             raise Exception(f'Unable to fetch {study_id} in {NCBI_RETRY_MAX} attempts')
 
 
-def _extract_gse_from_summaries(summary) -> str:
-    summary_payload = summary['result']
-    logger.debug(f"Extracting GSE from {summary['result']}")
-    if summary_payload['entrytype'] == 'GSE':
-        return summary_payload['accession']
+def _extract_gse_from_summaries(study_id, summary) -> str:
+    study_summary_payload = summary['result'][study_id]
+    logger.debug(f'Extracting GSE from {study_summary_payload}')
+    if study_summary_payload['entrytype'] == 'GSE':
+        return study_summary_payload['accession']
