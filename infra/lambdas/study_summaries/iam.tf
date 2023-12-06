@@ -47,9 +47,7 @@ resource "aws_iam_role_policy" "study_summaries_secret_policy" {
   policy = jsonencode({
     Statement = [
       {
-        Action = [
-          "secretsmanager:GetSecretValue"
-        ]
+        Action   = ["secretsmanager:GetSecretValue"]
         Effect   = "Allow"
         Resource = var.ncbi_api_key_secret_arn
       },
@@ -63,9 +61,7 @@ resource "aws_iam_role_policy" "user_query_sqs_policy" {
   policy = jsonencode({
     Statement = [
       {
-        Action = [
-          "sqs:sendmessage",
-        ]
+        Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
         Resource = var.study_summaries_sqs_arn
       },
