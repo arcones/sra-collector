@@ -14,6 +14,14 @@ variable "s3_bucket_id" {
   type = string
 }
 
-variable "user_query_sqs_arn" {
+variable "study_ids_sqs_arn" {
+  type = string
+}
+
+variable "study_summaries_sqs_arn" {
+  type = string
+}
+
+variable "ncbi_api_key_secret_arn" {
   type = string
 }

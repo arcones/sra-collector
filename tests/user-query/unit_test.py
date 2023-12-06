@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('infra/lambda/user_query/python3')
+sys.path.append('infra/lambdas/user_query/python3')
 
 from user_query import handler
 
