@@ -34,7 +34,7 @@ def handler(event, context):
                 response = http.request('GET', url)
                 if response.status == 200:
                     summary = json.loads(response.data)['result'][study_id]
-                    _summary_process(study_request, summary, record['MessageGroupId'])
+                    _summary_process(study_request, summary, record['attributes']['MessageGroupId'])
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
