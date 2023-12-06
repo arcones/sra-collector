@@ -5,7 +5,7 @@ from time import time
 import boto3
 import urllib3
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
 logger.setLevel(logging.DEBUG) ## TODO reduce log level
 
