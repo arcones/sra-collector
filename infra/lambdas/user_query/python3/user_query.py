@@ -7,7 +7,7 @@ import urllib3
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.DEBUG) ## TODO reduce log level
+logger.setLevel(logging.INFO)
 
 BATCH_SIZE = 500
 http = urllib3.PoolManager()

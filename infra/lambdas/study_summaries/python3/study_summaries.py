@@ -6,7 +6,7 @@ import urllib3
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.DEBUG)  ## TODO reduce log level
+logger.setLevel(logging.INFO)
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
