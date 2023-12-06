@@ -49,7 +49,7 @@ def _summary_process(study_request, summary, message_group_id):
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo',
             MessageBody=json.dumps(message),
-            MessageGroupId=message_group_id
+            MessageGroupId=message_group_id # TODO sigue haciendo falta?
         )
         logger.debug(f'Finished process for {message_group_id}, pushed message to study_summaries_queue')
     else:
