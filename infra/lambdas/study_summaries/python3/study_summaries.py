@@ -35,6 +35,7 @@ def handler(event, context):
                 if response.status == 200:
                     summary = json.loads(response.data)['result'][study_id]
                     _summary_process(study_request, summary, record['attributes']['MessageGroupId'])
+                    retries_count = NCBI_RETRY_MAX
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
