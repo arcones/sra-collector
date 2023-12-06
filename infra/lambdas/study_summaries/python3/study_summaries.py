@@ -24,7 +24,6 @@ def handler(event, context):
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
 
         for record in event['Records']:
-            logger.debug(f'Record received {record}')
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
 
@@ -34,7 +33,7 @@ def handler(event, context):
                 response = http.request('GET', url)
                 if response.status == 200:
                     summary = json.loads(response.data)['result'][study_id]
-                    _summary_process(study_request, summary)
+                    _summary_process(study_request, summary, record['MessageGroupId'])
                 else:
                     logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
@@ -42,7 +41,7 @@ def handler(event, context):
             raise Exception(f'Unable to fetch {study_id} in {NCBI_RETRY_MAX} attempts')
 
 
-def _summary_process(study_request, summary):
+def _summary_process(study_request, summary, message_group_id):
     logger.debug(f"Study summary from study {study_request['study_id']} is {summary}")
     gse = _extract_gse_from_summaries(summary)
     srps = _extract_srp_from_summaries(summary)
@@ -52,14 +51,16 @@ def _summary_process(study_request, summary):
         message = {**study_request, 'gse': gse, 'srps': srps}
         return sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo',
-            MessageBody=json.dumps(message)
+            MessageBody=json.dumps(message),
+            MessageGroupId=message_group_id
         )
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
         return sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo',
-            MessageBody=json.dumps(message)
+            MessageBody=json.dumps(message),
+            MessageGroupId=message_group_id
         )
 
 
