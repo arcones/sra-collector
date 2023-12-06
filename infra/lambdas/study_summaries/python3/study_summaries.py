@@ -33,12 +33,12 @@ def handler(event, context):
                 response = http.request('GET', url)
                 response_status = response.status
                 summary = json.loads(response.data)['result'][study_id]
-                _summary_process(study_request, summary, record['attributes']['MessageGroupId'])
+                _summary_process(study_request, summary)
 
             return {'statusCode': 200}
 
 
-def _summary_process(study_request, summary, message_group_id):
+def _summary_process(study_request, summary):
     logger.debug(f"Study summary from study {study_request['study_id']} is {summary}")
     gse = _extract_gse_from_summaries(summary)
     srps = _extract_srp_from_summaries(summary)
@@ -50,7 +50,6 @@ def _summary_process(study_request, summary, message_group_id):
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
             MessageBody=json.dumps(message)
         )
-        logger.debug(f'Finished process for {message_group_id}, pushed message to study_summaries_queue')
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
@@ -58,7 +57,6 @@ def _summary_process(study_request, summary, message_group_id):
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue',
             MessageBody=json.dumps(message)
         )
-        logger.debug(f'Finished process for {message_group_id}, pushed message to pending_srp_queue')
 
 
 def _extract_gse_from_summaries(summary) -> str:
