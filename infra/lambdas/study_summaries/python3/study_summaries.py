@@ -32,7 +32,7 @@ def handler(event, context):
             while retries_count < NCBI_RETRY_MAX:
                 response = http.request('GET', url)
                 if response.status == 200:
-                    summary = response.data
+                    summary = json.loads(response.data)
                     return sqs.send_message(
                         QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
                         MessageBody=json.dumps({**study_request, 'gse': _extract_gse_from_summaries(summary)})
