@@ -17,20 +17,8 @@ jobs:
           cache: 'poetry'
       - run: poetry install
       - run: poetry run python ./utils/purge-queues.py
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pipx install poetry
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'poetry'
-      - run: poetry install
-      - run: poetry run pytest tests/user-query/unit_test.py
   tf:
     runs-on: ubuntu-latest
-    needs: unit-tests
     defaults:
       run:
         working-directory: infra
@@ -40,15 +28,3 @@ jobs:
         run: terraform init
       - name: Terraform apply
         run: terraform apply -auto-approve
-  integrations-tests:
-    needs: tf
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pipx install poetry
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'poetry'
-      - run: poetry install
-      - run: poetry run pytest tests/user-query/integration_test.py

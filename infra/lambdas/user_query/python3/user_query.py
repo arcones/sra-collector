@@ -5,7 +5,7 @@ from time import time
 import boto3
 import urllib3
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
 logger.setLevel(logging.INFO)
 
@@ -18,29 +18,34 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 def handler(event, context):
     request_body = json.loads(event['body'])
     ncbi_query = request_body['ncbi_query']
-    logger.info(f'Query received for keyword {ncbi_query}')
+    logger.debug(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
-    study_count = len(study_list)
     request_id = round(time())
+    request_info = {'request_id': request_id, 'study_count': len(study_list)}
 
     for study_id in study_list:
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
-            MessageBody=json.dumps({'request_id': request_id, 'study_id': study_id, 'study_count': study_count})
+            MessageBody=json.dumps({
+                'request_info': request_info,
+                'study_id': study_id
+            })
         )
+
+    logger.info(f"Pushed {request_info['study_count']} message/s to study ids queue")
 
     return {
         'statusCode': 201,
-        'message': {'study_count': study_count},
+        'body': json.dumps(request_info),
         'headers': {'content-type': 'application/json'}
     }
 
 
 def get_study_list(search_keyword: str) -> list[int]:
-    logger.info(f'Get study list for keyword {search_keyword}...')
+    logger.debug(f'Get study list for keyword {search_keyword}...')
     idlist = esearch_study_list(search_keyword)
-    logger.info(f'Done get study list for keyword {search_keyword}')
+    logger.debug(f'Done get study list for keyword {search_keyword}')
     return idlist
 
 
