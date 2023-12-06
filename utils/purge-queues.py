@@ -1,8 +1,4 @@
 import logging
-<<<<<<< HEAD
-=======
-import time
->>>>>>> 358e6afb060fdfc83a57744eca2d5d3d539f8718
 
 import boto3
 
