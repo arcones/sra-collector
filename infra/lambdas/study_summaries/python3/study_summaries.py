@@ -16,14 +16,12 @@ http = urllib3.PoolManager()
 
 def handler(event, context):
     if event:
-        logger.debug(f'Event received {event}')
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
 
         for record in event['Records']:
-            logger.debug(f'Record received {record}')
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
 
@@ -45,14 +43,14 @@ def _summary_process(study_request, summary):
     srps = _extract_srp_from_summaries(summary)
 
     if len(srps) > 0:
-        logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
+        logger.info(f"{len(srps)} SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
             MessageBody=json.dumps(message)
         )
     else:
-        logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
+        logger.info(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
         sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue',

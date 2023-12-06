@@ -18,7 +18,7 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 def handler(event, context):
     request_body = json.loads(event['body'])
     ncbi_query = request_body['ncbi_query']
-    logger.info(f'Query received for keyword {ncbi_query}')
+    logger.debug(f'Query received for keyword {ncbi_query}')
 
     study_list = get_study_list(ncbi_query)
     request_id = round(time())
@@ -32,7 +32,8 @@ def handler(event, context):
                 'study_id': study_id
             })
         )
-        logger.debug(f'Pushed event for {study_id} to study_ids_queue queue')
+
+    logger.info(f"Pushed {request_info['study_count']} event/s study_ids_queue queue")
 
     return {
         'statusCode': 201,
@@ -42,9 +43,9 @@ def handler(event, context):
 
 
 def get_study_list(search_keyword: str) -> list[int]:
-    logger.info(f'Get study list for keyword {search_keyword}...')
+    logger.debug(f'Get study list for keyword {search_keyword}...')
     idlist = esearch_study_list(search_keyword)
-    logger.info(f'Done get study list for keyword {search_keyword}')
+    logger.debug(f'Done get study list for keyword {search_keyword}')
     return idlist
 
 
