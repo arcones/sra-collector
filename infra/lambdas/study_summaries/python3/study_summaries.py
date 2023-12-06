@@ -23,8 +23,7 @@ def handler(event, context):
         secret = secrets.get_secret_value(SecretId='ncbi_api_key')
 
         print(f'El secreto es {secret}')
-        print(f'Intento de parseo sin coger el valor {json.loads(secret)}')
-        print(f"Intento de parseo cogiendo el valor {json.loads(secret)['value']}")
+        print(f"Intento de parseo cogiendo el valor {json.loads(secret['SecretString'])['value']}")
 
         return sqs_batch_response
     #
