@@ -4,6 +4,10 @@ import logging
 import boto3
 import urllib3
 
+logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger('user_query')
+logger.setLevel(logging.INFO)
+
 NCBI_RETRY_MAX = 50
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
@@ -19,17 +23,17 @@ def handler(event, context):
 
         for record in event['Records']:
             study_request = json.loads(record['body'])
-            logging.info(f'Study request received {study_request}')
+            logger.info(f'Study request received {study_request}')
 
             url = f"{base_url}&id={study_request['study_id']}"
             retries_count = 1
             while retries_count < NCBI_RETRY_MAX:
                 response = http.request('GET', url)
                 if response.status == 200:
-                    logging.info(json.loads(response.data))
+                    logger.info(json.loads(response.data))
                     return
                 else:
-                    logging.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
+                    logger.info(f'HTTP GET finished with unexpected code {response.status} in retry #{retries_count} ==> {url}')
                     retries_count += 1
-                    logging.info(f'Retries incremented to {retries_count}')
+                    logger.info(f'Retries incremented to {retries_count}')
             raise Exception(f"Unable to fetch {study_request['study_id']} in {NCBI_RETRY_MAX} attempts")
