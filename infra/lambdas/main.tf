@@ -4,5 +4,13 @@ module "user_query" {
   aws_account_id                     = var.aws_account_id
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
   s3_bucket_id                       = var.s3_bucket_id
-  user_query_sqs_arn                 = var.user_query_sqs_arn
+  study_ids_sqs_arn                  = var.study_ids_sqs_arn
+}
+
+module "study_summaries" {
+  source            = "./study_summaries"
+  aws_region        = var.aws_region
+  aws_account_id    = var.aws_account_id
+  s3_bucket_id      = var.s3_bucket_id
+  study_ids_sqs_arn = var.study_ids_sqs_arn
 }
