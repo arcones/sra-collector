@@ -26,7 +26,6 @@ def handler(event, context):
         for record in event['Records']:
             study_request = json.loads(record['body'])
             study_id = study_request['study_id']
-            logger.info(f'Study request received {study_request}')
 
             url = f'{base_url}&id={study_id}'
             retries_count = 1
@@ -48,15 +47,16 @@ def _summary_process(study_request, summary):
     srps = _extract_srp_from_summaries(summary)
 
     if len(srps) > 0:
+        logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
         return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue', MessageBody=json.dumps(message))
     else:
+        logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
         return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue', MessageBody=json.dumps(message))
 
 
 def _extract_gse_from_summaries(summary) -> str:
-    logger.debug(f'Extracting GSE from {summary}')
     if summary['entrytype'] == 'GSE':
         return summary['accession']
     else:
@@ -64,6 +64,7 @@ def _extract_gse_from_summaries(summary) -> str:
 
 
 def _extract_srp_from_summaries(summary) -> list[str]:
+    logger.debug(f'Extracting SRPs from {summary}')
     srps = []
     if summary['extrelations']:
         for extrelation in summary['extrelations']:
