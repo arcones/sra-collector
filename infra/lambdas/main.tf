@@ -8,9 +8,10 @@ module "user_query" {
 }
 
 module "study_summaries" {
-  source            = "./study_summaries"
-  aws_region        = var.aws_region
-  aws_account_id    = var.aws_account_id
-  s3_bucket_id      = var.s3_bucket_id
-  study_ids_sqs_arn = var.study_ids_sqs_arn
+  source                  = "./study_summaries"
+  aws_region              = var.aws_region
+  aws_account_id          = var.aws_account_id
+  s3_bucket_id            = var.s3_bucket_id
+  study_ids_sqs_arn       = var.study_ids_sqs_arn
+  ncbi_api_key_secret_arn = var.ncbi_api_key_secret_arn
 }

@@ -40,3 +40,19 @@ resource "aws_iam_role_policy" "study_summaries_sqs_policy" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "study_summaries_secret_policy" {
+  name = "study_summaries_lambda_secret"
+  role = aws_iam_role.study_summaries_lambda_role.name
+  policy = jsonencode({
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Effect   = "Allow"
+        Resource = var.ncbi_api_key_secret_arn
+      },
+    ]
+  })
+}

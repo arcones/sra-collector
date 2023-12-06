@@ -17,3 +17,7 @@ variable "s3_bucket_id" {
 variable "study_ids_sqs_arn" {
   type = string
 }
+
+variable "ncbi_api_key_secret_arn" {
+  type = string
+}
