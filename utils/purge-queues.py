@@ -1,4 +1,5 @@
 import logging
+import time
 
 import boto3
 
@@ -13,6 +14,9 @@ queue_urls = sqs.list_queues()['QueueUrls']
 logger.info(f'Listed {len(queue_urls)} queues')
 
 for queue_url in queue_urls:
-    logger.info(f'Purging queue {queue_url}...')
-    response = sqs.purge_queue(QueueUrl=queue_url)
-    logger.info(f'Purged queue {queue_url}')
+    try:
+        logger.info(f'Purging queue {queue_url}...')
+        response = sqs.purge_queue(QueueUrl=queue_url)
+        logger.info(f'Purged queue {queue_url}')
+    except sqs.exceptions.PurgeQueueInProgress as purgeQueueActionInProgress:
+        logger.info(f'There is a purge action already in progress in {queue_url}')
