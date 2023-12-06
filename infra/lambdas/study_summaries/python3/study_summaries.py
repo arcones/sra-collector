@@ -49,11 +49,11 @@ def _summary_process(study_request, summary):
     if len(srps) > 0:
         logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
-        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue', MessageBody=json.dumps(message))
+        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo', MessageBody=json.dumps(message))
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
-        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue', MessageBody=json.dumps(message))
+        return sqs.send_message(QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo', MessageBody=json.dumps(message))
 
 
 def _extract_gse_from_summaries(summary) -> str:

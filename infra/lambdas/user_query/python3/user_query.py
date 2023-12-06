@@ -26,18 +26,20 @@ def handler(event, context):
 
     for study_id in study_list:
         sqs.send_message(
-            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
+            QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue.fifo',
             MessageBody=json.dumps({
                 'request_info': request_info,
                 'study_id': study_id
-            })
+            }),
+            MessageGroupId=f'{request_id}_{study_id}'
         )
 
         return {
             'statusCode': 201,
-            'message': {'request_info': request_info},
+            'body': json.dumps({'request_info': request_info}),
             'headers': {'content-type': 'application/json'}
         }
+
 
 def get_study_list(search_keyword: str) -> list[int]:
     logger.info(f'Get study list for keyword {search_keyword}...')
@@ -45,12 +47,14 @@ def get_study_list(search_keyword: str) -> list[int]:
     logger.info(f'Done get study list for keyword {search_keyword}')
     return idlist
 
+
 def esearch_study_list(keyword: str) -> list[int]:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={keyword}'
     logger.debug(f'HTTP GET started ==> {url}')
     response = _paginated_esearch(url)
     logger.debug(f'HTTP GET finished ==> {url}')
     return response
+
 
 def _paginated_esearch(url: str) -> list[int]:
     retstart = 0
