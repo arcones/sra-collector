@@ -50,24 +50,31 @@ def _summary_process(study_request, summary, message_group_id):
     if len(srps) > 0:
         logger.debug(f"SRPs retrieved for {study_request['study_id']}, sending message to study summaries queue")
         message = {**study_request, 'gse': gse, 'srps': srps}
-        return sqs.send_message(
+        sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue.fifo',
             MessageBody=json.dumps(message),
             MessageGroupId=message_group_id
         )
+        logger.debug(f'Finished process for {message_group_id}, pushed message to study_summaries_queue')
+        return True
     else:
         logger.debug(f"None SRPs retrieved for {study_request['study_id']}, sending message to pending SRPs queue")
         message = {**study_request, 'gse': gse}
-        return sqs.send_message(
+        sqs.send_message(
             QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/pending_srp_queue.fifo',
             MessageBody=json.dumps(message),
             MessageGroupId=message_group_id
         )
+        logger.debug(f'Finished process for {message_group_id}, pushed message to pending_srp_queue')
+        return True
 
 
 def _extract_gse_from_summaries(summary) -> str:
+    logger.debug(f'Extracting GSE from {summary}')
     if summary['entrytype'] == 'GSE':
-        return summary['accession']
+        gse = summary['accession']
+        logger.debug(f'Extracted GSE {gse}')
+        return gse
     else:
         logger.error(f'For summary {summary} there are none GSE entrytype')
 
@@ -80,4 +87,5 @@ def _extract_srp_from_summaries(summary) -> list[str]:
             sra_targetobject = extrelation['targetobject']
             if sra_targetobject.startswith('SRP'):
                 srps.append(sra_targetobject)
+    logger.debug(f'{len(srps)} have been extracted')
     return srps
