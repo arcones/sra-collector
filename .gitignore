@@ -4,6 +4,7 @@
 # Infra
 infra/.terraform
 **/*.zip
+**/*.tfstate
 
 # Python
 **/.pytest_cache
