@@ -1,6 +1,6 @@
 locals {
   layer_input_folder    = "${path.module}/bundle"
-  layer_name            = "missing_srps_lambda_layer"
+  layer_name            = "${local.function_name}_lambda_layer"
   layer_output_zip_path = "${local.layer_name}.zip"
   requirements_path     = "${path.module}/python3/requirements.txt"
 }
