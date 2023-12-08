@@ -41,7 +41,7 @@ resource "aws_iam_role_policy" "missing_srps_sqs_policy" {
   })
 }
 
-resource "aws_iam_role_policy" "user_query_sqs_policy" {
+resource "aws_iam_role_policy" "study_summaries_sqs_policy" {
   name = "user_query_lambda_sqs"
   role = aws_iam_role.missing_srps_lambda_role.name
   policy = jsonencode({
