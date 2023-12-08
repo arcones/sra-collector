@@ -8,7 +8,7 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def handler(event, context):
@@ -22,7 +22,7 @@ def handler(event, context):
             logging.debug(f'For {gse} the SRP is {srp}')
 
             if srp:
-                logger.info(f"SRP retrieved for {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
+                logger.info(f"SRP retrieved via pysradb for {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
                 message = {**study_with_missing_srp, 'srps': [srp]}
                 sqs.send_message(
                     QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_summaries_queue',
