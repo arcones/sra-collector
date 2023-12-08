@@ -7,7 +7,7 @@ locals {
 
 resource "null_resource" "lambda_missing_srps_layer_bundle_creator" {
   triggers = {
-    requirements = filesha1(local.requirements_path)
+    requirements = timestamp()
   }
   provisioner "local-exec" {
     command = <<EOT
@@ -23,7 +23,6 @@ data "archive_file" "lambda_missing_srps_layer" {
   type        = "zip"
   source_dir  = local.layer_input_folder
   output_path = local.layer_output_zip_path
-  depends_on  = [null_resource.lambda_missing_srps_layer_bundle_creator]
 }
 
 resource "aws_s3_object" "lambda_layer_zip" {
