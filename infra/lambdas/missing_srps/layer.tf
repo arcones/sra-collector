@@ -7,7 +7,7 @@ locals {
 
 resource "null_resource" "lambda_missing_srps_layer_bundle_creator" {
   triggers = {
-    requirements = timestamp()
+    requirements = filesha1(local.requirements_path)
   }
   provisioner "local-exec" {
     command = <<EOT
