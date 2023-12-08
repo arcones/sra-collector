@@ -27,7 +27,7 @@ resource "aws_cloudwatch_metric_alarm" "pending_srp_dlq-overfill-alarm" {
   threshold           = 1
   statistic           = "Sum"
   treat_missing_data  = "ignore"
-}
+} //TODO missing actions on alarm for every CW alarm
 
 resource "aws_cloudwatch_metric_alarm" "study_summaries_dlq_overfill_alarm" {
   alarm_name          = "study_summaries_dlq_overfill"
