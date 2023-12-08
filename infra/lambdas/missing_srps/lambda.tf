@@ -7,7 +7,7 @@ resource "aws_lambda_function" "missing_srps" {
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.lambda_missing_srps.output_base64sha256
-  layers           = [aws_lambda_layer_version.missing_srps_lambda_layer.arn]
+  layers           = [var.pysradb_lambda_layer]
   timeout          = 10
 }
 

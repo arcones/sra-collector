@@ -25,4 +25,5 @@ module "missing_srps" {
   s3_bucket_id            = var.s3_bucket_id
   pending_srp_sqs_arn     = var.pending_srp_sqs_arn
   study_summaries_sqs_arn = var.study_summaries_sqs_arn
+  pysradb_lambda_layer    = aws_lambda_layer_version.missing_srps_lambda_layer.arn
 }

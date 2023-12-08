@@ -17,3 +17,7 @@ variable "pending_srp_sqs_arn" {
 variable "study_summaries_sqs_arn" {
   type = string
 }
+
+variable "pysradb_lambda_layer" {
+  type = string
+}

@@ -1,8 +1,8 @@
 locals {
   layer_input_folder    = "${path.module}/bundle"
-  layer_name            = "${local.function_name}_lambda_layer"
+  layer_name            = "pysradb_lambda_layer"
   layer_output_zip_path = "${local.layer_name}.zip"
-  requirements_path     = "${path.module}/python3/requirements.txt"
+  requirements_path     = "${path.module}/pysradb-requirements.txt"
 }
 
 resource "null_resource" "lambda_missing_srps_layer_bundle_creator" {
