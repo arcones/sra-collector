@@ -9,3 +9,4 @@ infra/.terraform
 # Python
 **/.pytest_cache
 **/__pycache__/
+utils/purge_queues/env_purge_queues
