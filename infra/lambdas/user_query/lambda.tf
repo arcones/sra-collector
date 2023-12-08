@@ -7,7 +7,7 @@ resource "aws_lambda_function" "user_query" {
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.lambda_user_query.output_base64sha256
-  timeout          = 180
+  timeout          = 500
 }
 
 resource "aws_lambda_permission" "lambda_permission" {
