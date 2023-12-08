@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 
 def handler(event, context):
     if event:
-        for record in event['Records']:
+        for record in event['Records']: ## TODO qes esto???
             study_with_missing_srp = json.loads(record['body'])
             logger.debug(f'Received event {study_with_missing_srp}')
 

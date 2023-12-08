@@ -11,21 +11,20 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-resource "aws_iam_role" "user_query_lambda_role" {
-  name               = "user_query_lambda_role"
+resource "aws_iam_role" "get_study_ids_lambda_role" {
+  name               = "get_study_ids_lambda_role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
-
-resource "aws_iam_role_policy_attachment" "user_query_lambda_basic_policy" {
-  role       = aws_iam_role.user_query_lambda_role.name
+resource "aws_iam_role_policy_attachment" "get_study_ids_lambda_basic_policy" {
+  role       = aws_iam_role.get_study_ids_lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 
-resource "aws_iam_role_policy" "user_query_sqs_policy" {
-  name = "user_query_lambda_sqs"
-  role = aws_iam_role.user_query_lambda_role.name
+resource "aws_iam_role_policy" "get_study_ids_sqs_policy" {
+  name = "get_study_ids_lambda_sqs"
+  role = aws_iam_role.get_study_ids_lambda_role.name
   policy = jsonencode({
     Statement = [
       {
@@ -33,7 +32,7 @@ resource "aws_iam_role_policy" "user_query_sqs_policy" {
           "sqs:sendmessage",
         ]
         Effect   = "Allow"
-        Resource = var.user_query_sqs_arn
+        Resource = var.study_ids_sqs_arn
       },
     ]
   })

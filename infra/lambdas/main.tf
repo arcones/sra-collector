@@ -4,7 +4,7 @@ module "user_query" {
   aws_account_id                     = var.aws_account_id
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
   s3_bucket_id                       = var.s3_bucket_id
-  study_ids_sqs_arn                  = var.study_ids_sqs_arn
+  user_query_sqs_arn                 = var.user_
 }
 
 module "study_summaries" {

@@ -1,3 +1,15 @@
+resource "aws_sqs_queue" "user_query_queue" {
+  name = "user_query_queue"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.user_query_dlq.arn,
+    maxReceiveCount     = 2
+  })
+}
+
+resource "aws_sqs_queue" "user_query_dlq" {
+  name = "user_query_dlq"
+}
+
 resource "aws_sqs_queue" "study_ids_queue" {
   name = "study_ids_queue"
   redrive_policy = jsonencode({

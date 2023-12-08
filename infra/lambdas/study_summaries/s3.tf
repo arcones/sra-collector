@@ -5,7 +5,6 @@ data "archive_file" "lambda_study_summaries" {
   output_path = "${path.module}/${local.function_name}.zip"
 }
 
-
 resource "aws_s3_object" "lambda_study_summaries" {
   bucket = var.s3_bucket_id
 
