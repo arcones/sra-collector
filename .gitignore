@@ -9,5 +9,5 @@ infra/.terraform
 **/*.zip
 **/.pytest_cache
 **/__pycache__/
-utils/purge_queues/env_purge_queues
+**/env_**
 **/bundle
