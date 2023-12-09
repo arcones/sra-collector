@@ -14,28 +14,28 @@ http = urllib3.PoolManager()
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
-
 def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
-        request_body = json.loads(event['body']) ## TODO no contiene body
-        ncbi_query = request_body['ncbi_query']
-        logger.debug(f'Query received for keyword {ncbi_query}')
+        for record in event['Records']:
+            request_body = json.loads(event['body'])
+            query = request_body['query']
+            logger.debug(f'Query received for keyword {query}')
 
-        study_list = get_study_list(ncbi_query)
-        request_id = round(time())
-        request_info = {'request_id': request_id, 'study_count': len(study_list)}
+            study_list = get_study_list(query)
+            request_id = round(time())
+            request_info = {'request_id': request_id, 'study_count': len(study_list)}
 
-        for study_id in study_list:
-            sqs.send_message(
-                QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
-                MessageBody=json.dumps({
-                    'request_info': request_info,
-                    'study_id': study_id
-                })
-            )
+            for study_id in study_list:
+                sqs.send_message(
+                    QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
+                    MessageBody=json.dumps({
+                        'request_info': request_info,
+                        'study_id': study_id
+                    })
+                )
 
-        logger.info(f"Pushed {request_info['study_count']} message/s to study ids queue")
+            logger.info(f"Pushed {request_info['study_count']} message/s to study ids queue")
 
 
 def get_study_list(search_keyword: str) -> list[int]:
