@@ -1,6 +1,6 @@
 resource "aws_lambda_function" "user_query" {
   function_name    = local.function_name
-  description      = "Receives & processes NCBI query from the user. It fetches study IDs and send them to queue"
+  description      = "Receives NCBI query from the user and places it in a queue"
   s3_bucket        = var.s3_bucket_id
   s3_key           = aws_s3_object.lambda_user_query.key
   role             = aws_iam_role.user_query_lambda_role.arn

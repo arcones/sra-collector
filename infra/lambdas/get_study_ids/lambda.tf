@@ -7,5 +7,12 @@ resource "aws_lambda_function" "get_study_ids" {
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.lambda_get_study_ids.output_base64sha256
-  timeout          = 500
+  timeout          = 30
+}
+
+resource "aws_lambda_event_source_mapping" "event_source_mapping" {
+  event_source_arn = var.user_query_sqs_arn
+  enabled          = true
+  function_name    = aws_lambda_function.get_study_ids.function_name
+  batch_size       = 1
 }

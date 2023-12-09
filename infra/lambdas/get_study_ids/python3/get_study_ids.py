@@ -7,7 +7,7 @@ import urllib3
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('get_study_ids')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 BATCH_SIZE = 500
 http = urllib3.PoolManager()
@@ -17,7 +17,8 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 
 def handler(event, context):
     if event:
-        request_body = json.loads(event['body'])
+        logger.debug(f'Received event {event}')
+        request_body = json.loads(event['body']) ## TODO no contiene body
         ncbi_query = request_body['ncbi_query']
         logger.debug(f'Query received for keyword {ncbi_query}')
 

@@ -8,11 +8,12 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def handler(event, context):
     if event:
+        logger.debug(f'Received event {event}')
         for record in event['Records']: ## TODO qes esto???
             study_with_missing_srp = json.loads(record['body'])
             logger.debug(f'Received event {study_with_missing_srp}')

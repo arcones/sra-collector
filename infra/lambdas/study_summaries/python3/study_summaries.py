@@ -6,7 +6,7 @@ import urllib3
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -16,6 +16,7 @@ http = urllib3.PoolManager()
 
 def handler(event, context):
     if event:
+        logger.debug(f'Received event {event}')
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 

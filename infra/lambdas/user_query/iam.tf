@@ -23,8 +23,8 @@ resource "aws_iam_role_policy_attachment" "user_query_lambda_basic_policy" {
 }
 
 
-resource "aws_iam_role_policy" "user_query_sqs_policy" {
-  name = "user_query_lambda_sqs"
+resource "aws_iam_role_policy" "output_sqs_policy" {
+  name = "output_sqs_policy"
   role = aws_iam_role.user_query_lambda_role.name
   policy = jsonencode({
     Statement = [

@@ -7,6 +7,15 @@ module "user_query" {
   user_query_sqs_arn                 = var.user_query_sqs_arn
 }
 
+module "get_study_ids" {
+  source             = "./get_study_ids"
+  aws_region         = var.aws_region
+  aws_account_id     = var.aws_account_id
+  s3_bucket_id       = var.s3_bucket_id
+  user_query_sqs_arn = var.user_query_sqs_arn
+  study_ids_sqs_arn  = var.study_ids_sqs_arn
+}
+
 module "study_summaries" {
   source                  = "./study_summaries"
   aws_region              = var.aws_region

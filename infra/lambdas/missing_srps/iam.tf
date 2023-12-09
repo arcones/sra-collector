@@ -23,8 +23,8 @@ resource "aws_iam_role_policy_attachment" "missing_srps_lambda_basic_policy" {
 }
 
 
-resource "aws_iam_role_policy" "missing_srps_sqs_policy" {
-  name = "missing_srps_lambda_sqs"
+resource "aws_iam_role_policy" "input_sqs_policy" {
+  name = "input_sqs_policy"
   role = aws_iam_role.missing_srps_lambda_role.name
   policy = jsonencode({
     Statement = [
@@ -41,8 +41,8 @@ resource "aws_iam_role_policy" "missing_srps_sqs_policy" {
   })
 }
 
-resource "aws_iam_role_policy" "study_summaries_sqs_policy" {
-  name = "user_query_lambda_sqs"
+resource "aws_iam_role_policy" "output_sqs_policy" {
+  name = "output_sqs_policy"
   role = aws_iam_role.missing_srps_lambda_role.name
   policy = jsonencode({
     Statement = [

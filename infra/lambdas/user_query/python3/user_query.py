@@ -7,12 +7,13 @@ import urllib3
 
 logging.basicConfig(format='%(levelname)s %(message)s')
 logger = logging.getLogger('user_query')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
+    logger.debug(f'Received event {event}')
     request_body = json.loads(event['body'])
     logger.debug(f'Query received for keyword {request_body}')
 

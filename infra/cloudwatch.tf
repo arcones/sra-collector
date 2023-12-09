@@ -14,6 +14,8 @@ resource "aws_cloudwatch_metric_alarm" "study_ids_dlq_overfill_alarm" {
   threshold           = 1
   statistic           = "Sum"
   treat_missing_data  = "ignore"
+  alarm_actions       = [aws_sns_topic.admin.arn]
+  ok_actions          = [aws_sns_topic.admin.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "pending_srp_dlq-overfill-alarm" {
@@ -27,6 +29,8 @@ resource "aws_cloudwatch_metric_alarm" "pending_srp_dlq-overfill-alarm" {
   threshold           = 1
   statistic           = "Sum"
   treat_missing_data  = "ignore"
+  alarm_actions       = [aws_sns_topic.admin.arn]
+  ok_actions          = [aws_sns_topic.admin.arn]
 } //TODO missing actions on alarm for every CW alarm
 
 resource "aws_cloudwatch_metric_alarm" "study_summaries_dlq_overfill_alarm" {
@@ -40,4 +44,6 @@ resource "aws_cloudwatch_metric_alarm" "study_summaries_dlq_overfill_alarm" {
   threshold           = 1
   statistic           = "Sum"
   treat_missing_data  = "ignore"
+  alarm_actions       = [aws_sns_topic.admin.arn]
+  ok_actions          = [aws_sns_topic.admin.arn]
 }
