@@ -14,6 +14,9 @@ http = urllib3.PoolManager()
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
+OUTPUT_SQS = 'https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue'
+
+
 def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
@@ -27,15 +30,11 @@ def handler(event, context):
             request_info = {'request_id': request_id, 'study_count': len(study_list)}
 
             for study_id in study_list:
-                sqs.send_message(
-                    QueueUrl='https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue',
-                    MessageBody=json.dumps({
-                        'request_info': request_info,
-                        'study_id': study_id
-                    })
-                )
+                response = json.dumps({'request_info': request_info, 'study_id': study_id})
 
-            logger.info(f"Pushed {request_info['study_count']} message/s to study ids queue")
+                sqs.send_message(QueueUrl=OUTPUT_SQS, MessageBody=response)
+
+                logger.debug(f'Sent event to {OUTPUT_SQS} with body {response}')
 
 
 def get_study_list(search_keyword: str) -> list[int]:
