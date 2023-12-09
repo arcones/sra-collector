@@ -18,7 +18,7 @@ def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
         for record in event['Records']:
-            request_body = json.loads(event['body'])
+            request_body = json.loads(record['body'])
             query = request_body['query']
             logger.debug(f'Query received for keyword {query}')
 
