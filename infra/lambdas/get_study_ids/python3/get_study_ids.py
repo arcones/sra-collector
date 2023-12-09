@@ -22,10 +22,10 @@ def handler(event, context):
         logger.debug(f'Received event {event}')
         for record in event['Records']:
             request_body = json.loads(record['body'])
-            query = request_body['query']
-            logger.debug(f'Query received for keyword {query}')
+            ncbi_query = request_body['ncbi_query']
+            logger.debug(f'Query received for keyword {ncbi_query}')
 
-            study_list = get_study_list(query)
+            study_list = get_study_list(ncbi_query)
             request_id = round(time())
             request_info = {'request_id': request_id, 'study_count': len(study_list)}
 
@@ -35,6 +35,8 @@ def handler(event, context):
                 sqs.send_message(QueueUrl=OUTPUT_SQS, MessageBody=response)
 
                 logger.debug(f'Sent event to {OUTPUT_SQS} with body {response}')
+
+            return {'statusCode': 200}
 
 
 def get_study_list(search_keyword: str) -> list[int]:

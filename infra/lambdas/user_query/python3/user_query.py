@@ -18,7 +18,7 @@ def handler(event, context):
     logger.debug(f'Received event {event}')
     request_body = json.loads(event['body'])
 
-    response = json.dumps({'request_info': {'request_id': round(time())}, 'query': request_body['ncbi_query']})
+    response = json.dumps({'request_info': {'request_id': round(time())}, 'ncbi_query': request_body['ncbi_query']})
 
     sqs.send_message(QueueUrl=OUTPUT_SQS, MessageBody=response)
 

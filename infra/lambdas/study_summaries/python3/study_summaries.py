@@ -13,8 +13,6 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 
 http = urllib3.PoolManager()
 
-
-
 def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
