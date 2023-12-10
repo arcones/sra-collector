@@ -1,19 +1,16 @@
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-
-    actions = ["sts:AssumeRole"]
-  }
-}
-
 resource "aws_iam_role" "get_study_ids_lambda_role" {
-  name               = "get_study_ids_lambda_role"
-  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+  name = "get_study_ids_lambda_role"
+  assume_role_policy = jsonencode({
+    Statement = [
+      {
+        Action = ["sts:AssumeRole"],
+        Effect = "Allow",
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "get_study_ids_lambda_basic_policy" {
@@ -45,11 +42,23 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
   policy = jsonencode({
     Statement = [
       {
-        Action = [
-          "sqs:sendmessage",
-        ]
+        Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
         Resource = var.study_ids_sqs_arn
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ssm_policy" {
+  name = "ssm_policy"
+  role = aws_iam_role.get_study_ids_lambda_role.name
+  policy = jsonencode({
+    Statement = [
+      {
+        Action   = ["ssm:GetParameter"]
+        Effect   = "Allow"
+        Resource = var.log_level_parameter_arn
       },
     ]
   })

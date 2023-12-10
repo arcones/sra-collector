@@ -16,7 +16,7 @@ http = urllib3.PoolManager()
 def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
-        ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key')
+        ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
