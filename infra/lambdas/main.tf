@@ -18,17 +18,17 @@ module "get_study_ids" {
   log_level_parameter_arn = var.log_level_parameter_arn
 }
 
-#module "study_summaries" {
-#  source                  = "./study_summaries"
-#  aws_region              = var.aws_region
-#  aws_account_id          = var.aws_account_id
-#  s3_bucket_id            = var.s3_bucket_id
-#  study_ids_sqs_arn       = var.study_ids_sqs_arn
-#  study_summaries_sqs_arn = var.study_summaries_sqs_arn
-#  pending_srp_sqs_arn     = var.pending_srp_sqs_arn
-#  ncbi_api_key_secret_arn = var.ncbi_api_key_secret_arn
-#}
-#
+module "study_summaries" {
+  source                  = "./3_get_study_gse"
+  aws_region              = var.aws_region
+  aws_account_id          = var.aws_account_id
+  s3_bucket_id            = var.s3_bucket_id
+  study_ids_sqs_arn       = var.study_ids_sqs_arn
+  gses_sqs_arn            = var.gses_sqs_arn
+  ncbi_api_key_secret_arn = var.ncbi_api_key_secret_arn
+  log_level_parameter_arn = var.log_level_parameter_arn
+}
+
 #module "missing_srps" {
 #  source                  = "./missing_srps"
 #  aws_region              = var.aws_region

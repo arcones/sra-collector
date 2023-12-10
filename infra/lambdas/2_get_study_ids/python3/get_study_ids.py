@@ -6,12 +6,12 @@ import urllib3
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue'
 
+STUDY_ID_MAX = 299999999
+
 sqs = boto3.client('sqs', region_name='eu-central-1')
 ssm = boto3.client('ssm', region_name='eu-central-1')
-lambda_function = boto3.client('lambda', region_name='eu-central-1')
 
 http = urllib3.PoolManager()
-
 
 def _define_log_level():
     log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
@@ -42,7 +42,13 @@ def handler(event, context):
 
             logger.debug(f'Query received for keyword {ncbi_query} with retstart {retstart} and retmax {retmax}')
 
-            study_list = _esearch_study_list(ncbi_query, retstart, retmax)
+            entities_list = _esearch_entities_list(ncbi_query, retstart, retmax)
+
+            study_list = [study for study in entities_list if study < STUDY_ID_MAX]
+
+            logger.debug(f'From {len(entities_list)} entities, {len(study_list)} studies were extracted')
+
+            logger.debug(f"Study list contains: {','.join(map(str,study_list))}")
 
             request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
@@ -56,11 +62,11 @@ def handler(event, context):
             return {'statusCode': 200}
 
 
-def _esearch_study_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
+def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={ncbi_query}&retmax={retmax}&retstart={retstart}&usehistory=y'
-    logger.debug(f'Get study list for keyword {ncbi_query}...')
+    logger.debug(f'Get entity list for keyword {ncbi_query}...')
     response = json.loads(http.request('GET', url).data)
-    logger.debug(f'Done get study list for keyword {ncbi_query}')
-    idlist = response['esearchresult']['idlist']
-    logger.debug(f'Idlist contains {len(idlist)} studies')
-    return idlist
+    logger.debug(f'Done get entity list for keyword {ncbi_query}')
+    entities_list = response['esearchresult']['idlist']
+    logger.debug(f"Entity list contains: {','.join(entities_list)}")
+    return list(map(int, entities_list))

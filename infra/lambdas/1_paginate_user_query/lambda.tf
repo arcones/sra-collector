@@ -1,6 +1,6 @@
 resource "aws_lambda_function" "paginate_user_query" {
   function_name    = local.function_name
-  description      = "Receives NCBI query from the user and places it in a queue"
+  description      = "Paginate NCBI query from the user and place results in a queue"
   s3_bucket        = var.s3_bucket_id
   s3_key           = aws_s3_object.paginate_user_query_s3_object.key
   role             = aws_iam_role.paginate_user_query_lambda_role.arn
