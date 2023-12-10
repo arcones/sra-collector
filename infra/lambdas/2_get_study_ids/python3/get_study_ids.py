@@ -6,6 +6,7 @@ import urllib3
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue'
 
+STUDY_ID_MIN = 200000000
 STUDY_ID_MAX = 299999999
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -44,7 +45,7 @@ def handler(event, context):
 
             entities_list = _esearch_entities_list(ncbi_query, retstart, retmax)
 
-            study_list = [study for study in entities_list if study < STUDY_ID_MAX]
+            study_list = [study for study in entities_list if STUDY_ID_MIN <= study < STUDY_ID_MAX]
 
             logger.debug(f'From {len(entities_list)} entities, {len(study_list)} studies were extracted')
 
