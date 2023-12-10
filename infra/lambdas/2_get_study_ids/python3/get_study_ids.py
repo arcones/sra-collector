@@ -48,7 +48,7 @@ def handler(event, context):
 
             logger.debug(f'From {len(entities_list)} entities, {len(study_list)} studies were extracted')
 
-            logger.debug(f"Study list contains: {','.join(map(str,study_list))}")
+            logger.debug(f"Study list contains: {','.join(map(str,sorted(study_list)))}")
 
             request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
 

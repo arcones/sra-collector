@@ -14,7 +14,7 @@ resource "aws_sqs_queue" "study_ids_queue" {
   name = "study_ids_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.study_ids_dlq.arn,
-    maxReceiveCount     = 1
+    maxReceiveCount     = 3
   })
 }
 
