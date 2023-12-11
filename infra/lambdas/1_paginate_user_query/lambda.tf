@@ -3,7 +3,7 @@ resource "aws_lambda_function" "paginate_user_query" {
   description      = "Paginate NCBI query from the user and place results in a queue"
   s3_bucket        = var.s3_bucket_id
   s3_key           = aws_s3_object.paginate_user_query_s3_object.key
-  role             = aws_iam_role.paginate_user_query_lambda_role.arn
+  role             = aws_iam_role.lambda_assume.arn
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.paginate_user_query_code.output_base64sha256

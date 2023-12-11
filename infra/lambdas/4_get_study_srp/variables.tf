@@ -10,14 +10,14 @@ variable "s3_bucket_id" {
   type = string
 }
 
-variable "pending_srp_sqs_arn" {
+variable "gses_sqs_arn" {
   type = string
 }
 
-variable "study_summaries_sqs_arn" {
+variable "srps_sqs_arn" {
   type = string
 }
 
-variable "pysradb_lambda_layer" {
+variable "log_level_parameter_arn" {
   type = string
 }

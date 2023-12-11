@@ -33,15 +33,15 @@ resource "aws_sqs_queue" "gses_queue" {
 resource "aws_sqs_queue" "gses_dlq" {
   name = "gses_dlq"
 }
-#
-#resource "aws_sqs_queue" "study_summaries_queue" {
-#  name = "study_summaries_queue"
-#  redrive_policy = jsonencode({
-#    deadLetterTargetArn = aws_sqs_queue.study_summaries_dlq.arn,
-#    maxReceiveCount     = 2
-#  })
-#}
-#
-#resource "aws_sqs_queue" "study_summaries_dlq" {
-#  name = "study_summaries_dlq"
-#}
+
+resource "aws_sqs_queue" "srps_queue" {
+  name = "srps_queue"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.srps_dlq.arn,
+    maxReceiveCount     = 2
+  })
+}
+
+resource "aws_sqs_queue" "srps_dlq" {
+  name = "srps_dlq"
+}

@@ -1,5 +1,5 @@
 resource "aws_iam_role" "lambda_assume" {
-  name = "paginate_user_query_lambda_role"
+  name = "missing_srps_lambda_role"
   assume_role_policy = jsonencode({
     Statement = [
       {
@@ -18,6 +18,24 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy" "input_sqs_policy" {
+  name = "input_sqs_policy"
+  role = aws_iam_role.lambda_assume.name
+  policy = jsonencode({
+    Statement = [
+      {
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Effect   = "Allow"
+        Resource = var.gses_sqs_arn
+      },
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "output_sqs_policy" {
   name = "output_sqs_policy"
   role = aws_iam_role.lambda_assume.name
@@ -26,7 +44,7 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
       {
         Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
-        Resource = var.user_query_sqs_arn
+        Resource = [var.srps_sqs_arn]
       },
     ]
   })

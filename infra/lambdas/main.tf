@@ -18,7 +18,7 @@ module "get_study_ids" {
   log_level_parameter_arn = var.log_level_parameter_arn
 }
 
-module "study_summaries" {
+module "get_study_gse" {
   source                  = "./3_get_study_gse"
   aws_region              = var.aws_region
   aws_account_id          = var.aws_account_id
@@ -29,12 +29,12 @@ module "study_summaries" {
   log_level_parameter_arn = var.log_level_parameter_arn
 }
 
-#module "missing_srps" {
-#  source                  = "./missing_srps"
-#  aws_region              = var.aws_region
-#  aws_account_id          = var.aws_account_id
-#  s3_bucket_id            = var.s3_bucket_id
-#  pending_srp_sqs_arn     = var.pending_srp_sqs_arn
-#  study_summaries_sqs_arn = var.study_summaries_sqs_arn
-#  pysradb_lambda_layer    = aws_lambda_layer_version.missing_srps_lambda_layer.arn
-#}
+module "get_study_srp" {
+  source                  = "./4_get_study_srp"
+  aws_region              = var.aws_region
+  aws_account_id          = var.aws_account_id
+  s3_bucket_id            = var.s3_bucket_id
+  gses_sqs_arn            = var.gses_sqs_arn
+  srps_sqs_arn            = var.srps_sqs_arn
+  log_level_parameter_arn = var.log_level_parameter_arn
+}

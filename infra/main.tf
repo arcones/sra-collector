@@ -8,7 +8,6 @@ module "lambdas" {
   log_level_parameter_arn            = aws_ssm_parameter.log_level.arn
   study_ids_sqs_arn                  = aws_sqs_queue.study_ids_queue.arn
   gses_sqs_arn                       = aws_sqs_queue.gses_queue.arn
-  #  study_summaries_sqs_arn            = aws_sqs_queue.study_summaries_queue.arn
-  #  pending_srp_sqs_arn                = aws_sqs_queue.pending_srp_queue.arn
-  ncbi_api_key_secret_arn = aws_secretsmanager_secret.ncbi_api_key_secret.arn
+  srps_sqs_arn                       = aws_sqs_queue.srps_queue.arn
+  ncbi_api_key_secret_arn            = aws_secretsmanager_secret.ncbi_api_key_secret.arn
 }

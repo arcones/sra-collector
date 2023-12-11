@@ -1,4 +1,4 @@
-resource "aws_iam_role" "get_study_gse_lambda_role" {
+resource "aws_iam_role" "lambda_assume" {
   name = "get_study_gse_lambda_role"
   assume_role_policy = jsonencode({
     Statement = [
@@ -13,14 +13,14 @@ resource "aws_iam_role" "get_study_gse_lambda_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "get_study_gse_lambda_basic_policy" {
-  role       = aws_iam_role.get_study_gse_lambda_role.name
+resource "aws_iam_role_policy_attachment" "lambda_basic_policy" {
+  role       = aws_iam_role.lambda_assume.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_role_policy" "secret_policy" {
   name = "secret_policy"
-  role = aws_iam_role.get_study_gse_lambda_role.name
+  role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
     Statement = [
       {
@@ -34,7 +34,7 @@ resource "aws_iam_role_policy" "secret_policy" {
 
 resource "aws_iam_role_policy" "input_sqs_policy" {
   name = "input_sqs_policy"
-  role = aws_iam_role.get_study_gse_lambda_role.name
+  role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
     Statement = [
       {
@@ -52,7 +52,7 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
 
 resource "aws_iam_role_policy" "output_sqs_policy" {
   name = "output_sqs_policy"
-  role = aws_iam_role.get_study_gse_lambda_role.name
+  role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
     Statement = [
       {
@@ -66,7 +66,7 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
 
 resource "aws_iam_role_policy" "ssm_policy" {
   name = "ssm_policy"
-  role = aws_iam_role.get_study_gse_lambda_role.name
+  role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
     Statement = [
       {

@@ -30,10 +30,10 @@ variable "gses_sqs_arn" {
   type = string
 }
 
-#variable "pending_srp_sqs_arn" {
-#  type = string
-#}
-#
+variable "srps_sqs_arn" {
+  type = string
+}
+
 variable "ncbi_api_key_secret_arn" {
   type = string
 }

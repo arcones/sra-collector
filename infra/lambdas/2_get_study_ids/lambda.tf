@@ -3,7 +3,7 @@ resource "aws_lambda_function" "get_study_ids" {
   description      = "Fetch study IDs for the NCBI query and send them to queue"
   s3_bucket        = var.s3_bucket_id
   s3_key           = aws_s3_object.get_study_ids_s3_object.key
-  role             = aws_iam_role.get_study_ids_lambda_role.arn
+  role             = aws_iam_role.lambda_assume.arn
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.get_study_ids_code.output_base64sha256
