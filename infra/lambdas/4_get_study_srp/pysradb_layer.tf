@@ -11,8 +11,7 @@ resource "null_resource" "pysradb_lambda_layer_bundle_creator" {
     requirements = timestamp()
   }
   provisioner "local-exec" {
-    interpreter = ["/bin/bash"]
-    command     = <<EOT
+    command = <<EOT
         rm -rf ${local.layer_input_folder}
         mkdir -p ${local.layer_input_folder}/python
 
