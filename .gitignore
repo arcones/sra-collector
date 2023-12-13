@@ -6,8 +6,7 @@ infra/.terraform
 **/*.tfstate
 
 # Python
-**/*.zip
+**/get*.zip
+**/paginate*.zip
 **/.pytest_cache
 **/__pycache__/
-**/env_**
-**/bundle
