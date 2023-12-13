@@ -33,7 +33,7 @@ def handler(event, context):
 
             gse = study_with_missing_srp['gse']
             srp = SRAweb().gse_to_srp(gse)['study_accession'][0]  ## TODO manage two SRPs scenario
-            logging.debug(f'For {gse} the SRP is {srp}')
+            logger.debug(f'For {gse} the SRP is {srp}')
 
             if srp:
                 logger.info(f"SRP retrieved via pysradb for {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
