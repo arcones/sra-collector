@@ -17,7 +17,7 @@ page_size = 500
 
 def _define_log_level():
     log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
-    the_logger = logging.getLogger('user_query')
+    the_logger = logging.getLogger('paginate_user_query')
     logging.basicConfig(format='%(levelname)s %(message)s')
 
     if log_level == 'DEBUG':

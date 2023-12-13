@@ -16,7 +16,7 @@ http = urllib3.PoolManager()
 
 def _define_log_level():
     log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
-    the_logger = logging.getLogger('user_query')
+    the_logger = logging.getLogger('get_study_ids')
     logging.basicConfig(format='%(levelname)s %(message)s')
 
     if log_level == 'DEBUG':
