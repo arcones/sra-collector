@@ -43,15 +43,15 @@ def handler(event, context):
                     sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                     logger.debug(f'Sent event to {output_sqs} with body {response}')
             except AttributeError as attribute_error:
-                event['pysradb_failure_reason'] = 'PYSRADB_NONE_TYPE'
+                record['body']['pysradb_failure_reason'] = 'PYSRADB_NONE_TYPE'
                 logger.error(f'For {gse}, pysradb produced attribute error with name {attribute_error.name}')
                 raise Exception()
             except ValueError as value_error:
                 if value_error.args[0] == 'All arrays must be of the same length':
-                    event['pysradb_failure_reason'] = 'PYSRADB_ARRAY_LENGTH'
+                    record['body']['pysradb_failure_reason'] = 'PYSRADB_ARRAY_LENGTH'
                     logger.error(f'For {gse}, pysradb produced value error with {value_error.args[0]}')
                     raise Exception()
                 else:
-                    event['pysradb_failure_reason'] = 'UNKNOWN_VALUE_ERROR'
+                    record['body']['pysradb_failure_reason'] = 'UNKNOWN_VALUE_ERROR'
                     logger.error(f'For {gse}, pysradb produced value error with {value_error.args[0]}')
                     raise Exception()
