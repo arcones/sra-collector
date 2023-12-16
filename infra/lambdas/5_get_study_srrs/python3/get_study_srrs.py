@@ -43,6 +43,7 @@ def handler(event, context):
 
             if srrs:
                 logger.info(f'For study {study_id} with {gse} and SRP {srp}, SRRs are {srrs}')
-                response = json.dumps({**study_with_missing_srrs, 'srrs': srrs})
-                sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                logger.debug(f'Sent event to {output_sqs} with body {response}')
+                for srr in srrs:
+                    response = json.dumps({**study_with_missing_srrs, 'srr': srr})
+                    sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
+                    logger.debug(f'Sent event to {output_sqs} with body {response}')
