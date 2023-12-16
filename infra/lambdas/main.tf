@@ -29,7 +29,7 @@ module "get_study_srp" {
   gses_sqs_arn            = var.gses_sqs_arn
   srps_sqs_arn            = var.srps_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
-  pysradb_zip_location    = "${path.module}/pysradb_2.2.0.zip"
+  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
 }
 
 module "dlq_get_srp_pysradb_error" {
@@ -37,5 +37,14 @@ module "dlq_get_srp_pysradb_error" {
   s3_bucket_id            = var.s3_bucket_id
   gses_dlq_sqs_arn        = var.gses_dlq_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
-  pysradb_zip_location    = "${path.module}/pysradb_2.2.0.zip"
+  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
+}
+
+module "get_study_srrs" {
+  source                  = "./5_get_study_srrs"
+  s3_bucket_id            = var.s3_bucket_id
+  srps_sqs_arn            = var.srps_sqs_arn
+  srrs_sqs_arn            = var.srrs_sqs_arn
+  log_level_parameter_arn = var.log_level_parameter_arn
+  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
 }

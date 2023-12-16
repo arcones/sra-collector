@@ -45,3 +45,15 @@ resource "aws_sqs_queue" "srps_queue" {
 resource "aws_sqs_queue" "srps_dlq" {
   name = "srps_dlq"
 }
+
+resource "aws_sqs_queue" "srrs_queue" {
+  name = "srrs_queue"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.srrs_dlq.arn,
+    maxReceiveCount     = 1
+  })
+}
+
+resource "aws_sqs_queue" "srrs_dlq" {
+  name = "srrs_dlq"
+}

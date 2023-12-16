@@ -2,11 +2,12 @@ variable "s3_bucket_id" {
   type = string
 }
 
-variable "gses_sqs_arn" {
+
+variable "srps_sqs_arn" {
   type = string
 }
 
-variable "srps_sqs_arn" {
+variable "srrs_sqs_arn" {
   type = string
 }
 
