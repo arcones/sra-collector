@@ -30,6 +30,10 @@ variable "gses_sqs_arn" {
   type = string
 }
 
+variable "gses_dlq_sqs_arn" {
+  type = string
+}
+
 variable "srps_sqs_arn" {
   type = string
 }

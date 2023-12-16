@@ -26,7 +26,7 @@ resource "aws_sqs_queue" "gses_queue" {
   name = "gses_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.gses_dlq.arn,
-    maxReceiveCount     = 2
+    maxReceiveCount     = 1
   })
 }
 
@@ -38,7 +38,7 @@ resource "aws_sqs_queue" "srps_queue" {
   name = "srps_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.srps_dlq.arn,
-    maxReceiveCount     = 2
+    maxReceiveCount     = 1
   })
 }
 

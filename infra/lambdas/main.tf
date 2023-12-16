@@ -37,4 +37,15 @@ module "get_study_srp" {
   gses_sqs_arn            = var.gses_sqs_arn
   srps_sqs_arn            = var.srps_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
+  pysradb_zip_location    = "${path.module}/pysradb_2.2.0.zip"
+}
+
+module "dlq_get_srp_pysradb_error" {
+  source                  = "./4_dlq_get_srp_pysradb_error"
+  aws_region              = var.aws_region
+  aws_account_id          = var.aws_account_id
+  s3_bucket_id            = var.s3_bucket_id
+  gses_dlq_sqs_arn        = var.gses_dlq_sqs_arn
+  log_level_parameter_arn = var.log_level_parameter_arn
+  pysradb_zip_location    = "${path.module}/pysradb_2.2.0.zip"
 }

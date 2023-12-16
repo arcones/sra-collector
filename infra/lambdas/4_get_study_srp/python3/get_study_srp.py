@@ -32,26 +32,12 @@ def handler(event, context):
             logger.debug(f'Received event {study_with_missing_srp}')
 
             gse = study_with_missing_srp['gse']
+            raw_pysradb_response = SRAweb().gse_to_srp(gse)
+            logger.debug(f'Raw pysradb response for {gse} is {raw_pysradb_response}')
+            srp = raw_pysradb_response['study_accession'][0]  ## TODO manage two SRPs scenario
 
-            try:
-                srp = SRAweb().gse_to_srp(gse)['study_accession'][0]  ## TODO manage two SRPs scenario
-                logger.debug(f'For {gse} the SRP is {srp}')
-
-                if srp:
-                    logger.info(f"SRP retrieved via pysradb for {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
-                    response = json.dumps({**study_with_missing_srp, 'srps': [srp]})
-                    sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                    logger.debug(f'Sent event to {output_sqs} with body {response}')
-            except AttributeError as attribute_error:
-                record['body']['pysradb_failure_reason'] = 'PYSRADB_NONE_TYPE'
-                logger.error(f'For {gse}, pysradb produced attribute error with name {attribute_error.name}')
-                raise Exception()
-            except ValueError as value_error:
-                if value_error.args[0] == 'All arrays must be of the same length':
-                    record['body']['pysradb_failure_reason'] = 'PYSRADB_ARRAY_LENGTH'
-                    logger.error(f'For {gse}, pysradb produced value error with {value_error.args[0]}')
-                    raise Exception()
-                else:
-                    record['body']['pysradb_failure_reason'] = 'UNKNOWN_VALUE_ERROR'
-                    logger.error(f'For {gse}, pysradb produced value error with {value_error.args[0]}')
-                    raise Exception()
+            if srp:
+                logger.info(f"SRP {srp} for GSE {gse} retrieved via pysradb for study {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
+                response = json.dumps({**study_with_missing_srp, 'srps': [srp]})
+                sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
+                logger.debug(f'Sent event to {output_sqs} with body {response}')
