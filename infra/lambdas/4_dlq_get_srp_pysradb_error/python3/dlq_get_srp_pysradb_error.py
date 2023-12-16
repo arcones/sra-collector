@@ -8,7 +8,7 @@ ssm = boto3.client('ssm', region_name='eu-central-1')
 
 def _define_log_level():
     log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
-    the_logger = logging.getLogger('get_srp_pysradb_error')
+    the_logger = logging.getLogger('dlq_get_srp_pysradb_error')
     logging.basicConfig(format='%(levelname)s %(message)s')
 
     if log_level == 'DEBUG':

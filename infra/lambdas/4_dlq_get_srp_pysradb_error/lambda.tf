@@ -1,6 +1,6 @@
 resource "aws_lambda_function" "dlq_get_srp_pysradb_error" {
   function_name    = local.function_name
-  description      = "Fetch SRPs for a given study"
+  description      = "Dig into the reason why pysradb was not able to fetch a SRP from GSE"
   s3_bucket        = var.s3_bucket_id
   s3_key           = aws_s3_object.dlq_get_srp_pysradb_error_s3_object.key
   role             = aws_iam_role.lambda_assume.arn
