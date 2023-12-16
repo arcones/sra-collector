@@ -1,5 +1,5 @@
 resource "aws_iam_role" "lambda_assume" {
-  name = "paginate_user_query_lambda_role"
+  name = "${local.function_name}_lambda_role"
   assume_role_policy = jsonencode({
     Statement = [
       {

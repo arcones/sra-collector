@@ -1,11 +1,3 @@
-variable "aws_region" {
-  type = string
-}
-
-variable "aws_account_id" {
-  type = string
-}
-
 variable "aws_apigatewayv2_api_execution_arn" {
   type = string
 }
@@ -27,6 +19,10 @@ variable "study_ids_sqs_arn" {
 }
 
 variable "gses_sqs_arn" {
+  type = string
+}
+
+variable "gses_dlq_sqs_arn" {
   type = string
 }
 

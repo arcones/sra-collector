@@ -1,5 +1,5 @@
 resource "aws_iam_role" "lambda_assume" {
-  name = "missing_srps_lambda_role"
+  name = "${local.function_name}_lambda_role"
   assume_role_policy = jsonencode({
     Statement = [
       {
