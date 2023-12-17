@@ -42,7 +42,7 @@ def handler(event, context):
             srrs = list(raw_pysradb_data_frame['run_accession'])
 
             if srrs:
-                logger.info(f'For study {study_id} with {gse} and SRP {srp}, SRRs are {srrs}')
+                logger.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
                 for srr in srrs:
                     response = json.dumps({**study_with_missing_srrs, 'srr': srr})
                     sqs.send_message(QueueUrl=output_sqs, MessageBody=response)

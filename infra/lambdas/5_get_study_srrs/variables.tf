@@ -2,7 +2,6 @@ variable "s3_bucket_id" {
   type = string
 }
 
-
 variable "srps_sqs_arn" {
   type = string
 }

@@ -28,7 +28,7 @@ while True:
     if 'Messages' not in response:
         break
     messages += response['Messages']
-#
-# with open(args.file, 'w') as filehandle:
-#     for message in messages:
-#         filehandle.write(f'{json.dumps(message)}' + '\n')
+
+with open(args.file, 'w') as filehandle:
+    for message in messages:
+        filehandle.write(f'{json.dumps(message)}' + '\n')
