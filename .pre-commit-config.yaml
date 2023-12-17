@@ -30,3 +30,10 @@ repos:
   rev: v3.15.0
   hooks:
     - id: pyupgrade
+- repo: https://github.com/sqlfluff/sqlfluff
+  rev: 2.3.5
+  hooks:
+    - id: sqlfluff-lint
+      args: [--dialect, "postgres"]
+    - id: sqlfluff-fix
+      args: [--dialect, "postgres"]

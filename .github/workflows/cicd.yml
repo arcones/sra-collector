@@ -2,6 +2,7 @@ name: cicd
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
 on:
   - push
 jobs:
@@ -29,3 +30,12 @@ jobs:
         run: terraform init
       - name: Terraform apply
         run: terraform apply -auto-approve
+  db:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: db
+    steps:
+      - uses: actions/checkout@v4
+      - name: Flyway Migration
+        run: docker run --rm -v db/sql:/flyway/sql -v db:/flyway/conf  -e FLYWAY_PASSWORD=$FLYWAY_PASSWORD flyway/flyway migrate
