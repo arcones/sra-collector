@@ -1,6 +1,3 @@
-[flyway]
-locations = ["filesystem:migrations"]
-
 [environments.default]
 url = "jdbc:postgresql://sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com:5432/"
 schemas=["sracollector"]
