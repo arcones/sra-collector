@@ -38,4 +38,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Flyway Migration
-        run: docker run --rm -v $(pwd)/sql:/flyway/sql -v $(pwd):/flyway/conf  -e FLYWAY_PASSWORD=$FLYWAY_PASSWORD flyway/flyway migrate
+        run: docker run --rm -v $(pwd)/migrations:/flyway/sql -v $(pwd):/flyway/conf  -e FLYWAY_PASSWORD=$FLYWAY_PASSWORD flyway/flyway migrate
