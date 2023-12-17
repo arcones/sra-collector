@@ -33,7 +33,7 @@ def handler(event, context):
             study_with_missing_srrs = json.loads(record['body'])
             logger.debug(f'Received event {study_with_missing_srrs}')
 
-            srp = study_with_missing_srrs['srps'][0] ## TODO manage two SRPs scenario
+            srp = study_with_missing_srrs['srp']
             gse = study_with_missing_srrs['gse']
             study_id = study_with_missing_srrs['study_id']
 

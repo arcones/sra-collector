@@ -34,10 +34,10 @@ def handler(event, context):
             gse = study_with_missing_srp['gse']
             raw_pysradb_response = SRAweb().gse_to_srp(gse)
             logger.debug(f'Raw pysradb response for {gse} is {raw_pysradb_response}')
-            srp = raw_pysradb_response['study_accession'][0]  ## TODO manage two SRPs scenario
+            srp = raw_pysradb_response['study_accession'][0]
 
             if srp:
                 logger.info(f"SRP {srp} for GSE {gse} retrieved via pysradb for study {study_with_missing_srp['study_id']}, pushing message to study summaries queue")
-                response = json.dumps({**study_with_missing_srp, 'srps': [srp]})
+                response = json.dumps({**study_with_missing_srp, 'srp': srp})
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                 logger.debug(f'Sent event to {output_sqs} with body {response}')

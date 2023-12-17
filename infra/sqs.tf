@@ -2,7 +2,7 @@ resource "aws_sqs_queue" "user_query_queue" {
   name = "user_query_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.user_query_dlq.arn,
-    maxReceiveCount     = 1
+    maxReceiveCount     = 3
   })
 }
 
@@ -26,7 +26,7 @@ resource "aws_sqs_queue" "gses_queue" {
   name = "gses_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.gses_dlq.arn,
-    maxReceiveCount     = 1
+    maxReceiveCount     = 3
   })
 }
 
@@ -38,7 +38,7 @@ resource "aws_sqs_queue" "srps_queue" {
   name = "srps_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.srps_dlq.arn,
-    maxReceiveCount     = 1
+    maxReceiveCount     = 3
   })
 }
 
@@ -50,7 +50,7 @@ resource "aws_sqs_queue" "srrs_queue" {
   name = "srrs_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.srrs_dlq.arn,
-    maxReceiveCount     = 1
+    maxReceiveCount     = 3
   })
 }
 

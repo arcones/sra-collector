@@ -5,7 +5,7 @@ import logging
 import boto3
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger('user_query')
+logger = logging.getLogger('download_all_messages_from_queue')
 logger.setLevel(logging.INFO)
 
 parser = argparse.ArgumentParser('Saves all messages from an AWS SQS queue into a file')
@@ -28,7 +28,7 @@ while True:
     if 'Messages' not in response:
         break
     messages += response['Messages']
-
-with open(args.file, 'w') as filehandle:
-    for message in messages:
-        filehandle.write(f'{json.dumps(message)}' + '\n')
+#
+# with open(args.file, 'w') as filehandle:
+#     for message in messages:
+#         filehandle.write(f'{json.dumps(message)}' + '\n')
