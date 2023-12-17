@@ -19,7 +19,7 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.txt
       - run: python purge-queues.py
-  tf:
+  infra:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,6 +32,7 @@ jobs:
         run: terraform apply -auto-approve
   db:
     runs-on: ubuntu-latest
+    needs: infra
     defaults:
       run:
         working-directory: db
