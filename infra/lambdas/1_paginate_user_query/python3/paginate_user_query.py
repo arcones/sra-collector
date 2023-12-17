@@ -31,7 +31,7 @@ def _define_log_level():
 logger = _define_log_level()
 
 
-def handler(event, context):
+def handler(event, context): ## TODO instead of picking request, pick from SQS
     logger.debug(f'Received event {event}')
     request_id = event['requestContext']['requestId']
     request_body = json.loads(event['body'])
@@ -57,6 +57,8 @@ def handler(event, context):
         retstart = retstart + page_size
 
     logger.debug(f'Sent {message_sent_count} messages to {output_sqs}')
+
+    ## TODO also add to request table
 
     return {'statusCode': 201, 'body': json.dumps(request_info), 'headers': {'content-type': 'application/json'}}
 

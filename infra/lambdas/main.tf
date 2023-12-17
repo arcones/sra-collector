@@ -1,9 +1,16 @@
-module "paginate_user_query" {
-  source                             = "./1_paginate_user_query"
+module "get_user_query" {
+  source                             = "./0_get_user_query"
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
   s3_bucket_id                       = var.s3_bucket_id
   user_query_sqs_arn                 = var.user_query_sqs_arn
   log_level_parameter_arn            = var.log_level_parameter_arn
+}
+
+module "paginate_user_query" {
+  source                   = "./1_paginate_user_query"
+  s3_bucket_id             = var.s3_bucket_id
+  user_query_pages_sqs_arn = var.user_query_pages_sqs_arn
+  log_level_parameter_arn  = var.log_level_parameter_arn
 }
 
 module "get_study_ids" {
