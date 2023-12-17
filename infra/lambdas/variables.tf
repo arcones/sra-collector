@@ -30,6 +30,10 @@ variable "srps_sqs_arn" {
   type = string
 }
 
+variable "srrs_sqs_arn" {
+  type = string
+}
+
 variable "ncbi_api_key_secret_arn" {
   type = string
 }

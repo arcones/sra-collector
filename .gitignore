@@ -10,3 +10,6 @@ infra/.terraform
 **/paginate*.zip
 **/.pytest_cache
 **/__pycache__/
+
+## Temp
+**/tmp

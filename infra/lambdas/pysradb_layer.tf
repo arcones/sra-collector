@@ -1,10 +1,11 @@
 locals {
-  lib_name = "pysradb"
+  lib_name    = "pysradb"
+  lib_version = "2.2.0"
 }
 
 resource "aws_s3_object" "pysradb_lambda_layer_zip" {
   bucket = var.s3_bucket_id
-  source = var.pysradb_zip_location
+  source = "${path.module}/${local.lib_name}_${local.lib_version}.zip"
   key    = "${local.lib_name}.zip"
 }
 

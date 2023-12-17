@@ -10,6 +10,6 @@ variable "log_level_parameter_arn" {
   type = string
 }
 
-variable "pysradb_zip_location" {
+variable "pysradb_layer_arn" {
   type = string
 }
