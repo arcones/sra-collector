@@ -6,7 +6,7 @@ resource "aws_lambda_function" "get_user_query" {
   role             = aws_iam_role.lambda_assume.arn
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
-  source_code_hash = data.archive_file.paginate_user_query_code.output_base64sha256
+  source_code_hash = data.archive_file.get_user_query_code.output_base64sha256
   timeout          = 30
 }
 

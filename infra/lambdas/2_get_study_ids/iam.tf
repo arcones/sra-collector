@@ -30,7 +30,7 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
           "sqs:GetQueueAttributes"
         ]
         Effect   = "Allow"
-        Resource = var.user_query_sqs_arn
+        Resource = var.user_query_pages_sqs_arn
       },
     ]
   })
