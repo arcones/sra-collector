@@ -29,7 +29,7 @@ resource "aws_apigatewayv2_stage" "paginate_user_query_lambda" {
 
 resource "aws_apigatewayv2_integration" "paginate_user_query" {
   api_id                 = aws_apigatewayv2_api.sra_collector_api.id
-  integration_uri        = module.lambdas.paginate_user_query_invoke_arn
+  integration_uri        = module.lambdas.get_user_query_invoke_arn
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
   payload_format_version = "2.0"

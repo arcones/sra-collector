@@ -11,7 +11,7 @@ resource "aws_lambda_function" "get_study_ids" {
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  event_source_arn = var.user_query_sqs_arn
+  event_source_arn = var.user_query_pages_sqs_arn
   enabled          = true
   function_name    = aws_lambda_function.get_study_ids.function_name
   batch_size       = 1

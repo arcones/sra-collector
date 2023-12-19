@@ -10,11 +10,9 @@ resource "aws_lambda_function" "paginate_user_query" {
   timeout          = 30
 }
 
-resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.paginate_user_query.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${var.aws_apigatewayv2_api_execution_arn}/*/*"
+resource "aws_lambda_event_source_mapping" "event_source_mapping" {
+  event_source_arn = var.user_query_sqs_arn
+  enabled          = true
+  function_name    = aws_lambda_function.paginate_user_query.function_name
+  batch_size       = 1
 }
