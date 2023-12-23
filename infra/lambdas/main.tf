@@ -53,6 +53,8 @@ module "get_study_srp" {
   srps_sqs_arn            = var.srps_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  rds_kms_key_arn         = var.rds_kms_key_arn
+  rds_secret_arn          = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
 }
 
 module "dlq_get_srp_pysradb_error" {

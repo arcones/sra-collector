@@ -67,3 +67,33 @@ resource "aws_iam_role_policy" "ssm_policy" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "secret_policy_rds" {
+  name = "secret_policy_rds"
+  role = aws_iam_role.lambda_assume.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["secretsmanager:GetSecretValue"]
+        Effect   = "Allow"
+        Resource = var.rds_secret_arn
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "kms_policy" {
+  name = "kms_policy"
+  role = aws_iam_role.lambda_assume.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["kms:decrypt"]
+        Effect   = "Allow"
+        Resource = var.rds_kms_key_arn
+      },
+    ]
+  })
+}

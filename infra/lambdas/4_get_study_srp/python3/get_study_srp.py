@@ -2,6 +2,7 @@ import json
 
 import boto3
 from lambda_log_support import lambda_log_support
+from postgres_connection import postgres_connection
 from pysradb import SRAweb
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -27,3 +28,18 @@ def handler(event, context):
                 response = json.dumps({**study_with_missing_srp, 'srp': srp})
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                 logger.debug(f'Sent event to {output_sqs} with body {response}')
+
+## TODO ME HE QUEDADO APAÑANDO ESTE METODO
+def _store_srp_in_db(study_id: str, request_id: str, accession: str):
+    database_connection = postgres_connection.get_connection()
+    cursor = database_connection.cursor()
+    statement = cursor.mogrify(
+        'insert into sra_project (srp, request_id, geo_study_id) values (%s, %s, %s)',
+        (study_id, request_id, accession)
+    )
+    logger.debug(f'Executing: {statement}...')
+    cursor.execute(statement)
+    logger.debug(f'Inserted geo study info in database')
+    database_connection.commit()
+    cursor.close()
+    database_connection.close()

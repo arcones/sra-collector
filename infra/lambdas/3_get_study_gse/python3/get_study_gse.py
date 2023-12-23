@@ -57,7 +57,7 @@ def _summary_process(study_id: str, request_info: dict, summary: str):
         message = {**request_info, 'study_id': study_id, 'gse': gse}
         sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
         logger.debug(f'Sent message {message} for study {study_id}')
-        _store_request_in_db(study_id, request_info['request_id'], gse)
+        _store_gse_in_db(study_id, request_info['request_id'], gse)
     else:
         raise Exception(f'Unable to fetch gse from {study_id}')
 
@@ -71,7 +71,7 @@ def _extract_gse_from_summaries(summary: str) -> str:
     else:
         logger.error(f'For summary {summary} there are none GSE entrytype')
 
-def _store_request_in_db(study_id: str, request_id: str, accession: str):
+def _store_gse_in_db(study_id: str, request_id: str, accession: str):
     database_connection = postgres_connection.get_connection()
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
