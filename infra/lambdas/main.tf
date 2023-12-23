@@ -14,6 +14,7 @@ module "paginate_user_query" {
   user_query_pages_sqs_arn = var.user_query_pages_sqs_arn
   log_level_parameter_arn  = var.log_level_parameter_arn
   common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  rds_kms_key_arn          = var.rds_kms_key_arn
 }
 
 module "get_study_ids" {

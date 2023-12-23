@@ -41,3 +41,7 @@ variable "srrs_sqs_arn" {
 variable "ncbi_api_key_secret_arn" {
   type = string
 }
+
+variable "rds_kms_key_arn" {
+  type = string
+}

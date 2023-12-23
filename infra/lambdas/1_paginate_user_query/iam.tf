@@ -68,6 +68,17 @@ resource "aws_iam_role_policy" "ssm_policy" {
   })
 }
 
+data "aws_secretsmanager_secrets" "managed_rds_secret" {
+  filter {
+    name   = "owning-service"
+    values = ["rds"]
+  }
+}
+
+output "cosa" {
+  value = data.aws_secretsmanager_secrets.managed_rds_secret
+}
+
 resource "aws_iam_role_policy" "secret_policy" {
   name = "secret_policy"
   role = aws_iam_role.lambda_assume.name
@@ -77,7 +88,7 @@ resource "aws_iam_role_policy" "secret_policy" {
       {
         Action   = ["secretsmanager:GetSecretValue"]
         Effect   = "Allow"
-        Resource = "arn:aws:secretsmanager:eu-central-1:120715685161:secret:rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6-bNjnDK"
+        Resource = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
       },
     ]
   })
@@ -90,9 +101,9 @@ resource "aws_iam_role_policy" "kms_policy" {
     Version = "2008-10-17"
     Statement = [
       {
-        Action   = ["kms:*"]
+        Action   = ["kms:decrypt"]
         Effect   = "Allow"
-        Resource = "arn:aws:kms:eu-central-1:120715685161:key/33d5669b-6a9e-4055-be8c-8231920dd860"
+        Resource = var.rds_kms_key_arn
       },
     ]
   })
