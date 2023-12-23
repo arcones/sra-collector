@@ -1,6 +1,10 @@
 .EXPORT_ALL_VARIABLES:
 SHELL=/bin/bash
 
+clean-db:
+	cd utils/remove_tables && \
+	 psql "postgresql://sracollector:$(cat $FLYWAY_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+
 clean-queues:
 	cd utils/purge_queues && \
 	pip install -r requirements.txt && \
