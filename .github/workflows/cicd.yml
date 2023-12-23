@@ -6,7 +6,7 @@ env:
 on:
   - push
 jobs:
-  purge-queues:
+  infra:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
           cache: 'pip'
       - name: Infra Clean & Deploy
         run: make init-infra build-infra
-  db:
+  db-schema:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
