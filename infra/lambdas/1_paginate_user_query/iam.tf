@@ -75,10 +75,6 @@ data "aws_secretsmanager_secrets" "managed_rds_secret" {
   }
 }
 
-output "cosa" {
-  value = data.aws_secretsmanager_secrets.managed_rds_secret
-}
-
 resource "aws_iam_role_policy" "secret_policy" {
   name = "secret_policy"
   role = aws_iam_role.lambda_assume.name
