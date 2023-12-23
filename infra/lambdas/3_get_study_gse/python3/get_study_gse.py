@@ -4,6 +4,7 @@ import time
 import boto3
 import urllib3
 from lambda_log_support import lambda_log_support
+from postgres_connection import postgres_connection
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/gses_queue'
 
@@ -56,6 +57,7 @@ def _summary_process(study_id: str, request_info: dict, summary: str):
         message = {**request_info, 'study_id': study_id, 'gse': gse}
         sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
         logger.debug(f'Sent message {message} for study {study_id}')
+        _store_request_in_db(study_id, request_info['request_id'], gse)
     else:
         raise Exception(f'Unable to fetch gse from {study_id}')
 
@@ -68,3 +70,17 @@ def _extract_gse_from_summaries(summary: str) -> str:
         return gse
     else:
         logger.error(f'For summary {summary} there are none GSE entrytype')
+
+def _store_request_in_db(study_id: str, request_id: str, accession: str):
+    database_connection = postgres_connection.get_connection()
+    cursor = database_connection.cursor()
+    statement = cursor.mogrify(
+        'insert into geo_study (study_id, request_id, accession) values (%s, %s, %s)',
+        (study_id, request_id, accession)
+    )
+    logger.debug(f'Executing: {statement}...')
+    cursor.execute(statement)
+    logger.debug(f'Inserted geo study info in database')
+    database_connection.commit()
+    cursor.close()
+    database_connection.close()

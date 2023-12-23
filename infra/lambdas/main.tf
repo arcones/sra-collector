@@ -1,3 +1,10 @@
+data "aws_secretsmanager_secrets" "managed_rds_secret" {
+  filter {
+    name   = "owning-service"
+    values = ["rds"]
+  }
+}
+
 module "get_user_query" {
   source                             = "./0_get_user_query"
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
@@ -15,6 +22,7 @@ module "paginate_user_query" {
   log_level_parameter_arn  = var.log_level_parameter_arn
   common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn          = var.rds_kms_key_arn
+  rds_secret_arn           = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
 }
 
 module "get_study_ids" {
@@ -34,6 +42,8 @@ module "get_study_gse" {
   ncbi_api_key_secret_arn = var.ncbi_api_key_secret_arn
   log_level_parameter_arn = var.log_level_parameter_arn
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  rds_kms_key_arn         = var.rds_kms_key_arn
+  rds_secret_arn          = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
 }
 
 module "get_study_srp" {

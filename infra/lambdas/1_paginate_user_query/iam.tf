@@ -68,13 +68,6 @@ resource "aws_iam_role_policy" "ssm_policy" {
   })
 }
 
-data "aws_secretsmanager_secrets" "managed_rds_secret" {
-  filter {
-    name   = "owning-service"
-    values = ["rds"]
-  }
-}
-
 resource "aws_iam_role_policy" "secret_policy" {
   name = "secret_policy"
   role = aws_iam_role.lambda_assume.name
@@ -84,7 +77,7 @@ resource "aws_iam_role_policy" "secret_policy" {
       {
         Action   = ["secretsmanager:GetSecretValue"]
         Effect   = "Allow"
-        Resource = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
+        Resource = var.rds_secret_arn
       },
     ]
   })
