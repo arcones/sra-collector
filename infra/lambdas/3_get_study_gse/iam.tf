@@ -1,6 +1,7 @@
 resource "aws_iam_role" "lambda_assume" {
   name = "${local.function_name}_lambda_role"
   assume_role_policy = jsonencode({
+    Version = "2008-10-17"
     Statement = [
       {
         Action = ["sts:AssumeRole", ],
@@ -22,6 +23,7 @@ resource "aws_iam_role_policy" "secret_policy" {
   name = "secret_policy"
   role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
+    Version = "2008-10-17"
     Statement = [
       {
         Action   = ["secretsmanager:GetSecretValue"]
@@ -36,6 +38,7 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
   name = "input_sqs_policy"
   role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
+    Version = "2008-10-17"
     Statement = [
       {
         Action = [
@@ -54,6 +57,7 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
   name = "output_sqs_policy"
   role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
+    Version = "2008-10-17"
     Statement = [
       {
         Action   = ["sqs:sendmessage"]
@@ -68,6 +72,7 @@ resource "aws_iam_role_policy" "ssm_policy" {
   name = "ssm_policy"
   role = aws_iam_role.lambda_assume.name
   policy = jsonencode({
+    Version = "2008-10-17"
     Statement = [
       {
         Action   = ["ssm:GetParameter"]

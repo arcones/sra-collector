@@ -7,7 +7,7 @@ resource "aws_lambda_function" "dlq_get_srp_pysradb_error" {
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.dlq_get_srp_pysradb_error_code.output_base64sha256
-  layers           = [var.pysradb_layer_arn]
+  layers           = [var.common_libs_layer_arn]
   timeout          = 10
 }
 

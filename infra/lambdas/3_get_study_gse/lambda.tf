@@ -7,6 +7,7 @@ resource "aws_lambda_function" "get_study_gse" {
   handler          = "${local.function_name}.handler"
   runtime          = "python3.11"
   source_code_hash = data.archive_file.get_study_gse_code.output_base64sha256
+  layers           = [var.common_libs_layer_arn]
   timeout          = 30
 }
 
