@@ -6,36 +6,19 @@ env:
 on:
   - push
 jobs:
-  purge-queues:
+  infra:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: utils/purge_queues
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: pip install -r requirements.txt
-      - run: python purge-queues.py
-  infra:
+      - name: Infra Clean & Deploy
+        run: make init-infra build-infra
+  db-schema:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra
-    steps:
-      - uses: actions/checkout@v4
-      - name: Terraform init
-        run: terraform init
-      - name: Terraform apply
-        run: terraform apply -auto-approve
-  db:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: db
     steps:
       - uses: actions/checkout@v4
       - name: Flyway Migration
-        run: docker run --rm -v $(pwd)/migrations:/flyway/sql -v $(pwd):/flyway/conf  -e FLYWAY_PASSWORD=$FLYWAY_PASSWORD flyway/flyway migrate
+        run: make db-migrations

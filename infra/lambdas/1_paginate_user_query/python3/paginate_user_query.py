@@ -1,37 +1,21 @@
 import json
-import logging
-from time import time
 
 import boto3
 import urllib3
+from lambda_log_support import lambda_log_support
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_pages_queue'
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-ssm = boto3.client('ssm', region_name='eu-central-1')
 
 http = urllib3.PoolManager()
 
 page_size = 500
 
-
-def _define_log_level():
-    log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
-    the_logger = logging.getLogger('paginate_user_query')
-    logging.basicConfig(format='%(levelname)s %(message)s')
-
-    if log_level == 'DEBUG':
-        the_logger.setLevel(logging.DEBUG)
-    else:
-        the_logger.setLevel(logging.INFO)
-
-    return the_logger
+logger = lambda_log_support.define_log_level()
 
 
-logger = _define_log_level()
-
-
-def handler(event, context): ## TODO instead of picking request, pick from SQS
+def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
         for record in event['Records']:

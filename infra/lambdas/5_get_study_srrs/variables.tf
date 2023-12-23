@@ -10,10 +10,11 @@ variable "srrs_sqs_arn" {
   type = string
 }
 
+
 variable "log_level_parameter_arn" {
   type = string
 }
 
-variable "pysradb_layer_arn" {
+variable "common_libs_layer_arn" {
   type = string
 }

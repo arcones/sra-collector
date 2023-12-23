@@ -1,32 +1,19 @@
 import json
-import logging
 import time
 
 import boto3
 import urllib3
+from lambda_log_support import lambda_log_support
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/gses_queue'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
-ssm = boto3.client('ssm', region_name='eu-central-1')
 
 http = urllib3.PoolManager()
 
-def _define_log_level():
-    log_level = ssm.get_parameter(Name='sra_collector_log_level')['Parameter']['Value']
-    the_logger = logging.getLogger('get_study_gse')
-    logging.basicConfig(format='%(levelname)s %(message)s')
+logger = lambda_log_support.define_log_level()
 
-    if log_level == 'DEBUG':
-        the_logger.setLevel(logging.DEBUG)
-    else:
-        the_logger.setLevel(logging.INFO)
-
-    return the_logger
-
-
-logger = _define_log_level()
 
 def handler(event, context):
     if event:
@@ -66,7 +53,7 @@ def _summary_process(study_id: str, request_info: dict, summary: str):
 
     if gse:
         logger.debug(f'Retrieved gse {gse} for study {study_id}')
-        message = { **request_info, 'study_id': study_id, 'gse': gse}
+        message = {**request_info, 'study_id': study_id, 'gse': gse}
         sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
         logger.debug(f'Sent message {message} for study {study_id}')
     else:

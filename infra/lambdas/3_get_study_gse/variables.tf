@@ -17,3 +17,7 @@ variable "ncbi_api_key_secret_arn" {
 variable "log_level_parameter_arn" {
   type = string
 }
+
+variable "common_libs_layer_arn" {
+  type = string
+}

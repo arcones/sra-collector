@@ -13,3 +13,7 @@ variable "user_query_pages_sqs_arn" {
 variable "log_level_parameter_arn" {
   type = string
 }
+
+variable "common_libs_layer_arn" {
+  type = string
+}

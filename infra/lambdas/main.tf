@@ -4,6 +4,7 @@ module "get_user_query" {
   s3_bucket_id                       = var.s3_bucket_id
   user_query_sqs_arn                 = var.user_query_sqs_arn
   log_level_parameter_arn            = var.log_level_parameter_arn
+  common_libs_layer_arn              = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "paginate_user_query" {
@@ -12,6 +13,7 @@ module "paginate_user_query" {
   user_query_sqs_arn       = var.user_query_sqs_arn
   user_query_pages_sqs_arn = var.user_query_pages_sqs_arn
   log_level_parameter_arn  = var.log_level_parameter_arn
+  common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "get_study_ids" {
@@ -20,6 +22,7 @@ module "get_study_ids" {
   user_query_pages_sqs_arn = var.user_query_pages_sqs_arn
   study_ids_sqs_arn        = var.study_ids_sqs_arn
   log_level_parameter_arn  = var.log_level_parameter_arn
+  common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "get_study_gse" {
@@ -29,6 +32,7 @@ module "get_study_gse" {
   gses_sqs_arn            = var.gses_sqs_arn
   ncbi_api_key_secret_arn = var.ncbi_api_key_secret_arn
   log_level_parameter_arn = var.log_level_parameter_arn
+  common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "get_study_srp" {
@@ -37,7 +41,7 @@ module "get_study_srp" {
   gses_sqs_arn            = var.gses_sqs_arn
   srps_sqs_arn            = var.srps_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
-  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
+  common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "dlq_get_srp_pysradb_error" {
@@ -45,7 +49,7 @@ module "dlq_get_srp_pysradb_error" {
   s3_bucket_id            = var.s3_bucket_id
   gses_dlq_sqs_arn        = var.gses_dlq_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
-  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
+  common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
 
 module "get_study_srrs" {
@@ -54,5 +58,5 @@ module "get_study_srrs" {
   srps_sqs_arn            = var.srps_sqs_arn
   srrs_sqs_arn            = var.srrs_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
-  pysradb_layer_arn       = aws_lambda_layer_version.pysradb_lambda_layer.arn
+  common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
 }
