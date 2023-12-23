@@ -19,6 +19,9 @@ build-lambda-dependencies: clean-builds
 init-infra: clean-queues build-lambda-dependencies
 	 cd infra && terraform init ; cd ..
 
+plan-infra:
+	 cd infra && terraform plan ; cd ..
+
 build-infra:
 	cd infra && terraform apply --auto-approve ; cd ..
 

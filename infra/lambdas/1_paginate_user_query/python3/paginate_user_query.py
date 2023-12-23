@@ -1,8 +1,10 @@
+import datetime
 import json
 
 import boto3
 import urllib3
 from lambda_log_support import lambda_log_support
+from postgres_connection import postgres_connection
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_pages_queue'
 
@@ -19,13 +21,17 @@ def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
         for record in event['Records']:
+
             request_body = json.loads(record['body'])
-            ncbi_query = request_body['ncbi_query']
             request_id = request_body['request_id']
+            ncbi_query = request_body['ncbi_query']
 
             request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
             study_count = _get_study_count(ncbi_query)
+
+            _store_request_in_db(request_id, ncbi_query, study_count)
+
             retstart = 0
             message_sent_count = 0
 
@@ -44,8 +50,6 @@ def handler(event, context):
 
             logger.debug(f'Sent {message_sent_count} messages to {output_sqs}')
 
-    ## TODO also add to request table
-
 
 def _get_study_count(ncbi_query: str) -> int:
     logger.debug(f'Getting study count for keyword {ncbi_query}...')
@@ -54,3 +58,18 @@ def _get_study_count(ncbi_query: str) -> int:
     study_count = response['esearchresult']['count']
     logger.debug(f'Done get study count for keyword {ncbi_query}. There are {study_count} studies')
     return int(study_count)
+
+
+def _store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
+    database_connection = postgres_connection.get_connection()
+    cursor = database_connection.cursor()
+    statement = cursor.mogrify(
+        'insert into request (id, query, geo_count) values (%s, %s, %s)',
+        (request_id, ncbi_query, study_count)
+    )
+    logger.debug(f'Executing: {statement}...')
+    cursor.execute(statement)
+    logger.debug(f'Inserted request info in database')
+    database_connection.commit()
+    cursor.close()
+    database_connection.close()
