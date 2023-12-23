@@ -21,3 +21,11 @@ variable "log_level_parameter_arn" {
 variable "common_libs_layer_arn" {
   type = string
 }
+
+variable "rds_kms_key_arn" {
+  type = string
+}
+
+variable "rds_secret_arn" {
+  type = string
+}

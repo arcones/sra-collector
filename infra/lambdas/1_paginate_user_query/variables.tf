@@ -21,3 +21,7 @@ variable "common_libs_layer_arn" {
 variable "rds_kms_key_arn" {
   type = string
 }
+
+variable "rds_secret_arn" {
+  type = string
+}
