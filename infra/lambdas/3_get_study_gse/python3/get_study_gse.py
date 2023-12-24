@@ -75,7 +75,7 @@ def _store_gse_in_db(study_id: str, request_id: str, accession: str):
     database_connection = postgres_connection.get_connection()
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
-        'insert into geo_study (study_id, request_id, accession) values (%s, %s, %s)',
+        'insert into geo_study (ncbi_id, request_id, accession) values (%s, %s, %s)',
         (study_id, request_id, accession)
     )
     logger.debug(f'Executing: {statement}...')

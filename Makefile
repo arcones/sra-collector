@@ -1,9 +1,14 @@
-.EXPORT_ALL_VARIABLES:
 SHELL=/bin/bash
+DATABASE_PASSWORD := $(shell echo $$DATABASE_PASSWORD)
+FLYWAY_PASSWORD := $(shell echo $$FLYWAY_PASSWORD)
 
-clean-db:
+remove-db-tables:
 	cd utils/remove_tables && \
-	 psql "postgresql://sracollector:$(cat $FLYWAY_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+
+truncate-db-tables:
+	cd utils/truncate_tables && \
+	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
 clean-queues:
 	cd utils/purge_queues && \
@@ -30,4 +35,4 @@ build-infra:
 	cd infra && terraform apply --auto-approve ; cd ..
 
 db-migrations:
-	docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf  -e FLYWAY_PASSWORD flyway/flyway migrate
+	docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD flyway/flyway migrate

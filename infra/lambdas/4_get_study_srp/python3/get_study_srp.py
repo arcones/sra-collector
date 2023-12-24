@@ -11,6 +11,7 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/srps_queue'
 
 logger = lambda_log_support.define_log_level()
 
+
 def handler(event, context):
     if event:
         logger.debug(f'Received event {event}')
@@ -28,18 +29,36 @@ def handler(event, context):
                 response = json.dumps({**study_with_missing_srp, 'srp': srp})
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                 logger.debug(f'Sent event to {output_sqs} with body {response}')
+                _store_srp_in_db(srp, study_with_missing_srp['request_id'], gse)
 
-## TODO ME HE QUEDADO APAÑANDO ESTE METODO
-def _store_srp_in_db(study_id: str, request_id: str, accession: str):
+
+def _store_srp_in_db(srp: str, request_id: str, accession: str):
     database_connection = postgres_connection.get_connection()
+    geo_study_id = _get_id_geo_study_table(request_id, accession)
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
         'insert into sra_project (srp, request_id, geo_study_id) values (%s, %s, %s)',
-        (study_id, request_id, accession)
+        (srp, request_id, geo_study_id)
     )
     logger.debug(f'Executing: {statement}...')
     cursor.execute(statement)
-    logger.debug(f'Inserted geo study info in database')
+    logger.debug(f'Inserted sra project info in database')
     database_connection.commit()
     cursor.close()
     database_connection.close()
+
+
+def _get_id_geo_study_table(request_id: str, accession: str):
+    database_connection = postgres_connection.get_connection()
+    cursor = database_connection.cursor()
+    statement = cursor.mogrify(
+        'select id from geo_study where request_id=%s and accession=%s',
+        (request_id, accession)
+    )
+    logger.debug(f'Executing: {statement}...')
+    cursor.execute(statement)
+    geo_study_id = cursor.fetchone()
+    logger.debug(f'Selected the geo_study table {geo_study_id}')
+    cursor.close()
+    database_connection.close()
+    return geo_study_id
