@@ -5,6 +5,10 @@ data "aws_secretsmanager_secrets" "managed_rds_secret" {
   }
 }
 
+locals {
+  rds_secret_arn = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
+}
+
 module "get_user_query" {
   source                             = "./0_get_user_query"
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
@@ -22,7 +26,7 @@ module "paginate_user_query" {
   log_level_parameter_arn  = var.log_level_parameter_arn
   common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn          = var.rds_kms_key_arn
-  rds_secret_arn           = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
+  rds_secret_arn           = local.rds_secret_arn
 }
 
 module "get_study_ids" {
@@ -43,7 +47,7 @@ module "get_study_gse" {
   log_level_parameter_arn = var.log_level_parameter_arn
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn         = var.rds_kms_key_arn
-  rds_secret_arn          = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
+  rds_secret_arn          = local.rds_secret_arn
 }
 
 module "get_study_srp" {
@@ -72,4 +76,6 @@ module "get_study_srrs" {
   srrs_sqs_arn            = var.srrs_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  rds_kms_key_arn         = var.rds_kms_key_arn
+  rds_secret_arn          = local.rds_secret_arn
 }

@@ -32,9 +32,9 @@ def handler(event, context):
                 _store_srp_in_db(srp, study_with_missing_srp['request_id'], gse)
 
 
-def _store_srp_in_db(srp: str, request_id: str, accession: str):
+def _store_srp_in_db(srp: str, request_id: str, gse: str):
     database_connection = postgres_connection.get_connection()
-    geo_study_id = _get_id_geo_study_table(request_id, accession)
+    geo_study_id = _get_id_geo_study(request_id, gse)
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
         'insert into sra_project (srp, request_id, geo_study_id) values (%s, %s, %s)',
@@ -48,17 +48,17 @@ def _store_srp_in_db(srp: str, request_id: str, accession: str):
     database_connection.close()
 
 
-def _get_id_geo_study_table(request_id: str, accession: str):
+def _get_id_geo_study(request_id: str, gse: str):
     database_connection = postgres_connection.get_connection()
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
-        'select id from geo_study where request_id=%s and accession=%s',
-        (request_id, accession)
+        'select id from geo_study where request_id=%s and gse=%s',
+        (request_id, gse)
     )
     logger.debug(f'Executing: {statement}...')
     cursor.execute(statement)
     geo_study_id = cursor.fetchone()
-    logger.debug(f'Selected the geo_study table {geo_study_id}')
+    logger.debug(f'Selected the geo_study row with id {geo_study_id}')
     cursor.close()
     database_connection.close()
     return geo_study_id
