@@ -12,3 +12,6 @@ infra/.terraform
 
 ## Temp
 **/tmp
+
+# DB Temp files
+db/diagram.png
