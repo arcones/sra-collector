@@ -4,11 +4,11 @@ FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!d
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 
 truncate-db-tables:
-	cd utils/truncate_tables && \
+	@cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
 remove-db-tables:
-	cd utils/remove_tables && \
+	@cd utils/remove_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
 
 db-migrations:
