@@ -15,7 +15,7 @@ db-migrations:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
 update-diagram:
-	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod +w tmp/diagrams && \
+	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod +x tmp/diagrams && \
 	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) && \
 	cp tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png
 
