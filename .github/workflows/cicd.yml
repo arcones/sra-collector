@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ScribeMD/docker-cache@0.3.7
         with:
-          key: docker-${{ runner.os }}-${{ hashFiles('infra/lambdas/docker/Dockerfile') }}
+          key: infra-${{ runner.os }}-${{ hashFiles('infra/lambdas/docker/Dockerfile') }}
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -23,6 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ScribeMD/docker-cache@0.3.7
+        with:
+          key: db-schema-${{ runner.os }}
       - name: Flyway Migration
         run: make db-migrations
   db-diagram:
@@ -33,6 +35,8 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - uses: ScribeMD/docker-cache@0.3.7
+        with:
+          key: db-diagram-${{ runner.os }}
       - name: Generate diagram
         run: make update-diagram
       - name: Commit & Push changes
