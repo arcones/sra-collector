@@ -1,14 +1,18 @@
 SHELL=/bin/bash
-DATABASE_PASSWORD := $(shell echo $$DATABASE_PASSWORD)
-FLYWAY_PASSWORD := $(shell echo $$FLYWAY_PASSWORD)
 
-remove-db-tables:
-	cd utils/remove_tables && \
-	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6 --region eu-central-1 --output json | jq -r .SecretString | jq -r .password)'
+DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 
 truncate-db-tables:
-	cd utils/truncate_tables && \
+	@cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
+
+remove-db-tables:
+	@cd utils/remove_tables && \
+	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+
+db-migrations:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
 clean-queues:
 	cd utils/purge_queues && \
@@ -33,6 +37,3 @@ plan-infra:
 
 build-infra:
 	cd infra && terraform apply --auto-approve ; cd ..
-
-db-migrations:
-	docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD flyway/flyway migrate
