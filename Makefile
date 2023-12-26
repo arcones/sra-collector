@@ -15,10 +15,10 @@ db-migrations:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
 update-diagram:
-	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && \
-	ls -lrta tmp && \
-	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) -debug && \
-	mv ./tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png
+	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod 777 tmp/diagrams && \
+	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) && \
+	mv ./tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png && \
+	rm -rf tmp/diagrams
 
 clean-queues:
 	cd utils/purge_queues && \
