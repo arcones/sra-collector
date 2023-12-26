@@ -16,6 +16,7 @@ db-migrations:
 
 update-diagram:
 	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && \
+	ls -lrta && \
 	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) && \
 	mv ./tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png
 
