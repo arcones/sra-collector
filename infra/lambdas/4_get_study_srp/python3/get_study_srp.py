@@ -37,8 +37,8 @@ def _store_srp_in_db(srp: str, request_id: str, gse: str):
     geo_study_id = _get_id_geo_study(request_id, gse)
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
-        'insert into sra_project (srp, request_id, geo_study_id) values (%s, %s, %s)',
-        (srp, request_id, geo_study_id)
+        'insert into sra_project (srp, geo_study_id) values (%s, %s)',
+        (srp, geo_study_id)
     )
     logger.debug(f'Executing: {statement}...')
     cursor.execute(statement)

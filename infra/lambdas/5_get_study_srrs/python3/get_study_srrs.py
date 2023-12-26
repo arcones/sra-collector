@@ -34,17 +34,17 @@ def handler(event, context):
                 for srr in srrs:
                     response = json.dumps({**study_with_missing_srrs, 'srr': srr})
                     sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                    _store_srr_in_db(srr, gse, request_id, srp)
+                    _store_srr_in_db(srr, request_id, srp)
                     logger.debug(f'Sent event to {output_sqs} with body {response}')
 
 
-def _store_srr_in_db(srr: str, gse: str, request_id: str, srp: str):
+def _store_srr_in_db(srr: str, request_id: str, srp: str):
     database_connection = postgres_connection.get_connection()
     sra_project_id = _get_id_sra_project(request_id, srp)
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
-        'insert into sra_run (srr, request_id, sra_project_id) values (%s, %s, %s)',
-        (srr, request_id, sra_project_id)
+        'insert into sra_run (srr, sra_project_id) values (%s, %s)',
+        (srr, sra_project_id)
     )
     logger.debug(f'Executing: {statement}...')
     cursor.execute(statement)
@@ -58,7 +58,11 @@ def _get_id_sra_project(request_id: str, srp: str):
     database_connection = postgres_connection.get_connection()
     cursor = database_connection.cursor()
     statement = cursor.mogrify(
-        'select id from sra_project where request_id=%s and srp=%s',
+        '''
+        select sp.id from sra_project sp
+        join geo_study gs on gs.id = sp.geo_study_id
+        where gs.request_id=%s and srp=%s
+        ''',
         (request_id, srp)
     )
     logger.debug(f'Executing: {statement}...')

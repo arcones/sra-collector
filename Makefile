@@ -1,6 +1,7 @@
 SHELL=/bin/bash
-FLYWAY_PASSWORD := $(shell aws secretsmanager get-secret-value --secret-id rds\!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6 --region eu-central-1 --output json | jq -r .SecretString | jq -r .password)
-DATABASE_PASSWORD := $(shell urlencode $${FLYWAY_PASSWORD})
+
+FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6 --region eu-central-1 --output json | jq -r .SecretString | jq -r .password)'
+DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 
 truncate-db-tables:
 	cd utils/truncate_tables && \
@@ -11,7 +12,7 @@ remove-db-tables:
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
 
 db-migrations:
-	docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD flyway/flyway migrate
+	docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
 clean-queues:
 	cd utils/purge_queues && \
