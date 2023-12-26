@@ -19,7 +19,7 @@ update-diagram:
 	ls -lrta tmp/diagrams && ls -lrta tmp/diagrams && \
 	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) && \
 	chown -R $(shell whoami) tmp/diagrams && \
-	mv tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png && \
+	cp tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png && \
 	rm -rf tmp/diagrams
 
 clean-queues:
