@@ -1,6 +1,12 @@
 resource "aws_apigatewayv2_api" "sra_collector_api" {
   name          = "sra_collector_api"
   protocol_type = "HTTP"
+  cors_configuration {
+    allow_origins = ["https://arcones.github.io"]
+    allow_methods = ["POST", "OPTIONS"]
+    allow_headers = ["content-type"]
+    max_age       = 300
+  }
 }
 
 resource "aws_apigatewayv2_stage" "paginate_user_query_lambda" {
@@ -37,7 +43,7 @@ resource "aws_apigatewayv2_integration" "paginate_user_query" {
 
 resource "aws_apigatewayv2_route" "query_study_hierarchy" {
   api_id    = aws_apigatewayv2_api.sra_collector_api.id
-  route_key = "GET /query-submit"
+  route_key = "POST /query-submit"
   target    = "integrations/${aws_apigatewayv2_integration.paginate_user_query.id}"
 }
 
