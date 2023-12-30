@@ -12,7 +12,7 @@ jobs:
       - uses: ScribeMD/docker-cache@0.3.7
         with:
           key: infra-${{ runner.os }}-${{ hashFiles('infra/lambdas/docker/Dockerfile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
