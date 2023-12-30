@@ -23,5 +23,4 @@ resource "aws_lambda_layer_version" "common_libs_lambda_layer" {
   s3_key              = aws_s3_object.common_libs_lambda_layer_zip.key
   layer_name          = "${local.lib_name}_layer"
   compatible_runtimes = ["python3.11"]
-  source_code_hash    = filebase64sha256(aws_s3_object.common_libs_lambda_layer_zip.source)
 }
