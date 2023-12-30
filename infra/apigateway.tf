@@ -37,7 +37,7 @@ resource "aws_apigatewayv2_integration" "paginate_user_query" {
 
 resource "aws_apigatewayv2_route" "query_study_hierarchy" {
   api_id    = aws_apigatewayv2_api.sra_collector_api.id
-  route_key = "GET /query-submit"
+  route_key = "POST /query-submit"
   target    = "integrations/${aws_apigatewayv2_integration.paginate_user_query.id}"
 }
 
