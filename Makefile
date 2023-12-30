@@ -35,10 +35,16 @@ build-lambda-dependencies: clean-builds
 	docker rm deps
 
 init-infra: clean-queues build-lambda-dependencies
-	 cd infra && terraform init ; cd ..
+	cd infra && terraform init ; cd ..
 
 plan-infra:
-	 cd infra && terraform plan ; cd ..
+	cd infra && terraform plan ; cd ..
 
 build-infra:
-	cd infra && terraform apply --auto-approve ; cd ..
+	cd infra && terraform plan -detailed-exitcode -out terraform.plan; \
+	INFRA_CHANGES=$$?; \
+	if [ $$INFRA_CHANGES = "2" ]; then\
+		terraform apply --auto-approve terraform.plan; cd ..;\
+	else \
+		echo "There are no infra changes" && cd ..; \
+	fi
