@@ -4,7 +4,7 @@
 
 Collect NIH SRA metadata of several studies in one search.
 
-Use the API directly in https://arcones.github.io/sra-collector/
+Use the API directly in [here](https://arcones.github.io/sra-collector/)
 
 ## Infra Diagram
 ![alt text](./infra/diagram.png "Infrastructure diagram")
