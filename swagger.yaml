@@ -1,19 +1,23 @@
 openapi: 3.0.3
 info:
   title: SRA Collector
-  description: |-
-    Using [NIH NCBI](https://www.ncbi.nlm.nih.gov/gds), this API collects SRA metadata of several GEO studies in one search.
+  description: Using [NIH NCBI](https://www.ncbi.nlm.nih.gov/gds), this API collects SRA metadata of several GEO studies in one search.
   contact:
     email: marta.arcones@alumnos.upm.es
   version: 1.0.0
+externalDocs:
+  description: See project README for architecture & tech stack details
+  url: https://github.com/arcones/sra-collector/blob/main/README.md
 servers:
   - url: https://sra-collector.martaarcones.net
 paths:
   /query-submit:
     post:
+      tags:
+        - query
       summary: Submit query to fetch GEO studies and process its dependant SRA metadata
-      operationId: querySubmit
       requestBody:
+        description: NCBI GEO complete query
         content:
           application/json:
             schema:
@@ -27,7 +31,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/QueryProcessed'
         '500':
-          description: Something went wrong, contact maintainer
+          description: Something went wrong, contact developer
 components:
   schemas:
     Query:
