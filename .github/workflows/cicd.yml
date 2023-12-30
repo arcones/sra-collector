@@ -27,6 +27,7 @@ jobs:
   db-schema:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Flyway Migration
         run: make db-migrations
   db-diagram:
