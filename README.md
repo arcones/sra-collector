@@ -1,3 +1,5 @@
+[![cicd](https://github.com/arcones/sra-collector/actions/workflows/cicd.yml/badge.svg)](https://github.com/arcones/sra-collector/actions/workflows/cicd.yml)
+
 # sra-collector
 
 Collect NIH SRA metadata of several studies in one search.
