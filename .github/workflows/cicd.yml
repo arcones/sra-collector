@@ -18,11 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-#      - uses: ScribeMD/docker-cache@0.3.7
-#        with:
-#          key: infra-${{ runner.os }}-${{ hashFiles('infra/lambdas/docker/Dockerfile') }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -32,10 +27,6 @@ jobs:
   db-schema:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ScribeMD/docker-cache@0.3.7
-        with:
-          key: db-schema-${{ runner.os }}
       - name: Flyway Migration
         run: make db-migrations
   db-diagram:
@@ -46,9 +37,6 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: ScribeMD/docker-cache@0.3.7
-        with:
-          key: db-diagram-${{ runner.os }}
       - name: Generate diagram
         run: make update-diagram
       - name: Commit & Push changes
