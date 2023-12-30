@@ -7,6 +7,7 @@ resource "aws_apigatewayv2_api" "sra_collector_api" {
     allow_headers = ["content-type"]
     max_age       = 300
   }
+  tags = var.tags
 }
 
 resource "aws_apigatewayv2_stage" "paginate_user_query_lambda" {
@@ -31,6 +32,7 @@ resource "aws_apigatewayv2_stage" "paginate_user_query_lambda" {
       integrationErrorMessage = "$context.integrationErrorMessage"
     })
   }
+  tags = var.tags
 }
 
 resource "aws_apigatewayv2_integration" "paginate_user_query" {

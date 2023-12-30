@@ -45,3 +45,7 @@ variable "ncbi_api_key_secret_arn" {
 variable "rds_kms_key_arn" {
   type = string
 }
+
+variable "tags" {
+  type = map(string)
+}

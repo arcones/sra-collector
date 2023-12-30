@@ -9,4 +9,5 @@ resource "aws_s3_object" "get_study_ids_s3_object" {
   key    = "${local.function_name}.zip"
   source = data.archive_file.get_study_ids_code.output_path
   etag   = filemd5(data.archive_file.get_study_ids_code.output_path)
+  tags   = var.tags
 }

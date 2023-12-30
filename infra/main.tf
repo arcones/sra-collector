@@ -12,4 +12,5 @@ module "lambdas" {
   srrs_sqs_arn                       = aws_sqs_queue.srrs_queue.arn
   ncbi_api_key_secret_arn            = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                    = aws_kms_key.db_kms_key.arn
+  tags                               = var.tags
 }

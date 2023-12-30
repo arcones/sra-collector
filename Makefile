@@ -44,7 +44,7 @@ build-infra:
 	cd infra && terraform plan -detailed-exitcode -out terraform.plan; \
 	INFRA_CHANGES=$$?; \
 	if [ $$INFRA_CHANGES = "2" ]; then\
-		cd infra/lambdas/docker && \
+		cd lambdas/docker && \
 		docker build --tag=lambda-dependencies . && \
 		docker create --name deps lambda-dependencies:latest && \
 		docker cp deps:dependencies.zip .. && \

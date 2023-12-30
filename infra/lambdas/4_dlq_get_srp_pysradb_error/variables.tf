@@ -13,3 +13,7 @@ variable "log_level_parameter_arn" {
 variable "common_libs_layer_arn" {
   type = string
 }
+
+variable "tags" {
+  type = map(string)
+}

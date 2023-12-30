@@ -11,6 +11,7 @@ resource "aws_lambda_function" "dlq_get_srp_pysradb_error" {
   lifecycle {
     replace_triggered_by = [null_resource.code_watcher]
   }
+  tags = var.tags
 }
 
 resource "null_resource" "code_watcher" {
