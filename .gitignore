@@ -4,6 +4,7 @@
 # Infra
 infra/.terraform
 **/*.tfstate
+terraform.plan
 
 # Python
 **/*.zip

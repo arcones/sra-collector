@@ -34,11 +34,23 @@ build-lambda-dependencies: clean-builds
 	docker cp deps:dependencies.zip .. && \
 	docker rm deps
 
-init-infra: clean-queues build-lambda-dependencies
-	 cd infra && terraform init ; cd ..
+init-infra: clean-queues
+	cd infra && terraform init ; cd ..
 
 plan-infra:
-	 cd infra && terraform plan ; cd ..
+	cd infra && terraform plan ; cd ..
 
 build-infra:
-	cd infra && terraform apply --auto-approve ; cd ..
+	cd infra && terraform plan -detailed-exitcode -out terraform.plan; \
+	INFRA_CHANGES=$$?; \
+	if [ $$INFRA_CHANGES = "2" ]; then\
+		cd infra/lambdas/docker && \
+		docker build --tag=lambda-dependencies . && \
+		docker create --name deps lambda-dependencies:latest && \
+		docker cp deps:dependencies.zip .. && \
+		docker rm deps && \
+		cd ../.. && \
+		terraform apply --auto-approve terraform.plan; cd ..;\
+	else \
+		echo "There are no infra changes" && cd ..; \
+	fi

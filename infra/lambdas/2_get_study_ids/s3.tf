@@ -1,6 +1,6 @@
 data "archive_file" "get_study_ids_code" {
   type        = "zip"
-  source_file = "${path.module}/python3/${local.function_name}.py"
+  source_file = "${path.module}/${local.code_folder}/${local.function_name}.py"
   output_path = "${path.module}/${local.function_name}.zip"
 }
 
