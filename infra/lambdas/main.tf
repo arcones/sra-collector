@@ -16,6 +16,7 @@ module "get_user_query" {
   user_query_sqs_arn                 = var.user_query_sqs_arn
   log_level_parameter_arn            = var.log_level_parameter_arn
   common_libs_layer_arn              = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  tags                               = var.tags
 }
 
 module "paginate_user_query" {
@@ -27,6 +28,7 @@ module "paginate_user_query" {
   common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn          = var.rds_kms_key_arn
   rds_secret_arn           = local.rds_secret_arn
+  tags                     = var.tags
 }
 
 module "get_study_ids" {
@@ -36,6 +38,7 @@ module "get_study_ids" {
   study_ids_sqs_arn        = var.study_ids_sqs_arn
   log_level_parameter_arn  = var.log_level_parameter_arn
   common_libs_layer_arn    = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  tags                     = var.tags
 }
 
 module "get_study_gse" {
@@ -48,6 +51,7 @@ module "get_study_gse" {
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn         = var.rds_kms_key_arn
   rds_secret_arn          = local.rds_secret_arn
+  tags                    = var.tags
 }
 
 module "get_study_srp" {
@@ -59,6 +63,7 @@ module "get_study_srp" {
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn         = var.rds_kms_key_arn
   rds_secret_arn          = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
+  tags                    = var.tags
 }
 
 module "dlq_get_srp_pysradb_error" {
@@ -67,6 +72,7 @@ module "dlq_get_srp_pysradb_error" {
   gses_dlq_sqs_arn        = var.gses_dlq_sqs_arn
   log_level_parameter_arn = var.log_level_parameter_arn
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  tags                    = var.tags
 }
 
 module "get_study_srrs" {
@@ -78,4 +84,5 @@ module "get_study_srrs" {
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
   rds_kms_key_arn         = var.rds_kms_key_arn
   rds_secret_arn          = local.rds_secret_arn
+  tags                    = var.tags
 }

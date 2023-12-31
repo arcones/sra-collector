@@ -10,6 +10,7 @@ resource "aws_s3_object" "common_libs_lambda_layer_zip" {
   lifecycle {
     replace_triggered_by = [null_resource.dependencies_watcher]
   }
+  tags = var.tags
 }
 
 resource "null_resource" "dependencies_watcher" {

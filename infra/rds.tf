@@ -1,5 +1,6 @@
 resource "aws_kms_key" "db_kms_key" {
   description = "KMS for SRA collector database"
+  tags        = var.tags
 }
 
 resource "aws_db_instance" "sra_collector_db" {
@@ -16,4 +17,5 @@ resource "aws_db_instance" "sra_collector_db" {
   vpc_security_group_ids        = [aws_security_group.db_security_group.id]
   publicly_accessible           = true
   skip_final_snapshot           = true
+  tags                          = var.tags
 }

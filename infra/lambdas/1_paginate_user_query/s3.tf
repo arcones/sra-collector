@@ -9,4 +9,5 @@ resource "aws_s3_object" "paginate_user_query_s3_object" {
   key    = "${local.function_name}.zip"
   source = data.archive_file.paginate_user_query_code.output_path
   etag   = filemd5(data.archive_file.paginate_user_query_code.output_path)
+  tags   = var.tags
 }

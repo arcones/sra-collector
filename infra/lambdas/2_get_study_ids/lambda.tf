@@ -11,6 +11,7 @@ resource "aws_lambda_function" "get_study_ids" {
   lifecycle {
     replace_triggered_by = [null_resource.code_watcher]
   }
+  tags = var.tags
 }
 
 resource "null_resource" "code_watcher" {

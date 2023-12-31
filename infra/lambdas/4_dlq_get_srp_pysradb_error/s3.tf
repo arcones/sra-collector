@@ -9,4 +9,5 @@ resource "aws_s3_object" "dlq_get_srp_pysradb_error_s3_object" {
   key    = "${local.function_name}.zip"
   source = data.archive_file.dlq_get_srp_pysradb_error_code.output_path
   etag   = filemd5(data.archive_file.dlq_get_srp_pysradb_error_code.output_path)
+  tags   = var.tags
 }

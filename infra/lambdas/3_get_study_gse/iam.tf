@@ -12,6 +12,7 @@ resource "aws_iam_role" "lambda_assume" {
       }
     ]
   })
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_basic_policy" {

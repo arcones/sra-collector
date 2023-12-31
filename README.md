@@ -1,16 +1,35 @@
-[![cicd](https://github.com/arcones/sra-collector/actions/workflows/cicd.yml/badge.svg)](https://github.com/arcones/sra-collector/actions/workflows/cicd.yml)
-
 # sra-collector
 
-Collect NIH SRA metadata of several studies in one search.
+Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) **SRA** 🧬 metadata of several **GDS** studies in one search 🔮
 
-## Database diagram
+Use the API directly 👉  [here](https://arcones.github.io/sra-collector/)
+
+> 📢 **Best Effort Design**
+>
+> NCBI data is sometimes not consistent, therefore, **sra-collector** implements _best effort_ approach, fetching all possible SRA metadata but not giving any guarantees.
+>
+> Users will be able to check failure reports of each query.
+
+
+## Infra Diagram
+![alt text](./infra/diagram.png "Infrastructure diagram")
+
+## Database Diagram
 ![alt text](./db/diagram.png "Database diagram")
 
-## Infra
-TODO
+## Tech Stack
 
-## TODO After MVP phase
-- Add unit tests for python code in each lambda
-- Testing with localstack the infra system
-- Write about the best effort nature of the project
+![Static Badge](https://img.shields.io/badge/AWS-orange?logo=amazonaws)
+![Static Badge](https://img.shields.io/badge/Python-blue?logo=python&logoColor=yellow)
+![Static Badge](https://img.shields.io/badge/Terraform-lavender?logo=terraform)
+![Static Badge](https://img.shields.io/badge/PostgreSQL-yellow?logo=postgresql)
+![Static Badge](https://img.shields.io/badge/git-moccasin?logo=git)
+![Static Badge](https://img.shields.io/badge/GHActions-black?logo=githubactions)
+![Static Badge](https://img.shields.io/badge/Dependabot-deepskyblue?logo=dependabot)
+![Static Badge](https://img.shields.io/badge/Swagger-brightgreen?logo=swagger&logoColor=white)
+![Static Badge](https://img.shields.io/badge/OpenAPI-dimgray?logo=openapiinitiative)
+![Static Badge](https://img.shields.io/badge/SchemaSpy-cornflowerblue?logo=amazondocumentdb&logoColor=black)
+![Static Badge](https://img.shields.io/badge/Flyway-red?logo=flyway)
+![Static Badge](https://img.shields.io/badge/Precommit-white?logo=precommit)
+![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
+![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)

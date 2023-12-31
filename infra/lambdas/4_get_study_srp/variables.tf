@@ -25,3 +25,7 @@ variable "rds_kms_key_arn" {
 variable "rds_secret_arn" {
   type = string
 }
+
+variable "tags" {
+  type = map(string)
+}
