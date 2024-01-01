@@ -3,6 +3,7 @@
 
 # Infra
 infra/.terraform
+infra/builds
 **/*.tfstate
 terraform.plan
 

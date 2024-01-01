@@ -24,6 +24,11 @@ clean-queues:
 	pip install -r requirements.txt && \
 	python ./purge-queues.py
 
+reset-alarms:
+	cd utils/reset_alarms && \
+	pip install -r requirements.txt && \
+	python ./reset-alarms.py
+
 clean-builds:
 	./utils/clean_temp/clean_temp.sh
 
@@ -34,7 +39,7 @@ build-lambda-dependencies: clean-builds
 	docker cp deps:dependencies.zip .. && \
 	docker rm deps
 
-init-infra: clean-queues
+init-infra: clean-queues reset-alarms
 	cd infra && terraform init ; cd ..
 
 plan-infra:

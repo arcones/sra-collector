@@ -57,7 +57,7 @@ resource "aws_sqs_queue" "srps_queue" {
   name = "srps_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.srps_dlq.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 1
   })
   tags = var.tags
 }
@@ -71,7 +71,7 @@ resource "aws_sqs_queue" "srrs_queue" {
   name = "srrs_queue"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.srrs_dlq.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 1
   })
   tags = var.tags
 }
