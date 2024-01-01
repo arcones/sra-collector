@@ -8,7 +8,7 @@
 
 Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) **SRA** 🧬 metadata of several **GDS** studies in one search 🔮
 
-Use the API directly 👉  [here](https://arcones.github.io/sra-collector/)
+Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 
 > 📢 **Best Effort Design**
 >
