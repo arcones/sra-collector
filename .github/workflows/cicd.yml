@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Generate diagram
-        run: make update-diagram
+        run: make truncate-db-tables update-diagram
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
