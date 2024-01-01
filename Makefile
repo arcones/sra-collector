@@ -4,7 +4,8 @@ FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!d
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 
 truncate-db-tables:
-	@cd utils/truncate_tables && \
+	@sudo apt install -y gridsite-clients && \
+	cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
 remove-db-tables:
@@ -24,6 +25,11 @@ clean-queues:
 	pip install -r requirements.txt && \
 	python ./purge-queues.py
 
+reset-alarms:
+	cd utils/reset_alarms && \
+	pip install -r requirements.txt && \
+	python ./reset-alarms.py
+
 clean-builds:
 	./utils/clean_temp/clean_temp.sh
 
@@ -34,7 +40,7 @@ build-lambda-dependencies: clean-builds
 	docker cp deps:dependencies.zip .. && \
 	docker rm deps
 
-init-infra: clean-queues
+init-infra: clean-queues reset-alarms
 	cd infra && terraform init ; cd ..
 
 plan-infra:
