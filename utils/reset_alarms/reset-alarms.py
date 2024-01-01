@@ -16,7 +16,7 @@ logger.info(f'There are {len(metric_alarms_names)} alarms to restart')
 
 for metric_alarm_name in metric_alarms_names:
     alarm_reset_result_code = cloudwatch.set_alarm_state(
-        AlarmName='dlq_get_srp_pysradb_error_lambda_error_rate',
+        AlarmName=metric_alarm_name,
         StateValue='OK',
         StateReason='Manually restarted'
     )['ResponseMetadata']['HTTPStatusCode']

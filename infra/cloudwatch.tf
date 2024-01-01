@@ -85,13 +85,13 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
 
   metric_query {
     id          = "e1"
-    expression  = "RATE(m2+m1)"
+    expression  = "RATE(visible_messages + not_visible_messages)"
     label       = "Error Rate"
     return_data = "true"
   }
 
   metric_query {
-    id = "m1"
+    id = "visible_messages"
 
     metric {
       metric_name = "ApproximateNumberOfMessagesVisible"
@@ -107,7 +107,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   }
 
   metric_query {
-    id = "m2"
+    id = "not_visible_messages"
 
     metric {
       metric_name = "ApproximateNumberOfMessagesNotVisible"
