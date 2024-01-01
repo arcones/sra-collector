@@ -4,7 +4,8 @@ FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!d
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 
 truncate-db-tables:
-	@cd utils/truncate_tables && \
+	@sudo apt install -y gridsite-clients && \
+	cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
 remove-db-tables:
