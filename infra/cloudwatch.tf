@@ -4,6 +4,14 @@ resource "aws_cloudwatch_log_group" "sra_collector_logs" {
   tags              = var.tags
 }
 
+#resource "aws_cloudwatch_log_subscription_filter" "sra_collector_logs_subscription_filter" {
+#  name            = "sra_collector_logs_subscription_filter"
+##  role_arn        = aws_iam_role.iam_for_lambda.arn
+#  log_group_name  = aws_cloudwatch_log_group.sra_collector_logs.name
+##  filter_pattern  = "logtype test"
+#  destination_arn = aws_opensearch_domain.sracollector_opensearch.arn
+#}
+
 locals {
   lambdas_2_max_error_ratio_expected = {
     "${module.lambdas.get_user_query_function_name}"            = 1,
