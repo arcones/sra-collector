@@ -5,19 +5,6 @@ resource "aws_opensearch_domain" "sracollector_opensearch" {
     instance_type = "t3.small.search"
   }
 
-  #  log_publishing_options {
-  #    cloudwatch_log_group_arn = aws_cloudwatch_log_group.opensearch_logs.arn
-  #    log_type                 = "INDEX_SLOW_LOGS"
-  #  }
-  #  log_publishing_options {
-  #    cloudwatch_log_group_arn = aws_cloudwatch_log_group.opensearch_logs.arn
-  #    log_type                 = "SEARCH_SLOW_LOGS"
-  #  }
-  #  log_publishing_options {
-  #    cloudwatch_log_group_arn = aws_cloudwatch_log_group.opensearch_logs.arn
-  #    log_type                 = "ES_APPLICATION_LOGS"
-  #  }
-
   encrypt_at_rest {
     enabled = true
   }
@@ -41,7 +28,7 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
           "AWS" = "*"
         }
         Action   = ["es:*", ]
-        Resource = "arn:aws:es:${var.aws_region}:${var.aws_account_id}:domain/${local.domain_name}/*"
+        Resource = "${aws_opensearch_domain.sracollector_opensearch.arn}/*"
         Condition : {
           IpAddress : {
             "aws:SourceIp" : ["79.116.183.68/32"]
@@ -51,24 +38,3 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
     ]
   })
 }
-#
-#resource "aws_cloudwatch_log_resource_policy" "opensearch_cw_logs_policy" { /// TODO ????
-#  policy_name = "${local.domain_name}_logs_policy"
-#  policy_document = jsonencode({
-#    Version = "2008-10-17"
-#    Statement = [
-#      {
-#        Effect = "Allow"
-#        Principal = {
-#          Service = "es.amazonaws.com"
-#        }
-#        Action = [
-#          "logs:PutLogEvents",
-#          "logs:PutLogEventsBatch",
-#          "logs:CreateLogStream",
-#        ]
-#        Resource = "arn:aws:logs:*"
-#      }
-#    ]
-#  })
-#}
