@@ -7,5 +7,5 @@ resource "aws_cloudwatch_log_subscription_filter" "get_user_query_logs_subscript
   name            = "cwl-${basename(aws_cloudwatch_log_group.lambda_logs.name)}"
   log_group_name  = aws_cloudwatch_log_group.lambda_logs.name
   destination_arn = var.cloudwatch_to_opensearch_function_arn
-  filter_pattern  = ""
+  filter_pattern  = "%\\[INFO\\]|\\[DEBUG\\]|\\[ERROR\\]%"
 }

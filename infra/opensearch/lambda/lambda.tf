@@ -7,9 +7,9 @@ resource "aws_lambda_function" "cloudwatch_to_opensearch" {
   handler       = "${local.function_name}.handler"
   runtime       = "nodejs18.x"
   timeout       = 300
-  lifecycle {
-    replace_triggered_by = [null_resource.code_watcher]
-  }
+  #  lifecycle {
+  #    replace_triggered_by = [null_resource.code_watcher]
+  #  }
   tags = var.tags
 }
 

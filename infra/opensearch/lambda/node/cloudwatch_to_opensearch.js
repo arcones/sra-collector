@@ -58,25 +58,15 @@ function transform(payload) {
     payload.logEvents.forEach(function(logEvent) {
         var timestamp = new Date(1 * logEvent.timestamp);
 
-        // index name format: cwl-YYYY.MM.DD
-        var indexName = [
-            'cwl-' + timestamp.getUTCFullYear(),              // year
-            ('0' + (timestamp.getUTCMonth() + 1)).slice(-2),  // month
-            ('0' + timestamp.getUTCDate()).slice(-2)          // day
-        ].join('.');
+        var indexName = 'cwl-sra-collector';
 
         var source = buildSource(logEvent.message, logEvent.extractedFields);
-        source['@id'] = logEvent.id;
         source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
-        source['@message'] = logEvent.message;
-        source['@owner'] = payload.owner;
         source['@log_group'] = payload.logGroup;
-        source['@log_stream'] = payload.logStream;
+        source['@log_level'] = logEvent.message.substring(0, logEvent.message.indexOf('|') + 1);
+        source['@message'] = logEvent.message.substring(logEvent.message.indexOf('|') + 1);
 
         var action = { "index": {} };
-        action.index._index = indexName;
-        action.index._id = logEvent.id;
-
         bulkRequestBody += [
             JSON.stringify(action),
             JSON.stringify(source),
