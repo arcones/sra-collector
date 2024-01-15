@@ -17,8 +17,7 @@ module "lambdas" {
 }
 
 module "opensearch" {
-  source       = "./opensearch"
-  s3_bucket_id = aws_s3_bucket.lambdas.id
+  source = "./opensearch"
   product_log_groups = {
     "sra_collector_api"         = aws_cloudwatch_log_group.sra_collector_logs.arn,
     "get_user_query"            = module.lambdas.get_user_query_log_group_arn,

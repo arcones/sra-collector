@@ -31,7 +31,10 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
         Resource = "${aws_opensearch_domain.sracollector_opensearch.arn}/*"
         Condition : {
           IpAddress : {
-            "aws:SourceIp" : ["79.116.183.68/32"]
+            "aws:SourceIp" : [
+              "79.116.183.68/32",
+              "77.225.25.138/32"
+            ]
           }
         },
       }

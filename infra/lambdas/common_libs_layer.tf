@@ -15,7 +15,10 @@ resource "aws_s3_object" "common_libs_lambda_layer_zip" {
 
 resource "null_resource" "dependencies_watcher" {
   triggers = {
-    dir_sha1 = sha1(join("", [for file in fileset(local.deps_folder, "*") : filesha1("${local.deps_folder}/${file}")]))
+    sha1 = format("%s%s",
+      filesha1("${path.module}/${local.deps_folder}/lambda_log_support/src/lambda_log_support/lambda_log_support.py"),
+      filesha1("${path.module}/${local.deps_folder}/postgres_connection/src/postgres_connection/postgres_connection.py")
+    )
   }
 }
 

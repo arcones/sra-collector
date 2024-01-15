@@ -8,7 +8,7 @@ infra/builds
 terraform.plan
 
 # Python
-**/*.zip
+**/.tmp
 **/.pytest_cache
 **/__pycache__/
 

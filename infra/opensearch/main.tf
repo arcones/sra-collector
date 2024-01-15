@@ -1,6 +1,5 @@
-module "lambda" {
-  source             = "./lambda"
-  s3_bucket_id       = var.s3_bucket_id
+module "cloudwatch_to_opensearch" {
+  source             = "./cloudwatch_to_opensearch"
   domain_arn         = aws_opensearch_domain.sracollector_opensearch.arn
   product_log_groups = var.product_log_groups
   tags               = var.tags

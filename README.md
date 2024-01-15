@@ -41,3 +41,9 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/Precommit-white?logo=precommit)
 ![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
+
+# TODO
+
+IaC
+DRY
+Async
