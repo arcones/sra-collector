@@ -1,33 +1,15 @@
-resource "random_uuid" "lambda_code_hash" {
-  keepers = {
-    for filename in setunion(
-      fileset("python3", "*.py")
-    ) : filename => filemd5("python3/${filename}")
-  }
-}
-
-data "archive_file" "code" {
-  type        = "zip"
-  source_file = "${path.module}/python3/main.py"
-  output_path = "${path.module}/.tmp/${random_uuid.lambda_code_hash.result}.zip"
-}
-
-resource "aws_lambda_function" "function" {
-  function_name    = basename(path.module)
-  description      = "Fetch GSE for each study ID and send them to queue"
-  filename         = data.archive_file.code.output_path
-  role             = aws_iam_role.lambda_assume.arn
-  handler          = "main.handler"
-  runtime          = "python3.11"
-  layers           = [var.common_libs_layer_arn]
-  timeout          = 30
-  source_code_hash = data.archive_file.code.output_base64sha256
-  tags             = var.tags
+module "lambda" {
+  source                = "../lambda"
+  code_path             = path.module
+  common_libs_layer_arn = var.common_libs_layer_arn
+  function_name         = basename(path.module)
+  role_arn              = aws_iam_role.lambda_assume.arn
+  tags                  = var.tags
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
   event_source_arn = var.study_ids_sqs_arn
   enabled          = true
-  function_name    = aws_lambda_function.function.function_name
+  function_name    = module.lambda.function.function_name
   batch_size       = 1
 }
