@@ -9,6 +9,7 @@ terraform.plan
 
 # Python
 **/.tmp
+**/*.zip
 **/.pytest_cache
 **/__pycache__/
 
