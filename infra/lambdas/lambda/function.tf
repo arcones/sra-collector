@@ -15,8 +15,8 @@ data "archive_file" "code" {
 resource "aws_lambda_function" "function" {
   function_name    = var.function_name
   filename         = data.archive_file.code.output_path
-  role             = var.role_arn
   handler          = "main.handler"
+  role             = aws_iam_role.lambda_role.arn
   runtime          = "python3.11"
   layers           = [var.common_libs_layer_arn]
   timeout          = 10
