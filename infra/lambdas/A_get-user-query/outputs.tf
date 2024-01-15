@@ -7,5 +7,5 @@ output "get_user_query_function_name" {
 }
 
 output "cloudwatch_log_group_arn" {
-  value = aws_cloudwatch_log_group.lambda_logs.arn
+  value = module.cloudwatch.cloudwatch_log_group_arn
 }

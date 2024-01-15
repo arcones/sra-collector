@@ -66,10 +66,10 @@ function transform(payload) {
         source['@log_level'] = logEvent.message.substring(0, logEvent.message.indexOf(' ') + 1);
         var level_length = source['@log_level'].length
 
-        source['@request_id'] = logEvent.message.substring(level_length + 1, logEvent.message.indexOf(' ',level_length+1));
+        source['@request_id'] = logEvent.message.substring(level_length, logEvent.message.indexOf(' ', level_length + 1));
         var request_id_length = source['@request_id'].length
 
-        source['@message'] = logEvent.message.substring(level_length + request_id_length + 2);
+        source['@message'] = logEvent.message.substring(level_length + request_id_length + 1);
 
         var action = { "index": {} };
         action.index._index = indexName;
