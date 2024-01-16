@@ -9,34 +9,34 @@ locals {
   rds_secret_arn = tolist(data.aws_secretsmanager_secrets.managed_rds_secret.arns)[0]
 }
 
-module "A_get-user-query-lambda" {
+module "A_get_user_query_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/A_get-user-query"
+  code_path               = "${path.module}/code/A_get_user_query"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "A_get-user-query"
+  function_name           = "A_get_user_query"
   log_level_parameter_arn = var.log_level_parameter_arn
   output_sqs_arn          = var.user_query_sqs_arn
   tags                    = var.tags
 }
 
-module "A_get-user-query-cloudwatch" {
+module "A_get_user_query_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "A_get-user-query"
+  function_name                         = "A_get_user_query"
   tags                                  = var.tags
 }
 
-module "A_get_user_query-extra-config" {
-  source                             = "./code/A_get-user-query"
-  function_name                      = "A_get-user-query"
+module "A_get_user_query_extra_config" {
+  source                             = "./code/A_get_user_query"
+  function_name                      = "A_get_user_query"
   aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
 }
 
-module "B_paginate_user_query-lambda" {
+module "B_paginate_user_query_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/B_paginate-user-query"
+  code_path               = "${path.module}/code/B_paginate_user_query"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "B_paginate-user-query"
+  function_name           = "B_paginate_user_query"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.user_query_sqs_arn
   output_sqs_arn          = var.user_query_pages_sqs_arn
@@ -45,37 +45,36 @@ module "B_paginate_user_query-lambda" {
   tags                    = var.tags
 }
 
-module "B_paginate_user_query-cloudwatch" {
+module "B_paginate_user_query_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "B_paginate-user-query"
+  function_name                         = "B_paginate_user_query"
   tags                                  = var.tags
 }
-//TODO quorum around - and _
 
-module "C_get-study-ids-lambda" {
+module "C_get_study_ids_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/C_get-study-ids"
+  code_path               = "${path.module}/code/C_get_study_ids"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "C_get-study-ids"
+  function_name           = "C_get_study_ids"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.user_query_pages_sqs_arn
   output_sqs_arn          = var.study_ids_sqs_arn
   tags                    = var.tags
 }
 
-module "C_get-study-ids-cloudwatch" {
+module "C_get_study_ids_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "C_get-study-ids"
+  function_name                         = "C_get_study_ids"
   tags                                  = var.tags
 }
 
-module "D_get-study-gse-lambda" {
+module "D_get_study_gse_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/D_get-study-gse"
+  code_path               = "${path.module}/code/D_get_study_gse"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "D_get-study-gse"
+  function_name           = "D_get_study_gse"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.study_ids_sqs_arn
   output_sqs_arn          = var.gses_sqs_arn
@@ -85,18 +84,18 @@ module "D_get-study-gse-lambda" {
   tags                    = var.tags
 }
 
-module "D_get-study-gse-cloudwatch" {
+module "D_get_study_gse_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "D_get-study-gse"
+  function_name                         = "D_get_study_gse"
   tags                                  = var.tags
 }
 
-module "E1_get-study-srp-lambda" {
+module "E1_get_study_srp_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/E1_get-study-srp"
+  code_path               = "${path.module}/code/E1_get_study_srp"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "E1_get-study-srp"
+  function_name           = "E1_get_study_srp"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.gses_sqs_arn
   output_sqs_arn          = var.srps_sqs_arn
@@ -105,35 +104,35 @@ module "E1_get-study-srp-lambda" {
   tags                    = var.tags
 }
 
-module "E1_get-study-srp-cloudwatch" {
+module "E1_get_study_srp_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "E1_get-study-srp"
+  function_name                         = "E1_gget_study_srp"
   tags                                  = var.tags
 }
 
-module "E2_dlq-get-srp-pysradb-error-lambda" {
+module "E2_dlq_get_srp_pysradb_error_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/E2_dlq-get-srp-pysradb-error"
+  code_path               = "${path.module}/code/E2_dlq_get_srp_pysradb_error"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "E2_dlq-get-srp-pysradb-error"
+  function_name           = "E2_dlq_get_srp_pysradb_error"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.gses_dlq_sqs_arn
   tags                    = var.tags
 }
 
-module "E2_dlq-get-srp-pysradb-error-cloudwatch" {
+module "E2_dlq_get_srp_pysradb_error_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "E2_dlq-get-srp-pysradb-error"
+  function_name                         = "E2_dlq_get_srp_pysradb_error"
   tags                                  = var.tags
 }
 
-module "F_get-study-srrs-lambda" {
+module "F_get_study_srrs_lambda" {
   source                  = "./lambda"
-  code_path               = "${path.module}/code/F_get-study-srrs"
+  code_path               = "${path.module}/code/F_get_study_srrs"
   common_libs_layer_arn   = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name           = "F_get-study-srrs"
+  function_name           = "F_get_study_srrs"
   log_level_parameter_arn = var.log_level_parameter_arn
   input_sqs_arn           = var.srps_sqs_arn
   output_sqs_arn          = var.srrs_sqs_arn
@@ -142,9 +141,9 @@ module "F_get-study-srrs-lambda" {
   tags                    = var.tags
 }
 
-module "F_get-study-srrs-cloudwatch" {
+module "F_get_study_srrs_cloudwatch" {
   source                                = "./cloudwatch"
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  function_name                         = "F_get-study-srrs"
+  function_name                         = "F_get_study_srrs"
   tags                                  = var.tags
 }
