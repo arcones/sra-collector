@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='lambda_log_support',
-    version='0.0.1',
+    version='0.0.2',
     author='Marta Arcones',
     author_email='marta.arcones@alumnos.upm.es',
     description='Log function used across my lambdas',

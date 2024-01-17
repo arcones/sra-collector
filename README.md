@@ -41,3 +41,16 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/Precommit-white?logo=precommit)
 ![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
+
+## Style Patterns
+- Cloud Native
+- Infrastructure As Code
+- Asynchronous Communication
+- Fail Fast
+- Immutable Infrastructure
+- Convention Over Configuration
+- Encryption
+- Passwords Secure Storage
+- Continuous Integration & Deployment
+- Git Ops
+- Don't Repeat Yourself
