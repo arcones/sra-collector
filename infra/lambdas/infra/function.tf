@@ -2,7 +2,7 @@ resource "random_uuid" "lambda_code_hash" {
   keepers = {
     for filename in setunion(
       fileset("python3", "*.py")
-    ) : filename => filemd5("${filename}")
+    ) : filename => filemd5(filename)
   }
 }
 
