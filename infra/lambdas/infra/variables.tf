@@ -14,6 +14,11 @@ variable "log_level_parameter_arn" {
   type = string
 }
 
+variable "aws_apigatewayv2_api_execution_arn" {
+  default = null
+  type    = string
+}
+
 variable "input_sqs_arn" {
   default = null
   type    = string

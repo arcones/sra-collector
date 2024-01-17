@@ -73,7 +73,7 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
 
 resource "aws_iam_role_policy" "rds_secret_policy" {
   count = var.rds_secret_arn == null ? 0 : 1
-  name  = "secret_policy"
+  name  = "rds_secret_policy"
   role  = aws_iam_role.lambda_role.name
   policy = jsonencode({
     Version = "2008-10-17"
@@ -89,7 +89,7 @@ resource "aws_iam_role_policy" "rds_secret_policy" {
 
 resource "aws_iam_role_policy" "ncbi_secret_policy" {
   count = var.ncbi_secret_arn == null ? 0 : 1
-  name  = "secret_policy"
+  name  = "ncbi_secret_policy"
   role  = aws_iam_role.lambda_role.name
   policy = jsonencode({
     Version = "2008-10-17"

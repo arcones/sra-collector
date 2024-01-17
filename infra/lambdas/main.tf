@@ -11,24 +11,19 @@ locals {
 
 module "A_get_user_query_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/A_get_user_query"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "A_get_user_query"
   log_level_parameter_arn               = var.log_level_parameter_arn
   output_sqs_arn                        = var.user_query_sqs_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  aws_apigatewayv2_api_execution_arn    = var.aws_apigatewayv2_api_execution_arn
   tags                                  = var.tags
-}
-
-module "A_get_user_query_extra_config" {
-  source                             = "./code/A_get_user_query"
-  function_name                      = "A_get_user_query"
-  aws_apigatewayv2_api_execution_arn = var.aws_apigatewayv2_api_execution_arn
 }
 
 module "B_paginate_user_query_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/B_paginate_user_query"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "B_paginate_user_query"
   log_level_parameter_arn               = var.log_level_parameter_arn
@@ -42,7 +37,7 @@ module "B_paginate_user_query_lambda" {
 
 module "C_get_study_ids_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/C_get_study_ids"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "C_get_study_ids"
   log_level_parameter_arn               = var.log_level_parameter_arn
@@ -54,7 +49,7 @@ module "C_get_study_ids_lambda" {
 
 module "D_get_study_gse_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/D_get_study_gse"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "D_get_study_gse"
   log_level_parameter_arn               = var.log_level_parameter_arn
@@ -69,7 +64,7 @@ module "D_get_study_gse_lambda" {
 
 module "E1_get_study_srp_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/E1_get_study_srp"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "E1_get_study_srp"
   log_level_parameter_arn               = var.log_level_parameter_arn
@@ -83,7 +78,7 @@ module "E1_get_study_srp_lambda" {
 
 module "E2_dlq_get_srp_pysradb_error_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/E2_dlq_get_srp_pysradb_error"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "E2_dlq_get_srp_pysradb_error"
   log_level_parameter_arn               = var.log_level_parameter_arn
@@ -94,7 +89,7 @@ module "E2_dlq_get_srp_pysradb_error_lambda" {
 
 module "F_get_study_srrs_lambda" {
   source                                = "./infra"
-  code_path                             = "${path.module}/code/F_get_study_srrs"
+  code_path                             = "${path.module}/code"
   common_libs_layer_arn                 = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                         = "F_get_study_srrs"
   log_level_parameter_arn               = var.log_level_parameter_arn
