@@ -48,6 +48,16 @@ variable "cloudwatch_to_opensearch_function_arn" {
   type = string
 }
 
+variable "extra_memory" {
+  default = false
+  type    = bool
+}
+
+variable "extra_execution_time" {
+  default = false
+  type    = bool
+}
+
 variable "tags" {
   type = map(string)
 }
