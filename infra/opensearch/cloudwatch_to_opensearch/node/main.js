@@ -61,15 +61,25 @@ function transform(payload) {
         var indexName = 'cwl-sra-collector';
 
         var source = buildSource(logEvent.message, logEvent.extractedFields);
-        source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
-        source['@log_group'] = payload.logGroup;
-        source['@log_level'] = logEvent.message.substring(0, logEvent.message.indexOf(' ') + 1);
-        var level_length = source['@log_level'].length
 
-        source['@request_id'] = logEvent.message.substring(level_length, logEvent.message.indexOf(' ', level_length + 1));
-        var request_id_length = source['@request_id'].length
+        var logToSend = ''
 
-        source['@message'] = logEvent.message.substring(level_length + request_id_length + 1);
+        try {
+            logToSend = JSON.parse(logEvent.message)
+            console.log("OK: Cloudwatch log parsed to JSON")
+        } catch (e) {
+            console.log("ERROR: Cloudwatch log not parseable to JSON")
+            console.log(`Found not JSON document: ${logEvent.message}`)
+            var logToSend = { level: "TRACE", message: logEvent.message }
+        } finally {
+            source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
+            source['@log_group'] = payload.logGroup;
+
+            source['@log_level'] = logToSend.level
+            source['@request_id'] = logToSend.request_id
+            source['@invocation_id'] = logToSend.invocation_id
+            source['@message'] = logToSend.message
+        }
 
         var action = { "index": {} };
         action.index._index = indexName;
