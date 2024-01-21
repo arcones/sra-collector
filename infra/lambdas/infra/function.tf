@@ -18,8 +18,9 @@ resource "aws_lambda_function" "function" {
   handler          = "${var.function_name}.handler"
   role             = aws_iam_role.lambda_role.arn
   runtime          = "python3.11"
+  memory_size      = var.extra_memory ? 256 : 128
   layers           = [var.common_libs_layer_arn]
-  timeout          = 30
+  timeout          = var.extra_execution_time ? 30 : 10
   source_code_hash = data.archive_file.code.output_base64sha256
   tags             = var.tags
 }

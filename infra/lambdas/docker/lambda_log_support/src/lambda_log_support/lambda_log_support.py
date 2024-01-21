@@ -24,6 +24,13 @@ def configure_logger(request_id: str, invocation_id: str):
         for handler in root.handlers:
             root.removeHandler(handler)
 
+    class HandleBytes(logging.Filter):
+        def filter(self, record):
+            try:
+                record.msg = record.msg.decode('utf-8')
+            except (UnicodeDecodeError, AttributeError):
+                pass
+
     class RemoveLiveBreaks(logging.Filter):
         def filter(self, record):
             record.msg = record.msg.replace('\n', '').replace('\r', '')
@@ -31,7 +38,10 @@ def configure_logger(request_id: str, invocation_id: str):
 
     class EscapeDoubleQuotes(logging.Filter):
         def filter(self, record):
-            record.msg = record.msg.replace('"', '\\"')
+            import re
+            record.msg = re.sub(r'([^\\])"', '\\1\\"', record.msg)
+            ## Two replacements needs to be done to escape sequences of two consecutive double quotes
+            record.msg = re.sub(r'([^\\])"', '\\1\\"', record.msg)
             return record
 
     logging.basicConfig(
@@ -41,5 +51,6 @@ def configure_logger(request_id: str, invocation_id: str):
                f'"message": "%(message)s"}}',
         level=level)
 
+    root.addFilter(HandleBytes())
     root.addFilter(EscapeDoubleQuotes())
     root.addFilter(RemoveLiveBreaks())
