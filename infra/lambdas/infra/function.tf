@@ -13,20 +13,32 @@ data "archive_file" "code" {
 }
 
 resource "aws_lambda_function" "function" {
-  function_name    = var.function_name
-  filename         = data.archive_file.code.output_path
-  handler          = "${var.function_name}.handler"
-  role             = aws_iam_role.lambda_role.arn
+  function_name = var.function_name
+  filename      = data.archive_file.code.output_path
+  handler       = "${var.function_name}.handler"
+  role          = aws_iam_role.lambda_role.arn
+  dynamic "dead_letter_config" {
+    for_each = var.queues.dlq_sqs_arn != null ? ["1"] : []
+    content {
+      target_arn = var.queues.dlq_sqs_arn
+    }
+  }
+  logging_config {
+    log_format            = "JSON"
+    application_log_level = "DEBUG"
+    system_log_level      = "INFO"
+    log_group             = "/aws/lambda/${var.function_name}"
+  }
   runtime          = "python3.11"
-  memory_size      = var.extra_memory ? 256 : 128
+  memory_size      = 128
   layers           = [var.common_libs_layer_arn]
-  timeout          = var.extra_execution_time ? 30 : 10
+  timeout          = 20
   source_code_hash = data.archive_file.code.output_base64sha256
   tags             = var.tags
 }
 
 resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {
-  count         = var.input_sqs_arn == null ? 1 : 0
+  count         = var.queues.input_sqs_arn == null ? 1 : 0
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name
@@ -36,8 +48,8 @@ resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {
 
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  count            = var.input_sqs_arn == null ? 0 : 1
-  event_source_arn = var.input_sqs_arn
+  count            = var.queues.input_sqs_arn == null ? 0 : 1
+  event_source_arn = var.queues.input_sqs_arn
   enabled          = true
   function_name    = var.function_name
   batch_size       = 1

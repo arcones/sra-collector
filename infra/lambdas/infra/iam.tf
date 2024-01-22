@@ -20,23 +20,23 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role_policy" "ssm_policy" {
-  name = "ssm_policy"
-  role = aws_iam_role.lambda_role.name
-  policy = jsonencode({
-    Version = "2008-10-17"
-    Statement = [
-      {
-        Action   = ["ssm:GetParameter"]
-        Effect   = "Allow"
-        Resource = var.log_level_parameter_arn
-      },
-    ]
-  })
-}
+#resource "aws_iam_role_policy" "ssm_policy" {
+#  name = "ssm_policy"
+#  role = aws_iam_role.lambda_role.name
+#  policy = jsonencode({
+#    Version = "2008-10-17"
+#    Statement = [
+#      {
+#        Action   = ["ssm:GetParameter"]
+#        Effect   = "Allow"
+#        Resource = var.log_level_parameter_arn
+#      },
+#    ]
+#  })
+#}
 
 resource "aws_iam_role_policy" "input_sqs_policy" {
-  count = var.input_sqs_arn == null ? 0 : 1
+  count = var.queues.input_sqs_arn == null ? 0 : 1
   name  = "input_sqs_policy"
   role  = aws_iam_role.lambda_role.name
   policy = jsonencode({
@@ -49,14 +49,14 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
           "sqs:GetQueueAttributes"
         ]
         Effect   = "Allow"
-        Resource = var.input_sqs_arn
+        Resource = var.queues.input_sqs_arn
       },
     ]
   })
 }
 
 resource "aws_iam_role_policy" "output_sqs_policy" {
-  count = var.output_sqs_arn == null ? 0 : 1
+  count = var.queues.output_sqs_arn == null ? 0 : 1
   name  = "output_sqs_policy"
   role  = aws_iam_role.lambda_role.name
   policy = jsonencode({
@@ -65,7 +65,24 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
       {
         Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
-        Resource = var.output_sqs_arn
+        Resource = var.queues.output_sqs_arn
+      },
+    ]
+  })
+}
+
+
+resource "aws_iam_role_policy" "dlq_sqs_policy" {
+  count = var.queues.dlq_sqs_arn == null ? 0 : 1
+  name  = "dlq_sqs_policy"
+  role  = aws_iam_role.lambda_role.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["sqs:sendmessage"]
+        Effect   = "Allow"
+        Resource = var.queues.dlq_sqs_arn
       },
     ]
   })

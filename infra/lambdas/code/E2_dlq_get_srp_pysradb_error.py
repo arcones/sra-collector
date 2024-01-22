@@ -1,15 +1,15 @@
 import json
 import logging
 
-from lambda_log_support import lambda_log_support
 from pysradb import SRAweb
+# from lambda_log_support import lambda_log_support
 
 
 def handler(event, context):
     try:
         if event:
             request_id = json.loads(event['Records'][0]['body'])['request_id']
-            lambda_log_support.configure_logger(request_id, context.aws_request_id)
+            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
             for record in event['Records']:
                 study_with_missing_srp = json.loads(record['body'])
@@ -28,5 +28,5 @@ def handler(event, context):
                         logging.error(f'For study {study_id} with {gse}, pysradb produced value error with {value_error.args[0]}')
                     else:
                         logging.error(f'For study {study_id} with {gse}, pysradb produced value error with {value_error.args[0]}')
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except:
+        logging.exception(f'An exception has occurred')

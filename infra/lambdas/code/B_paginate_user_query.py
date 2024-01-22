@@ -3,8 +3,8 @@ import logging
 
 import boto3
 import urllib3
-from lambda_log_support import lambda_log_support
 from postgres_connection import postgres_connection
+# from lambda_log_support import lambda_log_support
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_pages_queue'
 
@@ -19,7 +19,7 @@ def handler(event, context):
     try:
         if event:
             request_id = json.loads(event['Records'][0]['body'])['request_id']
-            lambda_log_support.configure_logger(request_id, context.aws_request_id)
+            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
 
             for record in event['Records']:
@@ -49,8 +49,8 @@ def handler(event, context):
                     retstart = retstart + page_size
 
                 logging.info(f'Sent {message_sent_count} messages to {output_sqs}')
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except:
+        logging.exception(f'An exception has occurred')
 
 
 def _get_study_count(ncbi_query: str) -> int:
@@ -61,8 +61,8 @@ def _get_study_count(ncbi_query: str) -> int:
         study_count = response['esearchresult']['count']
         logging.info(f'Done get study count for keyword {ncbi_query}. There are {study_count} studies')
         return int(study_count)
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except:
+        logging.exception(f'An exception has occurred')
 
 def _store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
     try:
@@ -78,5 +78,5 @@ def _store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
         database_connection.commit()
         cursor.close()
         database_connection.close()
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except:
+        logging.exception(f'An exception has occurred')
