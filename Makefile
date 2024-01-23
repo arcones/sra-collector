@@ -30,8 +30,15 @@ reset-alarms:
 	pip install -r requirements.txt && \
 	python ./reset-alarms.py
 
-clean-os-index:
-	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector' \
+clean-os-indices:
+	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-system' \
+		--header 'Content-Type: application/json' \
+		--data '{ \
+    		"query": { \
+        		"match_all": {} \
+    		} \
+		}' && \
+	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-app' \
 		--header 'Content-Type: application/json' \
 		--data '{ \
     		"query": { \

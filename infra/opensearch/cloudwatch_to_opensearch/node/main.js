@@ -48,47 +48,50 @@ exports.handler = function(input, context) {
     });
 };
 
-function transform(payload) {
-    if (payload.messageType === 'CONTROL_MESSAGE') {
-        return null;
-    }
 
+function transform(payload) {
     var bulkRequestBody = '';
 
-    payload.logEvents.forEach(function(logEvent) {
-        var timestamp = new Date(1 * logEvent.timestamp);
+    var indexNameSystem = 'cwl-sra-collector-system';
+    var indexNameApp = 'cwl-sra-collector-app';
 
-        var indexName = 'cwl-sra-collector';
+    if (payload.messageType === 'DATA_MESSAGE') {
+        payload.logEvents.forEach(function(logEvent) {
+            var source = buildSource(logEvent.message, logEvent.extractedFields);
 
-        var source = buildSource(logEvent.message, logEvent.extractedFields);
+            var action = { "index": {} };
+            action.index._index = indexNameSystem;
+            action.index._id = logEvent.id;
 
-        var logToSend = ''
+            bulkRequestBody += [
+                JSON.stringify(action),
+                JSON.stringify(source),
+            ].join('\n') + '\n';
+        });
+    } else {
+        payload.logEvents.forEach(function(logEvent) {
+            console.debug(`App logEvent dump: ${JSON.stringify(logEvent)}`)
 
-        try {
-            logToSend = JSON.parse(logEvent.message)
-            console.log("OK: Cloudwatch log parsed to JSON")
-        } catch (e) {
-            console.log("ERROR: Cloudwatch log not parseable to JSON")
-            console.log(`Found not JSON document: ${logEvent.message}`)
-            var logToSend = { level: "TRACE", message: logEvent.message }
-        } finally {
-            source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
-            source['@log_group'] = payload.logGroup;
+            var source = buildSource(logEvent.message, logEvent.extractedFields);
+            console.debug(`App logEvent raw source: ${JSON.stringify(source)}`)
 
-            source['@log_level'] = logToSend.level
-            source['@request_id'] = logToSend.request_id
-            source['@invocation_id'] = logToSend.invocation_id
-            source['@message'] = logToSend.message
-        }
+    //        source['@id'] = logEvent.id;
+//            source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
+//            source['@message'] = logEvent.message; //TODO left here until there is a way to normalize with this format also system logs
+//            source['@log_group'] = payload.logGroup;
+//    //        source['@owner'] = payload.owner;
+    //        source['@log_stream'] = payload.logStream;
 
-        var action = { "index": {} };
-        action.index._index = indexName;
+            var action = { "index": {} };
+            action.index._index = indexNameApp;
+            action.index._id = logEvent.id;
 
-        bulkRequestBody += [
-            JSON.stringify(action),
-            JSON.stringify(source),
-        ].join('\n') + '\n';
-    });
+            bulkRequestBody += [
+                JSON.stringify(action),
+                JSON.stringify(source),
+            ].join('\n') + '\n';
+        });
+    }
     return bulkRequestBody;
 }
 
