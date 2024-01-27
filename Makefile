@@ -31,20 +31,9 @@ reset-alarms:
 	python ./reset-alarms.py
 
 clean-os-indices:
-	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-system' \
+	curl -w "\n%{http_code}" --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-*' \
 		--header 'Content-Type: application/json' \
-		--data '{ \
-    		"query": { \
-        		"match_all": {} \
-    		} \
-		}' && \
-	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-app' \
-		--header 'Content-Type: application/json' \
-		--data '{ \
-    		"query": { \
-        		"match_all": {} \
-    		} \
-		}'
+		--data '{ "query": { "match_all": {} } }'
 
 clean-builds:
 	./utils/clean_temp/clean_temp.sh
@@ -76,3 +65,8 @@ build-infra:
 	else \
 		echo "There are no infra changes" && cd ..; \
 	fi
+
+xs-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS" }'

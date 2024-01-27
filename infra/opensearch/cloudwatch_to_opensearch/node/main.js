@@ -5,23 +5,16 @@ var crypto = require('crypto');
 
 var endpoint = 'search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com';
 
-// Set this to true if you want to debug why data isn't making it to
-// your Elasticsearch cluster. This will enable logging of failed items
-// to CloudWatch Logs.
 var logFailedResponses = true;
 
 exports.handler = function(input, context) {
-    // decode input from base64
     var zippedInput = new Buffer.from(input.awslogs.data, 'base64');
 
-    // decompress the input
     zlib.gunzip(zippedInput, function(error, buffer) {
         if (error) { context.fail(error); return; }
 
-        // parse the input from JSON
         var awslogsData = JSON.parse(buffer.toString('utf8'));
 
-        // transform the input to Elasticsearch documents
         var elasticsearchBulkData = transform(awslogsData);
 
         // skip control messages
@@ -48,51 +41,46 @@ exports.handler = function(input, context) {
     });
 };
 
-
 function transform(payload) {
     var bulkRequestBody = '';
+
+    console.debug(`Payload system ${JSON.stringify(payload)}`)
 
     var indexNameSystem = 'cwl-sra-collector-system';
     var indexNameApp = 'cwl-sra-collector-app';
 
-    if (payload.messageType === 'DATA_MESSAGE') {
-        payload.logEvents.forEach(function(logEvent) {
-            var source = buildSource(logEvent.message, logEvent.extractedFields);
+    payload.logEvents.forEach(function(logEvent) {
+        var source = buildSource(logEvent.message, logEvent.extractedFields);
+        addLogGroup(payload, source)
 
-            var action = { "index": {} };
-            action.index._index = indexNameSystem;
-            action.index._id = logEvent.id;
+        if (source.message) {
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
+        } else {
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameSystem, logEvent, source)
+        }
+    });
 
-            bulkRequestBody += [
-                JSON.stringify(action),
-                JSON.stringify(source),
-            ].join('\n') + '\n';
-        });
-    } else {
-        payload.logEvents.forEach(function(logEvent) {
-            console.debug(`App logEvent dump: ${JSON.stringify(logEvent)}`)
-
-            var source = buildSource(logEvent.message, logEvent.extractedFields);
-            console.debug(`App logEvent raw source: ${JSON.stringify(source)}`)
-
-    //        source['@id'] = logEvent.id;
-//            source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
-//            source['@message'] = logEvent.message; //TODO left here until there is a way to normalize with this format also system logs
-//            source['@log_group'] = payload.logGroup;
-//    //        source['@owner'] = payload.owner;
-    //        source['@log_stream'] = payload.logStream;
-
-            var action = { "index": {} };
-            action.index._index = indexNameApp;
-            action.index._id = logEvent.id;
-
-            bulkRequestBody += [
-                JSON.stringify(action),
-                JSON.stringify(source),
-            ].join('\n') + '\n';
-        });
-    }
     return bulkRequestBody;
+}
+
+function addLogGroup(payload, source) {
+    var full_log_group = payload.logGroup
+    var index_of_last_slash = full_log_group.lastIndexOf('/')
+
+    source['log_group'] = full_log_group.substring(index_of_last_slash + 1);
+}
+
+function addMetaFieldsAndStringify(indexName, logEvent, source) {
+    var action = { "index": {} };
+    action.index._index = indexName;
+    action.index._id = logEvent.id;
+
+    var bulkRequestBody = '' + [
+        JSON.stringify(action),
+        JSON.stringify(source),
+    ].join('\n') + '\n';
+
+    return bulkRequestBody
 }
 
 function buildSource(message, extractedFields) {
