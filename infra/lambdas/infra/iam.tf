@@ -20,21 +20,6 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-#resource "aws_iam_role_policy" "ssm_policy" {
-#  name = "ssm_policy"
-#  role = aws_iam_role.lambda_role.name
-#  policy = jsonencode({
-#    Version = "2008-10-17"
-#    Statement = [
-#      {
-#        Action   = ["ssm:GetParameter"]
-#        Effect   = "Allow"
-#        Resource = var.log_level_parameter_arn
-#      },
-#    ]
-#  })
-#}
-
 resource "aws_iam_role_policy" "input_sqs_policy" {
   count = var.queues.input_sqs_arn == null ? 0 : 1
   name  = "input_sqs_policy"

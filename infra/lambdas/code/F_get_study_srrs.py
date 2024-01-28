@@ -4,7 +4,6 @@ import logging
 import boto3
 from postgres_connection import postgres_connection
 from pysradb import SRAweb
-# from lambda_log_support import lambda_log_support
 
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -16,7 +15,6 @@ def handler(event, context):
     try:
         if event:
             request_id = json.loads(event['Records'][0]['body'])['request_id']
-            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
             for record in event['Records']:
                 study_with_missing_srrs = json.loads(record['body'])
@@ -43,8 +41,8 @@ def handler(event, context):
                         logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
                 except AttributeError as attribute_error: ## TODO split to a F2_* link 2 DLQ?
                     logging.error(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 def _store_srr_in_db(srr: str, request_id: str, srp: str):
     try:
@@ -61,8 +59,8 @@ def _store_srr_in_db(srr: str, request_id: str, srp: str):
         database_connection.commit()
         cursor.close()
         database_connection.close()
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _get_id_sra_project(request_id: str, srp: str):
@@ -84,5 +82,5 @@ def _get_id_sra_project(request_id: str, srp: str):
         cursor.close()
         database_connection.close()
         return sra_project_id
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')

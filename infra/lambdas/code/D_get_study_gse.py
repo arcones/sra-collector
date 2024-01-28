@@ -5,7 +5,6 @@ import time
 import boto3
 import urllib3
 from postgres_connection import postgres_connection
-# from lambda_log_support import lambda_log_support
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/gses_queue'
 
@@ -18,8 +17,6 @@ http = urllib3.PoolManager()
 def handler(event, context):
     try:
         if event:
-            request_id = json.loads(event['Records'][0]['body'])['request_info']['request_id']
-            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
 
             ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
@@ -49,8 +46,8 @@ def handler(event, context):
                         continue
 
                 return {'statusCode': 200}
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _summary_process(study_id: str, request_info: dict, summary: str):
@@ -66,8 +63,8 @@ def _summary_process(study_id: str, request_info: dict, summary: str):
             _store_gse_in_db(study_id, request_info['request_id'], gse)
         else:
             raise Exception(f'Unable to fetch gse from {study_id}')
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _extract_gse_from_summaries(summary: str) -> str:
@@ -79,8 +76,8 @@ def _extract_gse_from_summaries(summary: str) -> str:
             return gse
         else:
             logging.error(f'For summary {summary} there are none GSE entrytype')
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 def _store_gse_in_db(study_id: str, request_id: str, gse: str):
     try:
@@ -96,5 +93,5 @@ def _store_gse_in_db(study_id: str, request_id: str, gse: str):
         database_connection.commit()
         cursor.close()
         database_connection.close()
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')

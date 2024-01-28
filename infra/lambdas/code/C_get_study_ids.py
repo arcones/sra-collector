@@ -3,7 +3,6 @@ import logging
 
 import boto3
 import urllib3
-# from lambda_log_support import lambda_log_support
 
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue'
 
@@ -18,8 +17,6 @@ http = urllib3.PoolManager()
 def handler(event, context):
     try:
         if event:
-            request_id = json.loads(event['Records'][0]['body'])['request_id']
-            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
@@ -49,8 +46,8 @@ def handler(event, context):
                 logging.info(f'Sent {len(study_list)} messages to {output_sqs}')
 
                 return {'statusCode': 200}
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
@@ -62,5 +59,5 @@ def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[
         entities_list = response['esearchresult']['idlist']
         logging.info(f"Entity list contains: {','.join(entities_list)}")
         return list(map(int, entities_list))
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')

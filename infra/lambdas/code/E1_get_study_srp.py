@@ -4,8 +4,6 @@ import logging
 import boto3
 from postgres_connection import postgres_connection
 from pysradb import SRAweb
-# from lambda_log_support import lambda_log_support
-
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
@@ -15,8 +13,6 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/srps_queue'
 def handler(event, context):
     try:
         if event:
-            request_id = json.loads(event['Records'][0]['body'])['request_id']
-            # lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
 
             for record in event['Records']:
@@ -39,8 +35,8 @@ def handler(event, context):
                     logging.error(f'For study {study_id} with {gse}, pysradb produced attribute error with name {key_error.name}')
                 except KeyError as key_error:
                     logging.error(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _store_srp_in_db(srp: str, request_id: str, gse: str):
@@ -58,8 +54,8 @@ def _store_srp_in_db(srp: str, request_id: str, gse: str):
         database_connection.commit()
         cursor.close()
         database_connection.close()
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
 
 
 def _get_id_geo_study(request_id: str, gse: str):
@@ -77,5 +73,5 @@ def _get_id_geo_study(request_id: str, gse: str):
         cursor.close()
         database_connection.close()
         return geo_study_id
-    except:
-        logging.exception(f'An exception has occurred')
+    except Exception as e:
+        logging.exception(f'An exception has occurred: {e}')
