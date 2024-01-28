@@ -111,6 +111,7 @@ module "F_get_study_srrs_lambda" {
     output_sqs_arn = var.queues.srrs_sqs_arn
     dlq_sqs_arn    = var.queues.srrs_dlq_arn
   }
+  timeout                               = 60
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn

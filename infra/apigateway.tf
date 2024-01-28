@@ -21,17 +21,16 @@ resource "aws_apigatewayv2_stage" "paginate_user_query_lambda" {
 
     format = jsonencode({
       requestId               = "$context.requestId"
-      sourceIp                = "$context.identity.sourceIp"
-      requestTime             = "$context.requestTime"
-      protocol                = "$context.protocol"
       httpMethod              = "$context.httpMethod"
-      resourcePath            = "$context.resourcePath"
-      routeKey                = "$context.routeKey"
+      path                    = "$context.path"
       status                  = "$context.status"
-      responseLength          = "$context.responseLength"
+      sourceIp                = "$context.identity.sourceIp"
+      userAgent               = "$context.identity.userAgent",
+      responseLatency         = "$context.responseLatency"
       integrationErrorMessage = "$context.integrationErrorMessage"
     })
   }
+
   tags = var.tags
 }
 

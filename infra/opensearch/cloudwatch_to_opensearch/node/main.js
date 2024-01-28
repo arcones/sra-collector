@@ -8,6 +8,7 @@ var endpoint = 'search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-cen
 var logFailedResponses = true;
 
 exports.handler = function(input, context) {
+
     var zippedInput = new Buffer.from(input.awslogs.data, 'base64');
 
     zlib.gunzip(zippedInput, function(error, buffer) {
@@ -50,36 +51,22 @@ function transform(payload) {
         var source = buildSource(logEvent.message, logEvent.extractedFields);
         addLogGroup(payload, source)
 
-        console.debug("Received logEvent:")
-        console.debug(logEvent)
-
-//        {
-//    "httpMethod": "POST",
-//    "integrationErrorMessage": "-",
-//    "protocol": "HTTP/1.1",
-//    "requestId": "SPslIiXTFiAEMkA=",
-//    "requestTime": "28/Jan/2024:10:08:58 +0000",
-//    "resourcePath": "-",
-//    "responseLength": "109",
-//    "routeKey": "POST /query-submit",
-//    "sourceIp": "79.116.183.88",
-//    "status": "201"
-//}
-
         if (source.message) {
-            console.debug("logEvent contains message, composing app log:")
             bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
-            console.debug(bulkRequestBody)
         } else if (source.type) {
-            console.debug("logEvent contains type, composing system log:")
             bulkRequestBody += addMetaFieldsAndStringify(indexNameSystem, logEvent, source)
-            console.debug(bulkRequestBody)
         } else if (source.httpMethod) {
-            console.debug("logEvent contains httpMethod, composing access log:")
+            source['timestamp'] = new Date().toISOString()
+
+            var full_path = source['path']
+            var clean_path_start = full_path.lastIndexOf('/')
+            source['path'] = full_path.substring(clean_path_start);
+
             bulkRequestBody += addMetaFieldsAndStringify(indexNameAccess, logEvent, source)
-            console.debug(bulkRequestBody)
         } else {
-            console.error("logEvent is not expected, please check!!!")
+            console.error("Error: logEvent structure is not expected, please check!!!")
+            console.error("logEvent:")
+            console.error(logEvent)
         }
     });
 
@@ -272,10 +259,10 @@ function hash(str, encoding) {
 
 function logFailure(error, failedItems) {
     if (logFailedResponses) {
-        console.log('Error: ' + JSON.stringify(error, null, 2));
+        console.error('Error: ' + JSON.stringify(error, null, 2));
 
         if (failedItems && failedItems.length > 0) {
-            console.log("Failed Items: " +
+            console.error("Failed Items: " +
                 JSON.stringify(failedItems, null, 2));
         }
     }

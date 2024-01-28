@@ -70,3 +70,43 @@ xs-sra-collector-request:
 	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS" }'
+
+s-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "stroke AND single cell rna seq AND musculus" }'
+
+m-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "asthma AND children AND rna seq" }'
+
+l-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "arabidopsis thaliana AND rna seq AND zea mays" }'
+
+xl-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis AND rna seq" }'
+
+2xl-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "rna seq and homo sapiens and myeloid and leukemia" }'
+
+3xl-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis" }'
+
+10xl-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "rna seq" }'
+
+max-sra-collector-request:
+	curl -w "\n%{http_code}"  --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "cancer" }'

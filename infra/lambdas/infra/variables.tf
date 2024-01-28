@@ -9,10 +9,6 @@ variable "common_libs_layer_arn" {
 variable "code_path" {
   type = string
 }
-#
-#variable "log_level_parameter_arn" {
-#  type = string
-#}
 
 variable "aws_apigatewayv2_api_execution_arn" {
   default = null
@@ -46,9 +42,9 @@ variable "cloudwatch_to_opensearch_function_arn" {
   type = string
 }
 
-variable "extra_execution_time" {
-  default = false
-  type    = bool
+variable "timeout" {
+  default = 20
+  type    = number
 }
 
 variable "tags" {
