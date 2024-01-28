@@ -17,14 +17,12 @@ exports.handler = function(input, context) {
 
         var elasticsearchBulkData = transform(awslogsData);
 
-        // skip control messages
         if (!elasticsearchBulkData) {
             console.log('Received a control message');
             context.succeed('Control message handled successfully');
             return;
         }
 
-        // post documents to the Amazon Elasticsearch Service
         post(elasticsearchBulkData, function(error, success, statusCode, failedItems) {
             console.log('Response: ' + JSON.stringify({
                 "statusCode": statusCode
@@ -44,19 +42,44 @@ exports.handler = function(input, context) {
 function transform(payload) {
     var bulkRequestBody = '';
 
-    console.debug(`Payload system ${JSON.stringify(payload)}`)
-
     var indexNameSystem = 'cwl-sra-collector-system';
     var indexNameApp = 'cwl-sra-collector-app';
+    var indexNameAccess = 'cwl-sra-collector-access';
 
     payload.logEvents.forEach(function(logEvent) {
         var source = buildSource(logEvent.message, logEvent.extractedFields);
         addLogGroup(payload, source)
 
+        console.debug("Received logEvent:")
+        console.debug(logEvent)
+
+//        {
+//    "httpMethod": "POST",
+//    "integrationErrorMessage": "-",
+//    "protocol": "HTTP/1.1",
+//    "requestId": "SPslIiXTFiAEMkA=",
+//    "requestTime": "28/Jan/2024:10:08:58 +0000",
+//    "resourcePath": "-",
+//    "responseLength": "109",
+//    "routeKey": "POST /query-submit",
+//    "sourceIp": "79.116.183.88",
+//    "status": "201"
+//}
+
         if (source.message) {
+            console.debug("logEvent contains message, composing app log:")
             bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
-        } else {
+            console.debug(bulkRequestBody)
+        } else if (source.type) {
+            console.debug("logEvent contains type, composing system log:")
             bulkRequestBody += addMetaFieldsAndStringify(indexNameSystem, logEvent, source)
+            console.debug(bulkRequestBody)
+        } else if (source.httpMethod) {
+            console.debug("logEvent contains httpMethod, composing access log:")
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameAccess, logEvent, source)
+            console.debug(bulkRequestBody)
+        } else {
+            console.error("logEvent is not expected, please check!!!")
         }
     });
 

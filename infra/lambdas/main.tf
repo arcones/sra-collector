@@ -14,7 +14,6 @@ module "A_get_user_query_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "A_get_user_query"
-  #  log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = null,
     output_sqs_arn = var.queues.user_query_sqs_arn
@@ -30,7 +29,6 @@ module "B_paginate_user_query_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "B_paginate_user_query"
-  #  log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.user_query_sqs_arn
     output_sqs_arn = var.queues.user_query_pages_sqs_arn
@@ -47,7 +45,6 @@ module "C_get_study_ids_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "C_get_study_ids"
-  #log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.user_query_pages_sqs_arn
     output_sqs_arn = var.queues.study_ids_sqs_arn
@@ -62,7 +59,6 @@ module "D_get_study_gse_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "D_get_study_gse"
-  #log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.study_ids_sqs_arn
     output_sqs_arn = var.queues.gses_sqs_arn
@@ -80,7 +76,6 @@ module "E1_get_study_srp_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "E1_get_study_srp"
-  #log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.gses_sqs_arn
     output_sqs_arn = var.queues.srps_sqs_arn
@@ -97,7 +92,6 @@ module "E2_dlq_get_srp_pysradb_error_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "E2_dlq_get_srp_pysradb_error"
-  #log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.gses_dlq_arn
     output_sqs_arn = null
@@ -112,7 +106,6 @@ module "F_get_study_srrs_lambda" {
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "F_get_study_srrs"
-  #log_level_parameter_arn = var.log_level_parameter_arn
   queues = {
     input_sqs_arn  = var.queues.srps_sqs_arn
     output_sqs_arn = var.queues.srrs_sqs_arn

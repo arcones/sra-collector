@@ -12,7 +12,6 @@ data "archive_file" "code" {
   output_path = "${path.module}/.tmp/${random_uuid.lambda_code_hash.result}.zip"
 }
 
-
 resource "aws_lambda_function" "function" {
   function_name    = basename(path.module)
   description      = "Copies cloudwatch logs to opensearch"

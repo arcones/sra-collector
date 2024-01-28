@@ -2,7 +2,6 @@ module "lambdas" {
   source                             = "./lambdas"
   aws_apigatewayv2_api_execution_arn = aws_apigatewayv2_api.sra_collector_api.execution_arn
   s3_bucket_id                       = aws_s3_bucket.lambdas.id
-  #  log_level_parameter_arn            = aws_ssm_parameter.log_level.arn
   queues = {
     user_query_pages_sqs_arn = aws_sqs_queue.user_query_pages_queue.arn,
     user_query_pages_dlq_arn = aws_sqs_queue.user_query_pages_dlq.arn,

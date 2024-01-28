@@ -25,7 +25,7 @@ resource "aws_lambda_function" "function" {
   }
   logging_config {
     log_format            = "JSON"
-    application_log_level = "DEBUG"
+    application_log_level = "INFO"
     system_log_level      = "INFO"
     log_group             = "/aws/lambda/${var.function_name}"
   }

@@ -1,3 +1,7 @@
+locals {
+  domain_name = "sracollector-opensearch"
+}
+
 resource "aws_opensearch_domain" "sracollector_opensearch" {
   domain_name = local.domain_name
 
