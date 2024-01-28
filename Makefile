@@ -46,7 +46,7 @@ build-lambda-dependencies: clean-builds
 	docker rm deps
 
 init-infra: clean-queues reset-alarms
-	cd infra && terraform init ; cd ..
+	cd infra && terraform init -upgrade; cd ..
 
 plan-infra:
 	cd infra && terraform plan ; cd ..
