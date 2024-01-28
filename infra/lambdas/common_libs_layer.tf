@@ -5,8 +5,7 @@ locals {
 
 resource "null_resource" "dependencies_watcher" {
   triggers = {
-    sha1 = format("%s%s",
-      filesha1("${path.module}/${local.deps_folder}/lambda_log_support/src/lambda_log_support/lambda_log_support.py"),
+    sha1 = format("%s",
       filesha1("${path.module}/${local.deps_folder}/postgres_connection/src/postgres_connection/postgres_connection.py")
     )
   }

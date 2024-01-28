@@ -12,12 +12,17 @@ data "archive_file" "code" {
   output_path = "${path.module}/.tmp/${random_uuid.lambda_code_hash.result}.zip"
 }
 
-
 resource "aws_lambda_function" "function" {
-  function_name    = basename(path.module)
-  description      = "Copies cloudwatch logs to opensearch"
-  filename         = data.archive_file.code.output_path
-  role             = aws_iam_role.lambda_assume.arn
+  function_name = basename(path.module)
+  description   = "Copies cloudwatch logs to opensearch"
+  filename      = data.archive_file.code.output_path
+  role          = aws_iam_role.lambda_assume.arn
+  logging_config {
+    log_format            = "JSON"
+    application_log_level = "INFO"
+    system_log_level      = "INFO"
+    log_group             = "/aws/lambda/${basename(path.module)}"
+  }
   handler          = "main.handler"
   runtime          = "nodejs18.x"
   timeout          = 60

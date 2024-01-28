@@ -6,36 +6,21 @@ variable "s3_bucket_id" {
   type = string
 }
 
-variable "log_level_parameter_arn" {
-  type = string
-}
-
-variable "user_query_pages_sqs_arn" {
-  type = string
-}
-
-variable "user_query_sqs_arn" {
-  type = string
-}
-
-variable "study_ids_sqs_arn" {
-  type = string
-}
-
-variable "gses_sqs_arn" {
-  type = string
-}
-
-variable "gses_dlq_sqs_arn" {
-  type = string
-}
-
-variable "srps_sqs_arn" {
-  type = string
-}
-
-variable "srrs_sqs_arn" {
-  type = string
+variable "queues" {
+  type = object({
+    user_query_pages_sqs_arn = string,
+    user_query_pages_dlq_arn = string,
+    user_query_sqs_arn       = string,
+    user_query_dlq_arn       = string,
+    study_ids_sqs_arn        = string,
+    study_ids_dlq_arn        = string,
+    gses_sqs_arn             = string,
+    gses_dlq_arn             = string,
+    srps_sqs_arn             = string,
+    srps_dlq_arn             = string,
+    srrs_sqs_arn             = string,
+    srrs_dlq_arn             = string
+  })
 }
 
 variable "ncbi_api_key_secret_arn" {

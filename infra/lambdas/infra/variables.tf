@@ -10,23 +10,17 @@ variable "code_path" {
   type = string
 }
 
-variable "log_level_parameter_arn" {
-  type = string
-}
-
 variable "aws_apigatewayv2_api_execution_arn" {
   default = null
   type    = string
 }
 
-variable "input_sqs_arn" {
-  default = null
-  type    = string
-}
-
-variable "output_sqs_arn" {
-  default = null
-  type    = string
+variable "queues" {
+  type = object({
+    input_sqs_arn  = string,
+    output_sqs_arn = string,
+    dlq_sqs_arn    = string
+  })
 }
 
 variable "rds_secret_arn" {
@@ -48,14 +42,9 @@ variable "cloudwatch_to_opensearch_function_arn" {
   type = string
 }
 
-variable "extra_memory" {
-  default = false
-  type    = bool
-}
-
-variable "extra_execution_time" {
-  default = false
-  type    = bool
+variable "timeout" {
+  default = 20
+  type    = number
 }
 
 variable "tags" {

@@ -4,6 +4,13 @@ resource "aws_cloudwatch_log_group" "sra_collector_logs" {
   tags              = var.tags
 }
 
+resource "aws_cloudwatch_log_subscription_filter" "subscription_filter" {
+  name            = "cwl_${aws_apigatewayv2_api.sra_collector_api.name}"
+  log_group_name  = aws_cloudwatch_log_group.sra_collector_logs.name
+  destination_arn = module.opensearch.cloudwatch_to_opensearch_function_arn
+  filter_pattern  = ""
+}
+
 locals {
   lambdas_2_max_error_ratio_expected = {
     (module.lambdas.get_user_query_function_name)            = 1,

@@ -2,10 +2,8 @@ import json
 import logging
 
 import boto3
-from lambda_log_support import lambda_log_support
 from postgres_connection import postgres_connection
 from pysradb import SRAweb
-
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
@@ -15,8 +13,6 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/srps_queue'
 def handler(event, context):
     try:
         if event:
-            request_id = json.loads(event['Records'][0]['body'])['request_id']
-            lambda_log_support.configure_logger(request_id, context.aws_request_id)
             logging.info(f'Received event {event}')
 
             for record in event['Records']:

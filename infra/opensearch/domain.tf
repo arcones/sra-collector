@@ -1,3 +1,7 @@
+locals {
+  domain_name = "sracollector-opensearch"
+}
+
 resource "aws_opensearch_domain" "sracollector_opensearch" {
   domain_name = local.domain_name
 
@@ -33,7 +37,7 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
           IpAddress : {
             "aws:SourceIp" : [
               "86.127.230.245/32",
-              "77.225.25.138/32"
+              "79.116.183.88/32"
             ]
           }
         },

@@ -1,15 +1,21 @@
 module "lambdas" {
-  source                                = "./lambdas"
-  aws_apigatewayv2_api_execution_arn    = aws_apigatewayv2_api.sra_collector_api.execution_arn
-  s3_bucket_id                          = aws_s3_bucket.lambdas.id
-  user_query_pages_sqs_arn              = aws_sqs_queue.user_query_pages_queue.arn
-  log_level_parameter_arn               = aws_ssm_parameter.log_level.arn
-  user_query_sqs_arn                    = aws_sqs_queue.user_query_queue.arn
-  study_ids_sqs_arn                     = aws_sqs_queue.study_ids_queue.arn
-  gses_sqs_arn                          = aws_sqs_queue.gses_queue.arn
-  gses_dlq_sqs_arn                      = aws_sqs_queue.gses_dlq.arn
-  srps_sqs_arn                          = aws_sqs_queue.srps_queue.arn
-  srrs_sqs_arn                          = aws_sqs_queue.srrs_queue.arn
+  source                             = "./lambdas"
+  aws_apigatewayv2_api_execution_arn = aws_apigatewayv2_api.sra_collector_api.execution_arn
+  s3_bucket_id                       = aws_s3_bucket.lambdas.id
+  queues = {
+    user_query_pages_sqs_arn = aws_sqs_queue.user_query_pages_queue.arn,
+    user_query_pages_dlq_arn = aws_sqs_queue.user_query_pages_dlq.arn,
+    user_query_sqs_arn       = aws_sqs_queue.user_query_queue.arn,
+    user_query_dlq_arn       = aws_sqs_queue.user_query_dlq.arn,
+    study_ids_sqs_arn        = aws_sqs_queue.study_ids_queue.arn,
+    study_ids_dlq_arn        = aws_sqs_queue.study_ids_dlq.arn,
+    gses_sqs_arn             = aws_sqs_queue.gses_queue.arn,
+    gses_dlq_arn             = aws_sqs_queue.gses_dlq.arn,
+    srps_sqs_arn             = aws_sqs_queue.srps_queue.arn,
+    srps_dlq_arn             = aws_sqs_queue.srps_dlq.arn,
+    srrs_sqs_arn             = aws_sqs_queue.srrs_queue.arn,
+    srrs_dlq_arn             = aws_sqs_queue.srrs_dlq.arn
+  }
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                       = aws_kms_key.db_kms_key.arn
   cloudwatch_to_opensearch_function_arn = module.opensearch.cloudwatch_to_opensearch_function_arn

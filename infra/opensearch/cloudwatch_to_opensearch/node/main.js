@@ -5,33 +5,25 @@ var crypto = require('crypto');
 
 var endpoint = 'search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com';
 
-// Set this to true if you want to debug why data isn't making it to
-// your Elasticsearch cluster. This will enable logging of failed items
-// to CloudWatch Logs.
 var logFailedResponses = true;
 
 exports.handler = function(input, context) {
-    // decode input from base64
+
     var zippedInput = new Buffer.from(input.awslogs.data, 'base64');
 
-    // decompress the input
     zlib.gunzip(zippedInput, function(error, buffer) {
         if (error) { context.fail(error); return; }
 
-        // parse the input from JSON
         var awslogsData = JSON.parse(buffer.toString('utf8'));
 
-        // transform the input to Elasticsearch documents
         var elasticsearchBulkData = transform(awslogsData);
 
-        // skip control messages
         if (!elasticsearchBulkData) {
             console.log('Received a control message');
             context.succeed('Control message handled successfully');
             return;
         }
 
-        // post documents to the Amazon Elasticsearch Service
         post(elasticsearchBulkData, function(error, success, statusCode, failedItems) {
             console.log('Response: ' + JSON.stringify({
                 "statusCode": statusCode
@@ -49,47 +41,56 @@ exports.handler = function(input, context) {
 };
 
 function transform(payload) {
-    if (payload.messageType === 'CONTROL_MESSAGE') {
-        return null;
-    }
-
     var bulkRequestBody = '';
 
+    var indexNameSystem = 'cwl-sra-collector-system';
+    var indexNameApp = 'cwl-sra-collector-app';
+    var indexNameAccess = 'cwl-sra-collector-access';
+
     payload.logEvents.forEach(function(logEvent) {
-        var timestamp = new Date(1 * logEvent.timestamp);
-
-        var indexName = 'cwl-sra-collector';
-
         var source = buildSource(logEvent.message, logEvent.extractedFields);
+        addLogGroup(payload, source)
 
-        var logToSend = ''
+        if (source.message) {
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
+        } else if (source.type) {
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameSystem, logEvent, source)
+        } else if (source.httpMethod) {
+            source['timestamp'] = new Date().toISOString()
 
-        try {
-            logToSend = JSON.parse(logEvent.message)
-            console.log("OK: Cloudwatch log parsed to JSON")
-        } catch (e) {
-            console.log("ERROR: Cloudwatch log not parseable to JSON")
-            console.log(`Found not JSON document: ${logEvent.message}`)
-            var logToSend = { level: "TRACE", message: logEvent.message }
-        } finally {
-            source['@timestamp'] = new Date(1 * logEvent.timestamp).toISOString();
-            source['@log_group'] = payload.logGroup;
+            var full_path = source['path']
+            var clean_path_start = full_path.lastIndexOf('/')
+            source['path'] = full_path.substring(clean_path_start);
 
-            source['@log_level'] = logToSend.level
-            source['@request_id'] = logToSend.request_id
-            source['@invocation_id'] = logToSend.invocation_id
-            source['@message'] = logToSend.message
+            bulkRequestBody += addMetaFieldsAndStringify(indexNameAccess, logEvent, source)
+        } else {
+            console.error("Error: logEvent structure is not expected, please check!!!")
+            console.error("logEvent:")
+            console.error(logEvent)
         }
-
-        var action = { "index": {} };
-        action.index._index = indexName;
-
-        bulkRequestBody += [
-            JSON.stringify(action),
-            JSON.stringify(source),
-        ].join('\n') + '\n';
     });
+
     return bulkRequestBody;
+}
+
+function addLogGroup(payload, source) {
+    var full_log_group = payload.logGroup
+    var index_of_last_slash = full_log_group.lastIndexOf('/')
+
+    source['log_group'] = full_log_group.substring(index_of_last_slash + 1);
+}
+
+function addMetaFieldsAndStringify(indexName, logEvent, source) {
+    var action = { "index": {} };
+    action.index._index = indexName;
+    action.index._id = logEvent.id;
+
+    var bulkRequestBody = '' + [
+        JSON.stringify(action),
+        JSON.stringify(source),
+    ].join('\n') + '\n';
+
+    return bulkRequestBody
 }
 
 function buildSource(message, extractedFields) {
@@ -258,10 +259,10 @@ function hash(str, encoding) {
 
 function logFailure(error, failedItems) {
     if (logFailedResponses) {
-        console.log('Error: ' + JSON.stringify(error, null, 2));
+        console.error('Error: ' + JSON.stringify(error, null, 2));
 
         if (failedItems && failedItems.length > 0) {
-            console.log("Failed Items: " +
+            console.error("Failed Items: " +
                 JSON.stringify(failedItems, null, 2));
         }
     }

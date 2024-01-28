@@ -30,14 +30,10 @@ reset-alarms:
 	pip install -r requirements.txt && \
 	python ./reset-alarms.py
 
-clean-os-index:
-	curl --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector' \
+clean-os-indices:
+	curl -w "\n%{http_code}" --location --request DELETE 'https://search-sracollector-opensearch-bbcrkwlcfb2fjb7psquiefeg2a.eu-central-1.es.amazonaws.com/cwl-sra-collector-*' \
 		--header 'Content-Type: application/json' \
-		--data '{ \
-    		"query": { \
-        		"match_all": {} \
-    		} \
-		}'
+		--data '{ "query": { "match_all": {} } }'
 
 clean-builds:
 	./utils/clean_temp/clean_temp.sh
@@ -50,7 +46,7 @@ build-lambda-dependencies: clean-builds
 	docker rm deps
 
 init-infra: clean-queues reset-alarms
-	cd infra && terraform init ; cd ..
+	cd infra && terraform init -upgrade; cd ..
 
 plan-infra:
 	cd infra && terraform plan ; cd ..
@@ -69,3 +65,48 @@ build-infra:
 	else \
 		echo "There are no infra changes" && cd ..; \
 	fi
+
+xs-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS" }'
+
+s-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "stroke AND single cell rna seq AND musculus" }'
+
+m-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "asthma AND children AND rna seq" }'
+
+l-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "arabidopsis thaliana AND rna seq AND zea mays" }'
+
+xl-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis AND rna seq" }'
+
+2xl-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "rna seq and homo sapiens and myeloid and leukemia" }'
+
+3xl-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "multiple sclerosis" }'
+
+10xl-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "rna seq" }'
+
+max-sra-collector-request:
+	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
+		--header 'Content-Type: application/json' \
+		--data '{ "ncbi_query": "cancer" }'
