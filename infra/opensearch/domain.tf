@@ -17,8 +17,6 @@ resource "aws_opensearch_domain" "sracollector_opensearch" {
     ebs_enabled = true
     volume_size = 10
   }
-
-  tags = var.tags
 }
 
 resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
