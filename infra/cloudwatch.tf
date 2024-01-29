@@ -1,7 +1,6 @@
 resource "aws_cloudwatch_log_group" "sra_collector_logs" {
   name              = "/aws/api_gateway/${aws_apigatewayv2_api.sra_collector_api.name}"
   retention_in_days = 7
-  tags              = var.tags
 }
 
 resource "aws_cloudwatch_log_subscription_filter" "subscription_filter" {
@@ -77,7 +76,6 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
     label       = "Lambda error rate percentage"
     return_data = "true"
   }
-  tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
@@ -128,5 +126,4 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
       }
     }
   }
-  tags = var.tags
 }

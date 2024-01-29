@@ -19,7 +19,6 @@ module "lambdas" {
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                       = aws_kms_key.db_kms_key.arn
   cloudwatch_to_opensearch_function_arn = module.opensearch.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "opensearch" {
@@ -34,5 +33,4 @@ module "opensearch" {
     "get_study_srp"             = module.lambdas.get_study_srp_log_group_arn,
     "get_study_srr"             = module.lambdas.get_study_srrs_log_group_arn
   }
-  tags = var.tags
 }

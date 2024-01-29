@@ -34,7 +34,6 @@ resource "aws_lambda_function" "function" {
   layers           = [var.common_libs_layer_arn]
   timeout          = var.timeout
   source_code_hash = data.archive_file.code.output_base64sha256
-  tags             = var.tags
 }
 
 resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {

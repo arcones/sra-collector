@@ -27,7 +27,6 @@ resource "aws_lambda_function" "function" {
   runtime          = "nodejs18.x"
   timeout          = 60
   source_code_hash = data.archive_file.code.output_base64sha256
-  tags             = var.tags
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch" {

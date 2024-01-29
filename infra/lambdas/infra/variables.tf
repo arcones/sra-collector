@@ -46,7 +46,3 @@ variable "timeout" {
   default = 20
   type    = number
 }
-
-variable "tags" {
-  type = map(string)
-}
