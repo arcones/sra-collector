@@ -8,6 +8,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: aws-actions/setup-sam@v2
       - uses: actions/setup-python@v5
         with:
