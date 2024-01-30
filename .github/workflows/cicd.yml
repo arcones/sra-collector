@@ -13,9 +13,12 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+      - run: pip install -r tests/requirements.txt
       - run: make integration-tests & disown
       - run: pytest A_get_user_query_test.py
   infra:
+    needs:
+      - tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
