@@ -11,7 +11,7 @@ lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url=
 
 
 def test_validate_lambda_response():
-    with open('lambdas-input/A_get_user_query_input.json') as json_data:
+    with open('tests/lambdas-input/A_get_user_query_input.json') as json_data:
         payload = json.load(json_data)
         response = lambda_client.invoke(
             FunctionName='A_get_user_query',
