@@ -114,6 +114,6 @@ max-sra-collector-request:
 sam-start-lambdas:
 	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json; cd ..
 
-integration-tests:
+integration-tests-server:
 	cd tests && pip install -r requirements.txt && cd ..
-	cd infra && (nohup sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json&)
+	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
