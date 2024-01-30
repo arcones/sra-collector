@@ -16,6 +16,7 @@ jobs:
           cache: 'pip'
 #      - run: pip install -r tests/requirements.txt
       - run: make integration-tests & disown
+      - run: sleep 60
       - run: pytest tests/A_get_user_query_test.py
   infra:
     needs:
