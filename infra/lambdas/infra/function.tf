@@ -29,6 +29,11 @@ resource "aws_lambda_function" "function" {
     system_log_level      = "INFO"
     log_group             = "/aws/lambda/${var.function_name}"
   }
+  environment {
+    variables = {
+      ENV = "prod"
+    }
+  }
   runtime          = "python3.11"
   memory_size      = 128
   layers           = [var.common_libs_layer_arn]
