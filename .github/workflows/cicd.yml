@@ -18,9 +18,10 @@ jobs:
         run: |
           make integration-tests-server &
           sleep 30
+      - name: Tests tests
+        run: curl -Iw http://localhost:3001
       - name: Run tests
-#        run: pytest tests/A_get_user_query_test.py
-        run: curl http://localhost:3001 -Iw
+        run: pytest tests/A_get_user_query_test.py
 
   infra:
     needs:

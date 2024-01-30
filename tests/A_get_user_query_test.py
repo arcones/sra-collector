@@ -7,7 +7,7 @@ LAMBDA_TIMEOUT = 90
 
 botocore_client = botocore.client.Config(signature_version=botocore.UNSIGNED, read_timeout=LAMBDA_TIMEOUT, retries={'max_attempts': 0})
 
-lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url='http://127.0.0.1:3001', use_ssl=False, verify=False, config=botocore_client)
+lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url='http://localhost:3001', use_ssl=False, verify=False, config=botocore_client)
 
 
 def test_validate_lambda_response():
