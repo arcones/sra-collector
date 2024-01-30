@@ -111,9 +111,11 @@ max-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "cancer" }'
 
-sam-start-lambdas:
-	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json; cd ..
-
-integration-tests-server:
+build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt && cd ..
+
+integration-tests-server: build-lambda-dependencies build-integration-tests-dependencies
 	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
+
+integration-tests:
+	 pytest tests/lambdas_test.py

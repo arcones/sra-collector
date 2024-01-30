@@ -26,12 +26,12 @@
       "sourceIp": "79.116.183.88",
       "userAgent": "curl/7.81.0"
     },
-    "requestId": "ST9QVi5rliAEJgg=",
+    "requestId": "",
     "routeKey": "POST /query-submit",
     "stage": "api",
     "time": "29/Jan/2024:17:10:25 +0000",
     "timeEpoch": 1706548225832
   },
-  "body": "{ \"ncbi_query\": \"integration tests\" }",
+  "body": "",
   "isBase64Encoded": false
 }
