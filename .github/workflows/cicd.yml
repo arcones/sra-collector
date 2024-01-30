@@ -20,7 +20,7 @@ jobs:
           sleep 30
       - name: Run tests
 #        run: pytest tests/A_get_user_query_test.py
-        run: curl http://localhost:3001 -I
+        run: curl http://localhost:3001 -Iw
 
   infra:
     needs:
