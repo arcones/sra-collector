@@ -116,4 +116,4 @@ sam-start-lambdas:
 
 integration-tests:
 	cd tests && pip install -r requirements.txt && cd ..
-	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
+	cd infra && (nohup sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json&)
