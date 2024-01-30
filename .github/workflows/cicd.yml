@@ -14,12 +14,14 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+      - name: Build dependencies
+        run: make build-lambda-dependencies
       - name: Start SAM server
         run: |
           make integration-tests-server &
           sleep 30
       - name: Tests tests
-        run: curl -Iw http://localhost:3001
+        run: curl http://localhost:3001 -I
       - name: Run tests
         run: pytest tests/A_get_user_query_test.py
 
