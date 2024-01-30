@@ -9,6 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/setup-sam@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
       - run: make integration-tests & disown
       - run: pytest A_get_user_query_test.py
   infra:
