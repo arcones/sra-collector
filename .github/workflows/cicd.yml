@@ -17,8 +17,7 @@ jobs:
       - name: Start SAM server
         run: |
           make integration-tests-server &
-          sleep 10 &&
-          curl http://localhost:3001 -I
+          sleep 30
       - name: Run tests
         run: pytest tests/A_get_user_query_test.py
 
