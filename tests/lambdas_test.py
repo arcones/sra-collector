@@ -5,6 +5,7 @@ import time
 
 import boto3
 import botocore
+import pytest
 import urllib3
 
 LAMBDA_TIMEOUT = 90
@@ -18,7 +19,12 @@ lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url=
 http = urllib3.PoolManager()
 
 
-def _init_tests():
+@pytest.fixture(scope='session', autouse=True)
+def init_tests(request):
+    _wait_test_server_readiness()
+
+
+def _wait_test_server_readiness():
     is_test_still_initializing = True
     start_waiting = time.time()
     while is_test_still_initializing:
@@ -37,7 +43,6 @@ def _init_tests():
 
 
 def test_a_get_user_query():
-    _init_tests()
     lambda_function = 'A_get_user_query'
 
     expected_request_id = ''.join(random.choice(CHARACTERS) for i in range(20))
