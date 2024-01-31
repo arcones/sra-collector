@@ -1,9 +1,11 @@
 import json
 import random
 import string
+import time
 
 import boto3
 import botocore
+import urllib3
 
 LAMBDA_TIMEOUT = 90
 
@@ -13,8 +15,29 @@ botocore_client = botocore.client.Config(signature_version=botocore.UNSIGNED, re
 
 lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url='http://localhost:3001', use_ssl=False, verify=False, config=botocore_client)
 
+http = urllib3.PoolManager()
+
+
+def _init_tests():
+    is_test_still_initializing = True
+    start_waiting = time.time()
+    while is_test_still_initializing:
+        try:
+            response = http.urlopen('GET', 'http://localhost:3001')
+            if response.status == 404:
+                print('Test server is ready :)')
+                is_test_still_initializing = False
+        except Exception as connection_refused_error:
+            if time.time() - start_waiting < 60:
+                print('Tests are still initializing...')
+                time.sleep(5)
+            else:
+                print('Timeout while waiting test server to launch :(')
+                raise connection_refused_error
+
 
 def test_a_get_user_query():
+    _init_tests()
     lambda_function = 'A_get_user_query'
 
     expected_request_id = ''.join(random.choice(CHARACTERS) for i in range(20))
