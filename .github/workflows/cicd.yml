@@ -15,7 +15,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: Launch SAM Test Server
-        run: make integration-tests-server &
+        run: |
+          make integration-tests-server &
+          sleep 30
       - name: Run Integration Tests
         run: make integration-tests
   infra:
