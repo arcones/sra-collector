@@ -10,13 +10,11 @@ module "vpc" {
   public_subnets       = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_dns_hostnames = true
   enable_dns_support   = true
-  tags                 = var.tags
 }
 
 resource "aws_db_subnet_group" "db_subnet" {
   name       = "db_subnet"
   subnet_ids = module.vpc.public_subnets
-  tags       = var.tags
 }
 
 resource "aws_security_group" "db_security_group" {
@@ -36,6 +34,4 @@ resource "aws_security_group" "db_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = var.tags
 }

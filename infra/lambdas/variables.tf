@@ -34,7 +34,3 @@ variable "rds_kms_key_arn" {
 variable "cloudwatch_to_opensearch_function_arn" {
   type = string
 }
-
-variable "tags" {
-  type = map(string)
-}

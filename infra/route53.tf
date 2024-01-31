@@ -5,7 +5,6 @@ locals {
 resource "aws_acm_certificate" "certificate" {
   domain_name       = "sra-collector.${local.subdomain}"
   validation_method = "DNS"
-  tags              = var.tags
 }
 
 data "aws_route53_zone" "zone" {
@@ -45,7 +44,6 @@ resource "aws_apigatewayv2_domain_name" "apigateway_domain_name" {
   }
 
   depends_on = [aws_acm_certificate_validation.certificate_validation]
-  tags       = var.tags
 }
 
 resource "aws_route53_record" "record" {

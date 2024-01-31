@@ -110,3 +110,12 @@ max-sra-collector-request:
 	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "cancer" }'
+
+build-integration-tests-dependencies:
+	cd tests && pip install -r requirements.txt && cd ..
+
+integration-tests-server: build-lambda-dependencies
+	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
+
+integration-tests: build-integration-tests-dependencies
+	pytest tests/lambdas_test.py

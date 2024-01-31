@@ -1,11 +1,9 @@
 import json
-import logging
 
 import boto3
 import psycopg2
 
 
-logging.basicConfig(level=logging.INFO)
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
 def get_connection():

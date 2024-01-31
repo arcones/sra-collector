@@ -21,7 +21,6 @@ module "A_get_user_query_lambda" {
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   aws_apigatewayv2_api_execution_arn    = var.aws_apigatewayv2_api_execution_arn
-  tags                                  = var.tags
 }
 
 module "B_paginate_user_query_lambda" {
@@ -37,7 +36,6 @@ module "B_paginate_user_query_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "C_get_study_ids_lambda" {
@@ -51,7 +49,6 @@ module "C_get_study_ids_lambda" {
     dlq_sqs_arn    = var.queues.study_ids_dlq_arn
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "D_get_study_gse_lambda" {
@@ -68,7 +65,6 @@ module "D_get_study_gse_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "E1_get_study_srp_lambda" {
@@ -84,7 +80,6 @@ module "E1_get_study_srp_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "E2_dlq_get_srp_pysradb_error_lambda" {
@@ -98,7 +93,6 @@ module "E2_dlq_get_srp_pysradb_error_lambda" {
     dlq_sqs_arn    = null
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }
 
 module "F_get_study_srrs_lambda" {
@@ -115,5 +109,4 @@ module "F_get_study_srrs_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  tags                                  = var.tags
 }

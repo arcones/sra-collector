@@ -1,14 +1,25 @@
 import json
 import logging
+import os
 
 import boto3
 
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_queue'
 sqs = boto3.client('sqs', region_name='eu-central-1')
+
+
+def _select_proper_queue_per_env() -> str:
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
+    if os.environ['ENV'] == 'prod':
+        output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_queue'
+    logging.debug(f'Queue in use is {output_sqs}')
+    return output_sqs
+
 
 def handler(event, context):
     try:
         logging.info(f'Received event {event}')
+
+        output_sqs = _select_proper_queue_per_env()
 
         request_body = json.loads(event['body'])
         ncbi_query = request_body['ncbi_query']

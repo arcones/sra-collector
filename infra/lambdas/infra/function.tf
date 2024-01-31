@@ -29,12 +29,16 @@ resource "aws_lambda_function" "function" {
     system_log_level      = "INFO"
     log_group             = "/aws/lambda/${var.function_name}"
   }
+  environment {
+    variables = {
+      ENV = "prod"
+    }
+  }
   runtime          = "python3.11"
   memory_size      = 128
   layers           = [var.common_libs_layer_arn]
   timeout          = var.timeout
   source_code_hash = data.archive_file.code.output_base64sha256
-  tags             = var.tags
 }
 
 resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {
