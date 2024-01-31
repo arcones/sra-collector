@@ -114,8 +114,8 @@ max-sra-collector-request:
 build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt && cd ..
 
-integration-tests-server: build-lambda-dependencies build-integration-tests-dependencies
+integration-tests-server: build-lambda-dependencies
 	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
 
-integration-tests:
+integration-tests: build-integration-tests-dependencies
 	pytest tests/lambdas_test.py

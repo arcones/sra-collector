@@ -17,7 +17,7 @@ jobs:
       - name: Launch SAM Test Server
         run: make integration-tests-server &
       - name: Run Integration Tests
-        run: cd .. && make integration-tests
+        run: make integration-tests
   infra:
     needs:
       - tests
