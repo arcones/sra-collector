@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 import boto3
 from env_params import env_params
