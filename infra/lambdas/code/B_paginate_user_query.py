@@ -62,6 +62,7 @@ def _get_study_count(ncbi_query: str) -> int:
     except Exception as e:
         logging.exception(f'An exception has occurred: {e}')
 
+
 def _store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
     try:
         database_connection = postgres_connection.get_connection()
