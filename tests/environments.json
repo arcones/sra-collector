@@ -1,5 +1,8 @@
 {
-    "ModuleLambdasModuleAGetUserQueryLambdaAwsLambdaFunctionFunction3F2F422E": {
-        "ENV": "test"
-    }
+  "ModuleLambdasModuleAGetUserQueryLambdaAwsLambdaFunctionFunction3F2F422E": {
+    "ENV": "test"
+  },
+  "ModuleLambdasModuleBPaginateUserQueryLambdaAwsLambdaFunctionFunctionFA3C51CA": {
+    "ENV": "test"
+  }
 }

@@ -24,6 +24,7 @@ def params_per_env(lambda_name: str) -> [str, str]:
 
     output_sqs = sqs_prefix + sqs_name
 
-    logging.debug(f'Queue in use is {output_sqs}')
+    print(f'Queue in use is {output_sqs}')
+    print(f'DB schema in use is {db_schema}')
 
     return output_sqs, db_schema
