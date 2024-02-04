@@ -129,20 +129,20 @@ def test_b_paginate_user_query_just_one_page(database_cursor, sqs_client, lambda
 def _print_test_params(lambda_function: str, params: str) -> None:
     print(f'\nIn {lambda_function} test were used: {params}')
 
-#
-# def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda_client):
-#     lambda_function = 'B_paginate_user_query'
-#     expected_controlled_ncbi_query = 'rna seq and homo sapiens and myeloid and leukemia'
-#     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_controlled_ncbi_query}).replace('"', '\"')
-#
-#     _print_test_params(lambda_function, expected_body)
-#
-#     with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-#         payload = json.load(json_data)
-#         payload['Records'][0]['body'] = expected_body
-#
-#         response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
-    #
+
+def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda_client):
+    lambda_function = 'B_paginate_user_query'
+    expected_controlled_ncbi_query = 'rna seq and homo sapiens and myeloid and leukemia'
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_controlled_ncbi_query}).replace('"', '\"')
+
+    _print_test_params(lambda_function, expected_body)
+
+    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
+        payload = json.load(json_data)
+        payload['Records'][0]['body'] = expected_body
+
+        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+
     # database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{expected_request_id}'")
     # rows = database_cursor.fetchall()
     #
@@ -152,9 +152,9 @@ def _print_test_params(lambda_function: str, params: str) -> None:
     # assert 1088 <= rows[0][2]
     # assert 200 == response['StatusCode']
 
-    # sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
-    # print(sqs_messages)
-    # messages = []
+    sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
+    print(sqs_messages)
+    messages = []
 
     # while len(messages) < 3:
     #     print(f"estoy en el bucle y messages contiene {len(messages)}")
