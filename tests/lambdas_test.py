@@ -14,9 +14,6 @@ SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integratio
 http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
-expected_ncbi_query = ''.join(random.choice(CHARACTERS) for another_char in range(50))
-
 
 @pytest.fixture(scope='session', autouse=True)
 def init_tests():
@@ -56,6 +53,9 @@ def lambda_client():
 
 def test_a_get_user_query(sqs_client, lambda_client):
     lambda_function = 'A_get_user_query'
+
+    expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
+    expected_ncbi_query = ''.join(random.choice(CHARACTERS) for another_char in range(50))
     expected_body = json.dumps({'ncbi_query': expected_ncbi_query}).replace('"', '\"')
 
     _print_test_params(lambda_function, expected_body)
@@ -91,6 +91,9 @@ def test_a_get_user_query(sqs_client, lambda_client):
 
 def test_b_paginate_user_query_just_one_page(database_cursor, sqs_client, lambda_client):
     lambda_function = 'B_paginate_user_query'
+
+    expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
+    expected_ncbi_query = ''.join(random.choice(CHARACTERS) for another_char in range(50))
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_ncbi_query}).replace('"', '\"')
 
     _print_test_params(lambda_function, expected_body)
@@ -126,12 +129,10 @@ def test_b_paginate_user_query_just_one_page(database_cursor, sqs_client, lambda
         pytest.xfail()
 
 
-def _print_test_params(lambda_function: str, params: str) -> None:
-    print(f'\nIn {lambda_function} test were used: {params}')
-
-
 def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda_client):
     lambda_function = 'B_paginate_user_query'
+
+    expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
     expected_controlled_ncbi_query = 'rna seq and homo sapiens and myeloid and leukemia'
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_controlled_ncbi_query}).replace('"', '\"')
 
@@ -170,6 +171,10 @@ def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda
     assert 500 in retmax
     assert 3 == len(retstarts)
     assert [0, 500, 1000] == retstarts
+
+
+def _print_test_params(lambda_function: str, params: str) -> None:
+    print(f'\nIn {lambda_function} test were used: {params}')
 
 
 def _get_db_connection():
