@@ -40,7 +40,9 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/opensearch-blue?logo=opensearch)
 ![Static Badge](https://img.shields.io/badge/Precommit-white?logo=precommit)
 ![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
+![Static Badge](https://img.shields.io/badge/SamCLI-orange?logo=amazonaws)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
+![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=maroon)
 
 ## Style Patterns
 - Cloud Native
@@ -48,6 +50,7 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 - Asynchronous Communication
 - Fail Fast
 - Immutable Infrastructure
+- Test Driven Development
 - Convention Over Configuration
 - Encryption
 - Passwords Secure Storage

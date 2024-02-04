@@ -3,18 +3,16 @@ import logging
 
 import boto3
 import urllib3
+from env_params import env_params
 from postgres_connection import postgres_connection
 
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/user_query_pages_queue'
-
 sqs = boto3.client('sqs', region_name='eu-central-1')
-
 http = urllib3.PoolManager()
-
 page_size = 500
 
-
 def handler(event, context):
+    output_sqs, schema = env_params.params_per_env(context.function_name)
+
     try:
         if event:
             logging.info(f'Received event {event}')
@@ -28,7 +26,7 @@ def handler(event, context):
 
                 study_count = _get_study_count(ncbi_query)
 
-                _store_request_in_db(request_id, ncbi_query, study_count)
+                _store_request_in_db(schema, request_id, ncbi_query, study_count)
 
                 retstart = 0
                 message_sent_count = 0
@@ -62,12 +60,13 @@ def _get_study_count(ncbi_query: str) -> int:
     except Exception as e:
         logging.exception(f'An exception has occurred: {e}')
 
-def _store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
+
+def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
     try:
         database_connection = postgres_connection.get_connection()
         cursor = database_connection.cursor()
         statement = cursor.mogrify(
-            'insert into request (id, query, geo_count) values (%s, %s, %s)',
+            f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s)',
             (request_id, ncbi_query, study_count)
         )
         logging.debug(f'Executing: {statement}...')
