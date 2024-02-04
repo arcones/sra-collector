@@ -4,5 +4,8 @@
   },
   "ModuleLambdasModuleBPaginateUserQueryLambdaAwsLambdaFunctionFunctionFA3C51CA": {
     "ENV": "test"
+  },
+  "ModuleLambdasModuleCGetStudyIdsLambdaAwsLambdaFunctionFunctionF611E0FF": {
+    "ENV": "test"
   }
 }
