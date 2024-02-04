@@ -143,45 +143,33 @@ def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda
 
         response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
 
-    # database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{expected_request_id}'")
-    # rows = database_cursor.fetchall()
-    #
-    # assert 1 == len(rows)
-    # assert expected_request_id == rows[0][0]
-    # assert expected_controlled_ncbi_query == rows[0][1]
-    # assert 1088 <= rows[0][2]
-    # assert 200 == response['StatusCode']
+    database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{expected_request_id}'")
+    rows = database_cursor.fetchall()
 
-    sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
-    print(sqs_messages)
-    messages = []
+    assert 1 == len(rows)
+    assert expected_request_id == rows[0][0]
+    assert expected_controlled_ncbi_query == rows[0][1]
+    assert 1088 <= rows[0][2]
+    assert 200 == response['StatusCode']
 
-    # while len(messages) < 3:
-    #     print(f"estoy en el bucle y messages contiene {len(messages)}")
-    #     for message_holder in sqs_messages:
-    #         print(message_holder)
-    #         print(f"el mensaje a procesar es {message_holder}")
-            # if message not in messages:
-            #     messages.append(message)
-            #     print(f"añadido a messages {message}, borrandolo ahora")
-            #     print(sqs_client.delete_message(QueueUrl=SQS_TEST_QUEUE, ReceiptHandle=message['ReceiptHandle']))
-            #
-            # print(f"ahora messages contiene {len(messages)}")
+    messages = _get_all_queue_messages(sqs_client)
 
-    # print("He salido del bucle")
+    messages_body = [json.loads(message['Body']) for message in messages]
 
-    # if 'Messages' in sqs_messages:
-    #     sqs_message = sqs_messages['Messages'][0]
-    #     sqs_message_payload = json.loads(sqs_message['Body'])
-    #
-    #     assert expected_request_id == sqs_message_payload['request_id']
-    #     assert expected_ncbi_query == sqs_message_payload['ncbi_query']
-    #     assert 0 == sqs_message_payload['retstart']
-    #     assert 500 == sqs_message_payload['retmax']
-    #
-    #     sqs_client.delete_message(QueueUrl=SQS_TEST_QUEUE, ReceiptHandle=sqs_message['ReceiptHandle'])
-    # else:
-    #     pytest.xfail(f"Expected at least one message in the queue but got {sqs_messages}")
+    request_id = {body['request_id'] for body in messages_body}
+    ncbi_query = {body['ncbi_query'] for body in messages_body}
+    retmax = {body['retmax'] for body in messages_body}
+    retstarts = [body['retstart'] for body in messages_body]
+    retstarts.sort()
+
+    assert 1 == len(request_id)
+    assert expected_request_id in request_id
+    assert 1 == len(ncbi_query)
+    assert expected_controlled_ncbi_query in ncbi_query
+    assert 1 == len(retmax)
+    assert 500 in retmax
+    assert 3 == len(retstarts)
+    assert [0, 500, 1000] == retstarts
 
 
 def _get_db_connection():
@@ -228,3 +216,20 @@ def _ensure_queue_is_empty(sqs_client):
             print('Timeout while waiting SQS queue to be purged :(')
             raise Exception
     print('SQS queue is purged :)')
+
+
+def _get_all_queue_messages(sqs_client):
+    messages = []
+
+    while len(messages) < 3:
+        sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
+        if 'Messages' in sqs_messages:
+            for message in sqs_messages['Messages']:
+                if message not in messages:
+                    messages.append(message)
+                    sqs_client.delete_message(QueueUrl=SQS_TEST_QUEUE, ReceiptHandle=message['ReceiptHandle'])
+        else:
+            time.sleep(0.1)
+            continue
+
+    return messages
