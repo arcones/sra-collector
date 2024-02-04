@@ -15,6 +15,7 @@ http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
+
 @pytest.fixture(scope='session', autouse=True)
 def init_tests():
     _wait_test_server_readiness()
@@ -155,7 +156,7 @@ def test_c_get_study_ids(sqs_client, lambda_client):
     assert expected_request_id in request_id
     assert 1 == len(ncbi_query)
     assert expected_controlled_ncbi_query in ncbi_query
-    assert [200126815, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391] == study_ids
+    assert [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391] == study_ids
 
 
 def _print_test_params(lambda_function: str, params: str) -> None:
