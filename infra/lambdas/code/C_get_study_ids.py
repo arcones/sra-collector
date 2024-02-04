@@ -3,8 +3,8 @@ import logging
 
 import boto3
 import urllib3
+from env_params import env_params
 
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/study_ids_queue'
 
 STUDY_ID_MIN = 200000000
 STUDY_ID_MAX = 299999999
@@ -15,6 +15,8 @@ http = urllib3.PoolManager()
 
 
 def handler(event, context):
+    output_sqs, _ = env_params.params_per_env(context.function_name)
+
     try:
         if event:
             logging.info(f'Received event {event}')

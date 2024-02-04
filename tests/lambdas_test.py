@@ -15,6 +15,7 @@ http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
+
 @pytest.fixture(scope='session', autouse=True)
 def init_tests():
     _wait_test_server_readiness()
@@ -75,61 +76,16 @@ def test_a_get_user_query(sqs_client, lambda_client):
     assert f'{{"request_id": "{expected_request_id}", "ncbi_query": "{expected_ncbi_query}"}}' == actual_response_payload
     assert 200 == response['StatusCode']
 
-    sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
+    messages = _get_all_queue_messages(sqs_client, expected_messages=1)
 
-    if 'Messages' in sqs_messages:
-        sqs_message = sqs_messages['Messages'][0]
-        sqs_message_payload = json.loads(sqs_message['Body'])
+    sqs_message = messages[0]
+    sqs_message_payload = json.loads(sqs_message['Body'])
 
-        assert expected_request_id == sqs_message_payload['request_id']
-        assert expected_ncbi_query == sqs_message_payload['ncbi_query']
-
-        sqs_client.delete_message(QueueUrl=SQS_TEST_QUEUE, ReceiptHandle=sqs_message['ReceiptHandle'])
-    else:
-        pytest.xfail(f'Expected at least one message in the queue but got {sqs_messages}')
+    assert expected_request_id == sqs_message_payload['request_id']
+    assert expected_ncbi_query == sqs_message_payload['ncbi_query']
 
 
-def test_b_paginate_user_query_just_one_page(database_cursor, sqs_client, lambda_client):
-    lambda_function = 'B_paginate_user_query'
-
-    expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
-    expected_ncbi_query = ''.join(random.choice(CHARACTERS) for another_char in range(50))
-    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_ncbi_query}).replace('"', '\"')
-
-    _print_test_params(lambda_function, expected_body)
-
-    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-        payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
-
-        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
-
-    database_cursor.execute(f"select id, query from sracollector_dev.request where id='{expected_request_id}'")
-    rows = database_cursor.fetchall()
-
-    assert 1 == len(rows)
-    assert expected_request_id == rows[0][0]
-    assert expected_ncbi_query == rows[0][1]
-    assert 200 == response['StatusCode']
-
-    sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
-
-    if 'Messages' in sqs_messages:
-        sqs_message = sqs_messages['Messages'][0]
-        sqs_message_payload = json.loads(sqs_message['Body'])
-
-        assert expected_request_id == sqs_message_payload['request_id']
-        assert expected_ncbi_query == sqs_message_payload['ncbi_query']
-        assert 0 == sqs_message_payload['retstart']
-        assert 500 == sqs_message_payload['retmax']
-
-        sqs_client.delete_message(QueueUrl=SQS_TEST_QUEUE, ReceiptHandle=sqs_message['ReceiptHandle'])
-    else:
-        print(f'Expected at least one message in the queue but got {sqs_messages}')
-        pytest.xfail()
-
-
-def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda_client):
+def test_b_paginate_user_query(database_cursor, sqs_client, lambda_client):
     lambda_function = 'B_paginate_user_query'
 
     expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
@@ -153,7 +109,7 @@ def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda
     assert 1088 <= rows[0][2]
     assert 200 == response['StatusCode']
 
-    messages = _get_all_queue_messages(sqs_client)
+    messages = _get_all_queue_messages(sqs_client, expected_messages=3)
 
     messages_body = [json.loads(message['Body']) for message in messages]
 
@@ -171,6 +127,36 @@ def test_b_paginate_user_query_several_pages(database_cursor, sqs_client, lambda
     assert 500 in retmax
     assert 3 == len(retstarts)
     assert [0, 500, 1000] == retstarts
+
+
+def test_c_get_study_ids(sqs_client, lambda_client):
+    lambda_function = 'C_get_study_ids'
+
+    expected_request_id = ''.join(random.choice(CHARACTERS) for char in range(20))
+    expected_controlled_ncbi_query = 'stroke AND single cell rna seq AND musculus'
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_controlled_ncbi_query, 'retstart': 0, 'retmax': 500}).replace('"', '\"')
+
+    _print_test_params(lambda_function, expected_body)
+
+    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
+        payload = json.load(json_data)
+        payload['Records'][0]['body'] = expected_body
+
+        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+
+    messages = _get_all_queue_messages(sqs_client, expected_messages=8)
+
+    messages_body = [json.loads(message['Body']) for message in messages]
+    request_id = {body['request_info']['request_id'] for body in messages_body}
+    ncbi_query = {body['request_info']['ncbi_query'] for body in messages_body}
+    study_ids = [body['study_id'] for body in messages_body]
+    study_ids.sort()
+
+    assert 1 == len(request_id)
+    assert expected_request_id in request_id
+    assert 1 == len(ncbi_query)
+    assert expected_controlled_ncbi_query in ncbi_query
+    assert [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391] == study_ids
 
 
 def _print_test_params(lambda_function: str, params: str) -> None:
@@ -223,10 +209,10 @@ def _ensure_queue_is_empty(sqs_client):
     print('SQS queue is purged :)')
 
 
-def _get_all_queue_messages(sqs_client):
+def _get_all_queue_messages(sqs_client, expected_messages):
     messages = []
 
-    while len(messages) < 3:
+    while len(messages) < expected_messages:
         sqs_messages = sqs_client.receive_message(QueueUrl=SQS_TEST_QUEUE)
         if 'Messages' in sqs_messages:
             for message in sqs_messages['Messages']:
