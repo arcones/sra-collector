@@ -122,4 +122,4 @@ integration-tests-server: build-lambda-dependencies
 	cd infra && sam local start-lambda --hook-name terraform --env-vars ../tests/environments.json
 
 integration-tests: build-integration-tests-dependencies
-	pytest tests/lambdas_test.py
+	pytest -s
