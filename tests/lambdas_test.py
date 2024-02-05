@@ -46,7 +46,7 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
-    database_cursor.execute('TRUNCATE TABLE sracollector_dev.request CASCADE;')
+    database_cursor.execute('TRUNCATE TABLE sracollector_dev.sra_project cascade;')
     database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
@@ -231,7 +231,8 @@ def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
     database_cursor.execute(request_statement)
     database_connection.commit()
 
-    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id', (expected_study_id,expected_request_id, expected_gse))
+    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id',
+                                              (expected_study_id, expected_request_id, expected_gse))
     database_cursor.execute(study_statement)
     inserted_geo_study = database_cursor.fetchone()
     inserted_geo_study_id = inserted_geo_study[0]
