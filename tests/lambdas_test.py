@@ -3,14 +3,13 @@ import json
 import boto3
 import botocore
 import pytest
-
-from tests.utils_test import _ensure_queue_is_empty
-from tests.utils_test import _get_all_queue_messages
-from tests.utils_test import _get_db_connection
-from tests.utils_test import _print_test_params
-from tests.utils_test import _provide_random_ncbi_query
-from tests.utils_test import _provide_random_request_id
-from tests.utils_test import _wait_test_server_readiness
+from utils_test import _ensure_queue_is_empty
+from utils_test import _get_all_queue_messages
+from utils_test import _get_db_connection
+from utils_test import _print_test_params
+from utils_test import _provide_random_ncbi_query
+from utils_test import _provide_random_request_id
+from utils_test import _wait_test_server_readiness
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
