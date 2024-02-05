@@ -46,12 +46,12 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
-    database_cursor.execute('TRUNCATE TABLE sracollector_dev.request CASCADE;')
-    database_cursor.execute('TRUNCATE TABLE sracollector_dev.geo_study CASCADE;')
+    database_cursor.execute('TRUNCATE TABLE sracollector_dev.sra_project cascade;')
     database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
     database_connection.close()
+
 
 def test_a_get_user_query(lambda_client, sqs_client):
     lambda_function = 'A_get_user_query'
@@ -85,6 +85,7 @@ def test_a_get_user_query(lambda_client, sqs_client):
 
     assert expected_request_id == sqs_message_payload['request_id']
     assert expected_ncbi_query == sqs_message_payload['ncbi_query']
+
 
 def test_b_paginate_user_query(lambda_client, sqs_client, database_holder):
     lambda_function = 'B_paginate_user_query'
@@ -130,6 +131,7 @@ def test_b_paginate_user_query(lambda_client, sqs_client, database_holder):
     assert 500 in retmax
     assert 3 == len(retstarts)
     assert [0, 500, 1000] == retstarts
+
 
 def test_c_get_study_ids(lambda_client, sqs_client):
     lambda_function = 'C_get_study_ids'
@@ -211,3 +213,64 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     assert f'{expected_study_id}' in study_id
     assert 1 == len(gse)
     assert expected_gse in gse
+
+
+def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
+    lambda_function = 'E1_get_study_srp'
+
+    expected_request_id = _provide_random_request_id()
+    expected_study_id = 200126815
+    expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
+    expected_srp = 'SRP185522'
+
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
+
+    database_cursor, database_connection = database_holder
+
+    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (expected_request_id, _S_QUERY, 1))
+    database_cursor.execute(request_statement)
+    database_connection.commit()
+
+    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id',
+                                              (expected_study_id, expected_request_id, expected_gse))
+    database_cursor.execute(study_statement)
+    inserted_geo_study = database_cursor.fetchone()
+    inserted_geo_study_id = inserted_geo_study[0]
+    database_connection.commit()
+
+    _print_test_params(lambda_function, expected_body)
+
+    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
+        payload = json.load(json_data)
+        payload['Records'][0]['body'] = expected_body
+
+        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+
+    assert 200 == response['StatusCode']
+
+    database_cursor.execute(f"select srp from sracollector_dev.sra_project where geo_study_id='{inserted_geo_study_id}'")
+    rows = database_cursor.fetchall()
+
+    assert 1 == len(rows)
+    assert expected_srp == rows[0][0]
+
+    messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=1)
+
+    messages_body = [json.loads(message['Body']) for message in messages]
+
+    request_id = {body['request_id'] for body in messages_body}
+    ncbi_query = {body['ncbi_query'] for body in messages_body}
+    study_id = {body['study_id'] for body in messages_body}
+    gse = {body['gse'] for body in messages_body}
+    srp = {body['srp'] for body in messages_body}
+
+    assert 1 == len(request_id)
+    assert expected_request_id in request_id
+    assert 1 == len(ncbi_query)
+    assert _S_QUERY in ncbi_query
+    assert 1 == len(study_id)
+    assert expected_study_id in study_id
+    assert 1 == len(gse)
+    assert expected_gse in gse
+    assert 1 == len(srp)
+    assert expected_srp in srp

@@ -1,0 +1,23 @@
+{
+   "Records":[
+      {
+         "messageId":"c89d0395-ade2-44da-adae-eed44967e411",
+         "receiptHandle":"AQEBH1tO85+I3Tcl8AfDP17noGAFxwms6M8sOIUNc2DW2YHNoAyKogT0roGSzP7PFVTwF2TwFpehR4ZKwZIQRmjJftOlalNZ9FgqKM8/KXBTfBKys5TwLu65oWug3GlDC/qDYN3RFoerR5TDxtteYsZnTwk6S8UkJEPYgCk0ZzDl13hIs1tu57DNXCHiN6jZCB3VzwsDgxySciwHvmsgFppyo2+VlSIUDDzbL+B01I725kFQSrgyuYDDCFWg5idH1eKYLITrneHoFBWduHt7eEEiIxXOqCkKxzIvtK+uaDTSi4hjCg96VP4ypVOhaSUkmBTn7Vkqb7qqFwOhNjfbNs4aU1GTonEXAJVyNjCliDHD9t8672Y+mbwYEuX7vcOMhUgk/iFl/zfV1DZ5oLK4me0jFQ==",
+         "body":"",
+         "attributes":{
+            "ApproximateReceiveCount":"1",
+            "AWSTraceHeader":"Root=1-65be78f1-c4f4bd7b977e97f5b716437e;Parent=4d1924910afcb338;Sampled=0;Lineage=2dfc983d:0%7C3240af10:0%7C8f0b6619:0%7C3f72389b:0",
+            "SentTimestamp":"1706981620120",
+            "SenderId":"AROARYGZXFUU6SB4VEZP6:D_get_study_gse",
+            "ApproximateFirstReceiveTimestamp":"1706981620125"
+         },
+         "messageAttributes":{
+
+         },
+         "md5OfBody":"de0e42579a731f466dc214785e0977ae",
+         "eventSource":"aws:sqs",
+         "eventSourceARN":"arn:aws:sqs:eu-central-1:120715685161:gses_queue",
+         "awsRegion":"eu-central-1"
+      }
+   ]
+}
