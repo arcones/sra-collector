@@ -7,5 +7,8 @@
   },
   "ModuleLambdasModuleCGetStudyIdsLambdaAwsLambdaFunctionFunctionF611E0FF": {
     "ENV": "test"
+  },
+  "ModuleLambdasModuleDGetStudyGseLambdaAwsLambdaFunctionFunction72F9CB4F": {
+    "ENV": "test"
   }
 }
