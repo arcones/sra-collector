@@ -5,10 +5,14 @@ import botocore
 import pytest
 from utils_test import _ensure_queue_is_empty
 from utils_test import _get_all_queue_messages
+from utils_test import _get_customized_input_from_sqs
 from utils_test import _get_db_connection
 from utils_test import _print_test_params
 from utils_test import _provide_random_ncbi_query
 from utils_test import _provide_random_request_id
+from utils_test import _store_test_request
+from utils_test import _store_test_srp
+from utils_test import _store_test_study
 from utils_test import _wait_test_server_readiness
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
@@ -46,7 +50,12 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
-    database_cursor.execute('TRUNCATE TABLE sracollector_dev.sra_project cascade;')
+    database_cursor.execute("""
+        TRUNCATE TABLE sracollector_dev.sra_run cascade;
+        TRUNCATE TABLE sracollector_dev.sra_project cascade;
+        TRUNCATE TABLE sracollector_dev.geo_study cascade;
+        TRUNCATE TABLE sracollector_dev.request cascade;
+    """)
     database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
@@ -88,18 +97,14 @@ def test_a_get_user_query(lambda_client, sqs_client):
 
 
 def test_b_paginate_user_query(lambda_client, sqs_client, database_holder):
-    lambda_function = 'B_paginate_user_query'
+    function_name = 'B_paginate_user_query'
 
     expected_request_id = _provide_random_request_id()
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _2XL_QUERY}).replace('"', '\"')
 
-    _print_test_params(lambda_function, expected_body)
+    _print_test_params(function_name, expected_body)
 
-    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-        payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
-
-        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
 
@@ -134,18 +139,14 @@ def test_b_paginate_user_query(lambda_client, sqs_client, database_holder):
 
 
 def test_c_get_study_ids(lambda_client, sqs_client):
-    lambda_function = 'C_get_study_ids'
+    function_name = 'C_get_study_ids'
 
     expected_request_id = _provide_random_request_id()
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'retstart': 0, 'retmax': 500}).replace('"', '\"')
 
-    _print_test_params(lambda_function, expected_body)
+    _print_test_params(function_name, expected_body)
 
-    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-        payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
-
-        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
 
@@ -165,7 +166,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
 
 
 def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
-    lambda_function = 'D_get_study_gse'
+    function_name = 'D_get_study_gse'
 
     expected_request_id = _provide_random_request_id()
     expected_study_id = 200126815
@@ -173,22 +174,15 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
 
     expected_body = json.dumps({'request_info': {'request_id': expected_request_id, 'ncbi_query': _S_QUERY}, 'study_id': expected_study_id}).replace('"', '\"')
 
-    database_cursor, database_connection = database_holder
+    _store_test_request(database_holder, expected_request_id, _S_QUERY)
 
-    statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (expected_request_id, _S_QUERY, 1))
-    database_cursor.execute(statement)
-    database_connection.commit()
+    _print_test_params(function_name, expected_body)
 
-    _print_test_params(lambda_function, expected_body)
-
-    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-        payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
-
-        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
 
+    database_cursor, _ = database_holder
     database_cursor.execute(f"select id, ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{expected_request_id}'")
     rows = database_cursor.fetchall()
 
@@ -216,7 +210,7 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
 
 
 def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
-    lambda_function = 'E1_get_study_srp'
+    function_name = 'E1_get_study_srp'
 
     expected_request_id = _provide_random_request_id()
     expected_study_id = 200126815
@@ -225,29 +219,16 @@ def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
 
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
 
-    database_cursor, database_connection = database_holder
+    _store_test_request(database_holder, expected_request_id, _S_QUERY)
+    inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
 
-    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (expected_request_id, _S_QUERY, 1))
-    database_cursor.execute(request_statement)
-    database_connection.commit()
+    _print_test_params(function_name, expected_body)
 
-    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id',
-                                              (expected_study_id, expected_request_id, expected_gse))
-    database_cursor.execute(study_statement)
-    inserted_geo_study = database_cursor.fetchone()
-    inserted_geo_study_id = inserted_geo_study[0]
-    database_connection.commit()
-
-    _print_test_params(lambda_function, expected_body)
-
-    with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
-        payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
-
-        response = lambda_client.invoke(FunctionName=lambda_function, Payload=json.dumps(payload))
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
 
+    database_cursor, _ = database_holder
     database_cursor.execute(f"select srp from sracollector_dev.sra_project where geo_study_id='{inserted_geo_study_id}'")
     rows = database_cursor.fetchall()
 
@@ -274,3 +255,60 @@ def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
     assert expected_gse in gse
     assert 1 == len(srp)
     assert expected_srp in srp
+
+
+def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
+    function_name = 'F_get_study_srrs'
+
+    expected_request_id = _provide_random_request_id()
+    expected_study_id = 200221624
+    expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
+    expected_srp = 'SRP414713'
+    expected_srrs = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
+
+    expected_body = (json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'study_id': expected_study_id, 'gse': expected_gse, 'srp': expected_srp})
+                     .replace('"', '\"'))
+
+    _store_test_request(database_holder, expected_request_id, _S_QUERY)
+    inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
+    inserted_sra_project_id = _store_test_srp(database_holder, expected_srp, inserted_geo_study_id)
+
+    _print_test_params(function_name, expected_body)
+
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
+
+    assert 200 == response['StatusCode']
+
+    database_cursor, _ = database_holder
+    database_cursor.execute(f"select srr from sracollector_dev.sra_run where sra_project_id='{inserted_sra_project_id}'")
+    rows = database_cursor.fetchall()
+
+    assert len(expected_srrs) == len(rows)
+    srrs_in_database = [row[0] for row in rows]
+    srrs_in_database.sort()
+    assert expected_srrs == srrs_in_database
+
+    messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_srrs))
+
+    messages_body = [json.loads(message['Body']) for message in messages]
+
+    request_id = {body['request_id'] for body in messages_body}
+    ncbi_query = {body['ncbi_query'] for body in messages_body}
+    study_id = {body['study_id'] for body in messages_body}
+    gse = {body['gse'] for body in messages_body}
+    srp = {body['srp'] for body in messages_body}
+    srrs = [body['srr'] for body in messages_body]
+    srrs.sort()
+
+    assert 1 == len(request_id)
+    assert expected_request_id in request_id
+    assert 1 == len(ncbi_query)
+    assert _S_QUERY in ncbi_query
+    assert 1 == len(study_id)
+    assert expected_study_id in study_id
+    assert 1 == len(gse)
+    assert expected_gse in gse
+    assert 1 == len(srp)
+    assert expected_srp in srp
+    assert len(expected_srrs) == len(srrs)
+    assert expected_srrs == srrs
