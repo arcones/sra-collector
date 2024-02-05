@@ -85,3 +85,40 @@ def _provide_random_request_id():
 
 def _provide_random_ncbi_query():
     return ''.join(random.choice(CHARACTERS) for char in range(50))
+
+
+def _store_test_request(database_holder, expected_request_id, ncbi_query):
+    database_cursor, database_connection = database_holder
+
+    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (expected_request_id, ncbi_query, 1))
+    database_cursor.execute(request_statement)
+    database_connection.commit()
+
+
+def _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse):
+    database_cursor, database_connection = database_holder
+
+    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id',
+                                              (expected_study_id, expected_request_id, expected_gse))
+    database_cursor.execute(study_statement)
+    inserted_geo_study_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_geo_study_id
+
+
+def _store_test_srp(database_holder, expected_srp, inserted_geo_study_id):
+    database_cursor, database_connection = database_holder
+
+    project_statement = database_cursor.mogrify(f'insert into sracollector_dev.sra_project (srp, geo_study_id) values (%s, %s) returning id',
+                                                (expected_srp, inserted_geo_study_id))
+    database_cursor.execute(project_statement)
+    inserted_sra_project_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_sra_project_id
+
+
+def _get_customized_input_from_sqs(function_name: str, expected_body: str) -> dict:
+    with open(f'tests/fixtures/{function_name}_input.json') as json_data:
+        payload = json.load(json_data)
+        payload['Records'][0]['body'] = expected_body
+        return payload
