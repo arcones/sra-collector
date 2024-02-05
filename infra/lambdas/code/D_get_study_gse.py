@@ -4,9 +4,9 @@ import time
 
 import boto3
 import urllib3
+from env_params import env_params
 from postgres_connection import postgres_connection
 
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/gses_queue'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -39,7 +39,7 @@ def handler(event, context):
                     if response_status == 200:
                         logging.debug(f'The response is {response.data}')
                         summary = json.loads(response.data)['result'][study_id]
-                        _summary_process(study_id, request_info, summary)
+                        _summary_process(context.function_name, study_id, request_info, summary)
                     else:
                         logging.warning(f'API Limit reached, retrying')
                         time.sleep(1)
@@ -50,7 +50,8 @@ def handler(event, context):
         logging.exception(f'An exception has occurred: {e}')
 
 
-def _summary_process(study_id: str, request_info: dict, summary: str):
+def _summary_process(function_name: str, study_id: str, request_info: dict, summary: str):
+    output_sqs, schema = env_params.params_per_env(function_name)
     try:
         logging.debug(f'Study summary from study {study_id} is {summary}')
         gse = _extract_gse_from_summaries(summary)
@@ -60,7 +61,7 @@ def _summary_process(study_id: str, request_info: dict, summary: str):
             message = {**request_info, 'study_id': study_id, 'gse': gse}
             sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
             logging.info(f'Sent message {message} for study {study_id}')
-            _store_gse_in_db(study_id, request_info['request_id'], gse)
+            _store_gse_in_db(schema, study_id, request_info['request_id'], gse)
         else:
             raise Exception(f'Unable to fetch gse from {study_id}')
     except Exception as e:
@@ -79,12 +80,12 @@ def _extract_gse_from_summaries(summary: str) -> str:
     except Exception as e:
         logging.exception(f'An exception has occurred: {e}')
 
-def _store_gse_in_db(study_id: str, request_id: str, gse: str):
+def _store_gse_in_db(schema: str, study_id: str, request_id: str, gse: str):
     try:
         database_connection = postgres_connection.get_connection()
         cursor = database_connection.cursor()
         statement = cursor.mogrify(
-            'insert into geo_study (ncbi_id, request_id, gse) values (%s, %s, %s)',
+            f'insert into {schema}.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s)',
             (study_id, request_id, gse)
         )
         logging.debug(f'Executing: {statement}...')
