@@ -46,7 +46,8 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
-    database_cursor.execute('TRUNCATE TABLE sracollector_dev.REQUEST CASCADE;')
+    database_cursor.execute('TRUNCATE TABLE sracollector_dev.request CASCADE;')
+    database_cursor.execute('TRUNCATE TABLE sracollector_dev.geo_study CASCADE;')
     database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
