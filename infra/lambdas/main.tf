@@ -77,11 +77,11 @@ module "E_get_study_srp_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
 }
 
-module "E2_dlq_get_srp_pysradb_error_lambda" {
+module "D_E_DLQ_gses_2_srps_error" {
   source                = "./infra"
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "E2_dlq_get_srp_pysradb_error"
+  function_name         = "D_E_DLQ_gses_2_srps_error"
   queues = {
     input_sqs_arn  = var.queues.D_DLQ_gses_2_srps_arn
     output_sqs_arn = null

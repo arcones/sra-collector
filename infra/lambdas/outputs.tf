@@ -35,11 +35,11 @@ output "get_study_gse_log_group_arn" {
 }
 
 output "dlq_get_srp_pysradb_error_function_name" {
-  value = module.E2_dlq_get_srp_pysradb_error_lambda.function.function_name
+  value = module.D_E_DLQ_gses_2_srps_error.function.function_name
 }
 
 output "dlq_get_srp_pysradb_error_log_group_arn" {
-  value = module.E2_dlq_get_srp_pysradb_error_lambda.cloudwatch_log_group_arn
+  value = module.D_E_DLQ_gses_2_srps_error.cloudwatch_log_group_arn
 }
 
 output "get_study_srp_function_name" {
