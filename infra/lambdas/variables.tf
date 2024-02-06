@@ -13,7 +13,7 @@ variable "queues" {
     C_study_ids_sqs_arn   = string,
     D_gses_sqs_arn        = string,
     D_DLQ_gses_2_srps_arn = string,
-    E1_srps_sqs_arn       = string,
+    E_srps_sqs_arn        = string,
     F_srrs_sqs_arn        = string,
   })
 }

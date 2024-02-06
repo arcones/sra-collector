@@ -17,8 +17,8 @@ def params_per_env(lambda_name: str) -> [str, str]:
             sqs_name = 'C_study_ids'
         elif lambda_name == 'D_get_study_gse':
             sqs_name = 'D_gses'
-        elif lambda_name == 'E1_get_study_srp':
-            sqs_name = 'E1_srps'
+        elif lambda_name == 'E_get_study_srp':
+            sqs_name = 'E_srps'
         elif lambda_name == 'F_get_study_srrs':
             sqs_name = 'F_srrs'
 

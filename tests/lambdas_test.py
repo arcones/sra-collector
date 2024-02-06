@@ -209,8 +209,8 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     assert expected_gse in gse
 
 
-def test_e1_get_study_srp(lambda_client, sqs_client, database_holder):
-    function_name = 'E1_get_study_srp'
+def test_e_get_study_srp(lambda_client, sqs_client, database_holder):
+    function_name = 'E_get_study_srp'
 
     expected_request_id = _provide_random_request_id()
     expected_study_id = 200126815

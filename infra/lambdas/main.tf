@@ -63,14 +63,14 @@ module "D_get_study_gse_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
 }
 
-module "E1_get_study_srp_lambda" {
+module "E_get_study_srp_lambda" {
   source                = "./infra"
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "E1_get_study_srp"
+  function_name         = "E_get_study_srp"
   queues = {
     input_sqs_arn  = var.queues.D_gses_sqs_arn
-    output_sqs_arn = var.queues.E1_srps_sqs_arn
+    output_sqs_arn = var.queues.E_srps_sqs_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -95,7 +95,7 @@ module "F_get_study_srrs_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "F_get_study_srrs"
   queues = {
-    input_sqs_arn  = var.queues.E1_srps_sqs_arn
+    input_sqs_arn  = var.queues.E_srps_sqs_arn
     output_sqs_arn = var.queues.F_srrs_sqs_arn
   }
   timeout                               = 60

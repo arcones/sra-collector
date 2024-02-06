@@ -8,7 +8,7 @@ module "lambdas" {
     C_study_ids_sqs_arn   = aws_sqs_queue.C_study_ids.arn,
     D_gses_sqs_arn        = aws_sqs_queue.D_gses.arn,
     D_DLQ_gses_2_srps_arn = aws_sqs_queue.D_DLQ_gses_2_srps.arn,
-    E1_srps_sqs_arn       = aws_sqs_queue.E1_srps.arn,
+    E_srps_sqs_arn        = aws_sqs_queue.E_srps.arn,
     F_srrs_sqs_arn        = aws_sqs_queue.F_srrs.arn,
   }
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
