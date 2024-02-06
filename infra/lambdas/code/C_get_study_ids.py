@@ -32,7 +32,8 @@ def handler(event, context):
 
                 entities_list = _esearch_entities_list(ncbi_query, retstart, retmax)
 
-                study_list = [study for study in entities_list if STUDY_ID_MIN <= study < STUDY_ID_MAX]
+                # study_list = [study for study in entities_list if STUDY_ID_MIN <= study < STUDY_ID_MAX]
+                study_list = entities_list
 
                 logging.info(f'From {len(entities_list)} entities, {len(study_list)} studies were extracted')
 

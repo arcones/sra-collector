@@ -10,12 +10,12 @@ output "get_user_query_log_group_arn" {
   value = module.A_get_user_query_lambda.cloudwatch_log_group_arn
 }
 
-output "paginate_user_query_function_name" {
-  value = module.B_paginate_user_query_lambda.function.function_name
+output "get_query_pages_function_name" {
+  value = module.B_get_query_pages_lambda.function.function_name
 }
 
-output "paginate_user_query_log_group_arn" {
-  value = module.B_paginate_user_query_lambda.cloudwatch_log_group_arn
+output "get_query_pages_log_group_arn" {
+  value = module.B_get_query_pages_lambda.cloudwatch_log_group_arn
 }
 
 output "get_study_ids_function_name" {

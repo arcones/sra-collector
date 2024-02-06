@@ -96,8 +96,8 @@ def test_a_get_user_query(lambda_client, sqs_client):
     assert expected_ncbi_query == sqs_message_payload['ncbi_query']
 
 
-def test_b_paginate_user_query(lambda_client, sqs_client, database_holder):
-    function_name = 'B_paginate_user_query'
+def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
+    function_name = 'B_get_query_pages'
 
     expected_request_id = _provide_random_request_id()
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _2XL_QUERY}).replace('"', '\"')

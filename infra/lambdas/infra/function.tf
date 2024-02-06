@@ -17,12 +17,6 @@ resource "aws_lambda_function" "function" {
   filename      = data.archive_file.code.output_path
   handler       = "${var.function_name}.handler"
   role          = aws_iam_role.lambda_role.arn
-  dynamic "dead_letter_config" {
-    for_each = var.queues.dlq_sqs_arn != null ? ["1"] : []
-    content {
-      target_arn = var.queues.dlq_sqs_arn
-    }
-  }
   logging_config {
     log_format            = "JSON"
     application_log_level = "INFO"
