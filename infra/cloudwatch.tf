@@ -21,12 +21,12 @@ locals {
     (module.lambdas.get_study_srrs_function_name)            = 10
   }
   dlqs = [
-    aws_sqs_queue.user_query_dlq.name,
-    aws_sqs_queue.user_query_pages_dlq.name,
-    aws_sqs_queue.study_ids_dlq.name,
-    aws_sqs_queue.gses_dlq.name,
-    aws_sqs_queue.srps_dlq.name,
-    aws_sqs_queue.srrs_dlq.name
+    aws_sqs_queue.A_user_query_dlq.name,
+    aws_sqs_queue.B_user_query_pages_dlq.name,
+    aws_sqs_queue.C_study_ids_dlq.name,
+    aws_sqs_queue.D_gses_dlq.name,
+    aws_sqs_queue.E1_srps_dlq.name,
+    aws_sqs_queue.F_srrs_dlq.name
   ]
 }
 

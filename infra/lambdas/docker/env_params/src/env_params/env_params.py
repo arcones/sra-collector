@@ -10,17 +10,17 @@ def params_per_env(lambda_name: str) -> [str, str]:
     if os.environ['ENV'] == 'prod':
         db_schema = 'sracollector'
         if lambda_name == 'A_get_user_query':
-            sqs_name = 'user_query_queue'
+            sqs_name = 'A_user_query_queue'
         elif lambda_name == 'B_paginate_user_query':
-            sqs_name = 'user_query_pages_queue'
+            sqs_name = 'B_user_query_pages_queue'
         elif lambda_name == 'C_get_study_ids':
-            sqs_name = 'study_ids_queue'
+            sqs_name = 'C_study_ids_queue'
         elif lambda_name == 'D_get_study_gse':
-            sqs_name = 'gses_queue'
+            sqs_name = 'D_gses_queue'
         elif lambda_name == 'E1_get_study_srp':
-            sqs_name = 'srps_queue'
+            sqs_name = 'E1_srps_queue'
         elif lambda_name == 'F_get_study_srrs':
-            sqs_name = 'srrs_queue'
+            sqs_name = 'F_srrs_queue'
 
     output_sqs = sqs_prefix + sqs_name
 
