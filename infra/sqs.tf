@@ -1,73 +1,66 @@
-resource "aws_sqs_queue" "user_query_queue" {
-  name = "user_query_queue"
+resource "aws_sqs_queue" "A_user_query" {
+  name = "A_user_query"
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.user_query_dlq.arn,
-    maxReceiveCount     = 3
-  })
-}
-
-resource "aws_sqs_queue" "user_query_dlq" {
-  name = "user_query_dlq"
-}
-
-resource "aws_sqs_queue" "user_query_pages_queue" {
-  name = "user_query_pages_queue"
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.user_query_pages_dlq.arn,
-    maxReceiveCount     = 3
-  })
-}
-
-resource "aws_sqs_queue" "user_query_pages_dlq" {
-  name = "user_query_pages_dlq"
-}
-
-resource "aws_sqs_queue" "study_ids_queue" {
-  name = "study_ids_queue"
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.study_ids_dlq.arn,
-    maxReceiveCount     = 3
-  })
-}
-
-resource "aws_sqs_queue" "study_ids_dlq" {
-  name = "study_ids_dlq"
-}
-
-resource "aws_sqs_queue" "gses_queue" {
-  name = "gses_queue"
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.gses_dlq.arn,
-    maxReceiveCount     = 3
-  })
-}
-
-resource "aws_sqs_queue" "gses_dlq" {
-  name = "gses_dlq"
-}
-
-resource "aws_sqs_queue" "srps_queue" {
-  name = "srps_queue"
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.srps_dlq.arn,
+    deadLetterTargetArn = aws_sqs_queue.A_DLQ_user_query_2_query_pages.arn,
     maxReceiveCount     = 1
   })
 }
 
-resource "aws_sqs_queue" "srps_dlq" {
-  name = "srps_dlq"
+resource "aws_sqs_queue" "A_DLQ_user_query_2_query_pages" {
+  name = "A_DLQ_user_query_2_query_pages"
 }
 
-resource "aws_sqs_queue" "srrs_queue" {
-  name = "srrs_queue"
+resource "aws_sqs_queue" "B_query_pages" {
+  name = "B_query_pages"
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.srrs_dlq.arn,
+    deadLetterTargetArn = aws_sqs_queue.B_DLQ_query_pages_2_study_ids.arn,
     maxReceiveCount     = 1
   })
 }
 
-resource "aws_sqs_queue" "srrs_dlq" {
-  name = "srrs_dlq"
+resource "aws_sqs_queue" "B_DLQ_query_pages_2_study_ids" {
+  name = "B_DLQ_query_pages_2_study_ids"
+}
+
+resource "aws_sqs_queue" "C_study_ids" {
+  name = "C_study_ids"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_gses.arn,
+    maxReceiveCount     = 1
+  })
+}
+
+resource "aws_sqs_queue" "C_DLQ_study_ids_2_gses" {
+  name = "C_DLQ_study_ids_2_gses"
+}
+
+resource "aws_sqs_queue" "D_gses" {
+  name = "D_gses"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.D_DLQ_gses_2_srps.arn,
+    maxReceiveCount     = 1
+  })
+}
+
+resource "aws_sqs_queue" "D_DLQ_gses_2_srps" {
+  name = "D_DLQ_gses_2_srps"
+}
+
+resource "aws_sqs_queue" "E_srps" {
+  name                       = "E_srps"
+  visibility_timeout_seconds = 60 //TODO assess whether to use this config in every queue
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.E_DLQ_srps_2_srrs.arn,
+    maxReceiveCount     = 1
+  })
+}
+
+resource "aws_sqs_queue" "E_DLQ_srps_2_srrs" {
+  name = "E_DLQ_srps_2_srrs"
+}
+
+resource "aws_sqs_queue" "F_srrs" {
+  name = "F_srrs"
 }
 
 resource "aws_sqs_queue" "integration_tests_sqs" {

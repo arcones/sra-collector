@@ -17,7 +17,7 @@ jobs:
       - name: Launch SAM Test Server
         run: |
           make integration-tests-server &
-          sleep 60
+          sleep 100
       - name: Run Integration Tests
         run: make integration-tests
   infra:

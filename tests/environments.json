@@ -2,7 +2,7 @@
   "ModuleLambdasModuleAGetUserQueryLambdaAwsLambdaFunctionFunction3F2F422E": {
     "ENV": "test"
   },
-  "ModuleLambdasModuleBPaginateUserQueryLambdaAwsLambdaFunctionFunctionFA3C51CA": {
+  "ModuleLambdasModuleBGetQueryPagesLambdaAwsLambdaFunctionFunction484783F5": {
     "ENV": "test"
   },
   "ModuleLambdasModuleCGetStudyIdsLambdaAwsLambdaFunctionFunctionF611E0FF": {
@@ -11,7 +11,7 @@
   "ModuleLambdasModuleDGetStudyGseLambdaAwsLambdaFunctionFunction72F9CB4F": {
     "ENV": "test"
   },
-  "ModuleLambdasModuleE1GetStudySrpLambdaAwsLambdaFunctionFunction3A1F4E65": {
+  "ModuleLambdasModuleEGetStudySrpLambdaAwsLambdaFunctionFunction93810F1C": {
     "ENV": "test"
   },
   "ModuleLambdasModuleFGetStudySrrsLambdaAwsLambdaFunctionFunctionE863B903": {

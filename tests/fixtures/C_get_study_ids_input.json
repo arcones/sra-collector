@@ -8,7 +8,7 @@
             "ApproximateReceiveCount":"1",
             "AWSTraceHeader":"Root=1-65be78ed-65383dc8df598f535222f896;Parent=389ad78215268f25;Sampled=0;Lineage=2dfc983d:0%7C3240af10:0",
             "SentTimestamp":"1706981615692",
-            "SenderId":"AROARYGZXFUUXV42YUMDU:B_paginate_user_query",
+            "SenderId":"AROARYGZXFUUXV42YUMDU:B_get_query_pages",
             "ApproximateFirstReceiveTimestamp":"1706981615791"
          },
          "messageAttributes":{},

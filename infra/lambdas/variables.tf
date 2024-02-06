@@ -8,18 +8,13 @@ variable "s3_bucket_id" {
 
 variable "queues" {
   type = object({
-    user_query_pages_sqs_arn = string,
-    user_query_pages_dlq_arn = string,
-    user_query_sqs_arn       = string,
-    user_query_dlq_arn       = string,
-    study_ids_sqs_arn        = string,
-    study_ids_dlq_arn        = string,
-    gses_sqs_arn             = string,
-    gses_dlq_arn             = string,
-    srps_sqs_arn             = string,
-    srps_dlq_arn             = string,
-    srrs_sqs_arn             = string,
-    srrs_dlq_arn             = string
+    A_user_query_sqs_arn  = string,
+    B_query_pages_sqs_arn = string,
+    C_study_ids_sqs_arn   = string,
+    D_gses_sqs_arn        = string,
+    D_DLQ_gses_2_srps_arn = string,
+    E_srps_sqs_arn        = string,
+    F_srrs_sqs_arn        = string,
   })
 }
 
