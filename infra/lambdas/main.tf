@@ -15,8 +15,9 @@ module "A_get_user_query_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "A_get_user_query"
   queues = {
-    input_sqs_arn  = null,
+    input_sqs_arn  = null
     output_sqs_arn = var.queues.A_user_query_sqs_arn
+    dlq_arn        = null
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   aws_apigatewayv2_api_execution_arn    = var.aws_apigatewayv2_api_execution_arn
@@ -30,6 +31,7 @@ module "B_get_query_pages_lambda" {
   queues = {
     input_sqs_arn  = var.queues.A_user_query_sqs_arn
     output_sqs_arn = var.queues.B_query_pages_sqs_arn
+    dlq_arn        = null
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -44,6 +46,7 @@ module "C_get_study_ids_lambda" {
   queues = {
     input_sqs_arn  = var.queues.B_query_pages_sqs_arn
     output_sqs_arn = var.queues.C_study_ids_sqs_arn
+    dlq_arn        = null
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
 }
@@ -56,6 +59,7 @@ module "D_get_study_gse_lambda" {
   queues = {
     input_sqs_arn  = var.queues.C_study_ids_sqs_arn
     output_sqs_arn = var.queues.D_gses_sqs_arn
+    dlq_arn        = null
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -71,6 +75,7 @@ module "E_get_study_srp_lambda" {
   queues = {
     input_sqs_arn  = var.queues.D_gses_sqs_arn
     output_sqs_arn = var.queues.E_srps_sqs_arn
+    dlq_arn        = var.queues.D_DLQ_gses_2_srps_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -85,8 +90,8 @@ module "F_get_study_srrs_lambda" {
   queues = {
     input_sqs_arn  = var.queues.E_srps_sqs_arn
     output_sqs_arn = var.queues.F_srrs_sqs_arn
+    dlq_arn        = null
   }
-  timeout                               = 60
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn

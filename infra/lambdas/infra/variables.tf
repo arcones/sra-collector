@@ -19,6 +19,7 @@ variable "queues" {
   type = object({
     input_sqs_arn  = string,
     output_sqs_arn = string,
+    dlq_arn        = string,
   })
 }
 

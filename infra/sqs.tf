@@ -47,8 +47,7 @@ resource "aws_sqs_queue" "D_DLQ_gses_2_srps" {
 }
 
 resource "aws_sqs_queue" "E_srps" {
-  name                       = "E_srps"
-  visibility_timeout_seconds = 60 //TODO assess whether to use this config in every queue
+  name = "E_srps"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.E_DLQ_srps_2_srrs.arn,
     maxReceiveCount     = 1
