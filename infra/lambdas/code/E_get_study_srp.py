@@ -9,9 +9,9 @@ from postgres_connection import postgres_connection
 from pysradb import SRAweb
 
 
-class Pysradb_Error(Enum):
+class PysradbError(Enum):
     ATTRIBUTE_ERROR = 'ATTRIBUTE_ERROR'
-    KEY_ERROR = 'KEY_ERROR'
+    VALUE_ERROR = 'VALUE_ERROR'
 
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -41,11 +41,11 @@ def handler(event, context):
                     logging.info(f'Sent event to {output_sqs} with body {response}')
                     _store_srp_in_db(schema, request_id, gse, srp)
             except AttributeError as attribute_error:
-                logging.error(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
-                _store_missing_srp_in_db(schema, request_id, gse, Pysradb_Error.ATTRIBUTE_ERROR, str(attribute_error))
-            except KeyError as key_error:
-                logging.error(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
-                _store_missing_srp_in_db(schema, request_id, gse, Pysradb_Error.KEY_ERROR, str(key_error))
+                logging.warning(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
+                _store_missing_srp_in_db(schema, request_id, gse, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+            except ValueError as value_error:
+                logging.warning(f'For study {study_id} with {gse}, pysradb produced value error: {value_error}')
+                _store_missing_srp_in_db(schema, request_id, gse, PysradbError.VALUE_ERROR, str(value_error))
 
 
 def _store_srp_in_db(schema: str, request_id: str, gse: str, srp: str):
@@ -64,7 +64,7 @@ def _store_srp_in_db(schema: str, request_id: str, gse: str, srp: str):
     database_connection.close()
 
 
-def _store_missing_srp_in_db(schema: str, request_id: str, gse: str, pysradb_error: Pysradb_Error, details: str):
+def _store_missing_srp_in_db(schema: str, request_id: str, gse: str, pysradb_error: PysradbError, details: str):
     database_connection = postgres_connection.get_connection()
     geo_study_id = _get_id_geo_study(schema, request_id, gse)
     pysradb_error_reference_id = _get_pysradb_error_reference(schema, pysradb_error)
@@ -97,7 +97,7 @@ def _get_id_geo_study(schema: str, request_id: str, gse: str) -> int:
     return geo_study_id
 
 
-def _get_pysradb_error_reference(schema: str, pysradb_error: Pysradb_Error) -> int:
+def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
     database_connection = postgres_connection.get_connection()
     cursor = database_connection.cursor()
     statement = cursor.mogrify(f'select id from {schema}.pysradb_error_reference where name=%s', (pysradb_error.value,))

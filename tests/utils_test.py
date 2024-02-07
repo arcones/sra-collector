@@ -12,10 +12,6 @@ http = urllib3.PoolManager()
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
 
-def _print_test_params(lambda_function: str, params: str) -> None:
-    print(f'\nIn {lambda_function} test were used: {params}')
-
-
 def _wait_test_server_readiness():
     is_test_still_initializing = True
     start_waiting = time.time()
