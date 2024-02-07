@@ -76,7 +76,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "dlq_alarm" { //TODO ensure THIS WHOLE FILE works
+resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   for_each            = toset(local.dlqs)
   alarm_name          = "${each.key}_overfill_dlq"
   comparison_operator = "GreaterThanThreshold"
