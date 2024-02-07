@@ -19,13 +19,12 @@ module "lambdas" {
 module "opensearch" {
   source = "./opensearch"
   product_log_groups = {
-    "sra_collector_api"         = aws_cloudwatch_log_group.sra_collector_logs.arn,
-    "get_user_query"            = module.lambdas.get_user_query_log_group_arn,
-    "get_query_pages"           = module.lambdas.get_query_pages_log_group_arn,
-    "get_study_ids"             = module.lambdas.get_study_ids_log_group_arn,
-    "get_study_gse"             = module.lambdas.get_study_gse_log_group_arn,
-    "dlq_get_srp_pysradb_error" = module.lambdas.dlq_get_srp_pysradb_error_log_group_arn,
-    "get_study_srp"             = module.lambdas.get_study_srp_log_group_arn,
-    "get_study_srr"             = module.lambdas.get_study_srrs_log_group_arn
+    "sra_collector_api" = aws_cloudwatch_log_group.sra_collector_logs.arn,
+    "get_user_query"    = module.lambdas.get_user_query_log_group_arn,
+    "get_query_pages"   = module.lambdas.get_query_pages_log_group_arn,
+    "get_study_ids"     = module.lambdas.get_study_ids_log_group_arn,
+    "get_study_gse"     = module.lambdas.get_study_gse_log_group_arn,
+    "get_study_srp"     = module.lambdas.get_study_srp_log_group_arn,
+    "get_study_srr"     = module.lambdas.get_study_srrs_log_group_arn
   }
 }

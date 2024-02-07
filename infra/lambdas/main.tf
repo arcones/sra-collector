@@ -77,18 +77,6 @@ module "E_get_study_srp_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
 }
 
-module "D_E_DLQ_gses_2_srps_error" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "D_E_DLQ_gses_2_srps_error"
-  queues = {
-    input_sqs_arn  = var.queues.D_DLQ_gses_2_srps_arn
-    output_sqs_arn = null
-  }
-  cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-}
-
 module "F_get_study_srrs_lambda" {
   source                = "./infra"
   code_path             = "${path.module}/code"

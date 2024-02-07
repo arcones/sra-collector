@@ -55,6 +55,22 @@ resource "aws_iam_role_policy" "output_sqs_policy" {
   })
 }
 
+resource "aws_iam_role_policy" "dlq_sqs_policy" {
+  #  count = var.queues.dlq_sqs_arn == null ? 0 : 1
+  name = "dlq_sqs_policy"
+  role = aws_iam_role.lambda_role.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["sqs:sendmessage"]
+        Effect   = "Allow"
+        Resource = "arn:aws:sqs:eu-central-1:120715685161:D_DLQ_gses_2_srps"
+      },
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "rds_secret_policy" {
   count = var.rds_secret_arn == null ? 0 : 1
   name  = "rds_secret_policy"
