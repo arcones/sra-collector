@@ -43,6 +43,6 @@ variable "cloudwatch_to_opensearch_function_arn" {
 }
 
 variable "timeout" {
-  default = 20
+  default = 30
   type    = number
 }

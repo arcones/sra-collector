@@ -31,7 +31,7 @@ module "B_get_query_pages_lambda" {
   queues = {
     input_sqs_arn  = var.queues.A_user_query_sqs_arn
     output_sqs_arn = var.queues.B_query_pages_sqs_arn
-    dlq_arn        = null
+    dlq_arn        = var.queues.A_DLQ_user_query_2_query_pages_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -46,7 +46,7 @@ module "C_get_study_ids_lambda" {
   queues = {
     input_sqs_arn  = var.queues.B_query_pages_sqs_arn
     output_sqs_arn = var.queues.C_study_ids_sqs_arn
-    dlq_arn        = null
+    dlq_arn        = var.queues.B_DLQ_query_pages_2_study_ids_arn
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
 }
@@ -59,7 +59,7 @@ module "D_get_study_gse_lambda" {
   queues = {
     input_sqs_arn  = var.queues.C_study_ids_sqs_arn
     output_sqs_arn = var.queues.D_gses_sqs_arn
-    dlq_arn        = null
+    dlq_arn        = var.queues.C_DLQ_study_ids_2_gses_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
@@ -90,7 +90,7 @@ module "F_get_study_srrs_lambda" {
   queues = {
     input_sqs_arn  = var.queues.E_srps_sqs_arn
     output_sqs_arn = var.queues.F_srrs_sqs_arn
-    dlq_arn        = null
+    dlq_arn        = var.queues.E_DLQ_srps_2_srrs_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
