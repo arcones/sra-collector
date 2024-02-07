@@ -7,7 +7,6 @@ from utils_test import _ensure_queue_is_empty
 from utils_test import _get_all_queue_messages
 from utils_test import _get_customized_input_from_sqs
 from utils_test import _get_db_connection
-from utils_test import _print_test_params
 from utils_test import _provide_random_ncbi_query
 from utils_test import _provide_random_request_id
 from utils_test import _store_test_request
@@ -69,8 +68,6 @@ def test_a_get_user_query(lambda_client, sqs_client):
     expected_ncbi_query = _provide_random_ncbi_query()
     expected_body = json.dumps({'ncbi_query': expected_ncbi_query}).replace('"', '\"')
 
-    _print_test_params(lambda_function, expected_body)
-
     with open(f'tests/fixtures/{lambda_function}_input.json') as json_data:
         payload = json.load(json_data)
         payload['requestContext']['requestId'] = expected_request_id
@@ -101,8 +98,6 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
 
     expected_request_id = _provide_random_request_id()
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _2XL_QUERY}).replace('"', '\"')
-
-    _print_test_params(function_name, expected_body)
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
@@ -144,8 +139,6 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     expected_request_id = _provide_random_request_id()
     expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'retstart': 0, 'retmax': 500}).replace('"', '\"')
 
-    _print_test_params(function_name, expected_body)
-
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
@@ -175,8 +168,6 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     expected_body = json.dumps({'request_info': {'request_id': expected_request_id, 'ncbi_query': _S_QUERY}, 'study_id': expected_study_id}).replace('"', '\"')
 
     _store_test_request(database_holder, expected_request_id, _S_QUERY)
-
-    _print_test_params(function_name, expected_body)
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
@@ -222,8 +213,6 @@ def test_e_get_study_srp(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, expected_request_id, _S_QUERY)
     inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
 
-    _print_test_params(function_name, expected_body)
-
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
     assert 200 == response['StatusCode']
@@ -257,6 +246,76 @@ def test_e_get_study_srp(lambda_client, sqs_client, database_holder):
     assert expected_srp in srp
 
 
+def test_e_get_study_srp_attribute_error(lambda_client, sqs_client, database_holder):
+    function_name = 'E_get_study_srp'
+
+    expected_request_id = _provide_random_request_id()
+    expected_ncbi_query = 'RNA-Seq analysis of genes and pathways involved in the TGF-β-driven transformation of fibroblasts to myofibroblasts'
+    expected_study_id = 200110021
+    expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
+    expected_pysradb_error = 'ATTRIBUTE_ERROR'
+
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_ncbi_query, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
+
+    _store_test_request(database_holder, expected_request_id, expected_ncbi_query)
+    inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
+
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
+
+    assert 200 == response['StatusCode']
+
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select srp from sracollector_dev.sra_project where geo_study_id={inserted_geo_study_id}')
+    ok_rows = database_cursor.fetchall()
+
+    assert 0 == len(ok_rows)
+
+    database_cursor.execute(f"select * from sracollector_dev.sra_project_missing where geo_study_id='{inserted_geo_study_id}'")
+    ko_rows = database_cursor.fetchall()
+
+    database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where name='{expected_pysradb_error}'")
+    pysradb_error_reference_id = database_cursor.fetchone()[0]
+
+    assert 1 == len(ko_rows)
+    assert pysradb_error_reference_id == ko_rows[0][2]
+    assert "'NoneType' object has no attribute 'rename'" == ko_rows[0][3]
+
+
+def test_e_get_study_srp_value_error(lambda_client, sqs_client, database_holder):
+    function_name = 'E_get_study_srp'
+
+    expected_request_id = _provide_random_request_id()
+    expected_ncbi_query = 'Topology of the human and mouse m6A RNA methylomes revealed by m6A-seq'
+    expected_study_id = 20037005
+    expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
+    expected_pysradb_error = 'VALUE_ERROR'
+
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_ncbi_query, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
+
+    _store_test_request(database_holder, expected_request_id, expected_ncbi_query)
+    inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
+
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
+
+    assert 200 == response['StatusCode']
+
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select srp from sracollector_dev.sra_project where geo_study_id={inserted_geo_study_id}')
+    ok_rows = database_cursor.fetchall()
+
+    assert 0 == len(ok_rows)
+
+    database_cursor.execute(f"select * from sracollector_dev.sra_project_missing where geo_study_id='{inserted_geo_study_id}'")
+    ko_rows = database_cursor.fetchall()
+
+    database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where name='{expected_pysradb_error}'")
+    pysradb_error_reference_id = database_cursor.fetchone()[0]
+
+    assert 1 == len(ko_rows)
+    assert pysradb_error_reference_id == ko_rows[0][2]
+    assert 'All arrays must be of the same length' == ko_rows[0][3]
+
+
 def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
     function_name = 'F_get_study_srrs'
 
@@ -272,8 +331,6 @@ def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, expected_request_id, _S_QUERY)
     inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
     inserted_sra_project_id = _store_test_srp(database_holder, expected_srp, inserted_geo_study_id)
-
-    _print_test_params(function_name, expected_body)
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 

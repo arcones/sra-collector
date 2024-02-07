@@ -12,13 +12,12 @@ resource "aws_cloudwatch_log_subscription_filter" "subscription_filter" {
 
 locals {
   lambdas_2_max_error_ratio_expected = {
-    (module.lambdas.get_user_query_function_name)            = 1,
-    (module.lambdas.get_query_pages_function_name)           = 5,
-    (module.lambdas.get_study_ids_function_name)             = 5,
-    (module.lambdas.get_study_gse_function_name)             = 5,
-    (module.lambdas.dlq_get_srp_pysradb_error_function_name) = 5,
-    (module.lambdas.get_study_srp_function_name)             = 10,
-    (module.lambdas.get_study_srrs_function_name)            = 10
+    (module.lambdas.get_user_query_function_name)  = 1,
+    (module.lambdas.get_query_pages_function_name) = 5,
+    (module.lambdas.get_study_ids_function_name)   = 5,
+    (module.lambdas.get_study_gse_function_name)   = 5,
+    (module.lambdas.get_study_srp_function_name)   = 10,
+    (module.lambdas.get_study_srrs_function_name)  = 10
   }
   dlqs = [
     aws_sqs_queue.A_DLQ_user_query_2_query_pages.name,

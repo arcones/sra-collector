@@ -19,6 +19,7 @@ variable "queues" {
   type = object({
     input_sqs_arn  = string,
     output_sqs_arn = string,
+    dlq_arn        = string,
   })
 }
 
@@ -42,6 +43,6 @@ variable "cloudwatch_to_opensearch_function_arn" {
 }
 
 variable "timeout" {
-  default = 20
+  default = 30
   type    = number
 }
