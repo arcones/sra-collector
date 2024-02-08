@@ -19,7 +19,7 @@ def handler(event, context):
         output_sqs, schema = env_params.params_per_env(context.function_name)
 
         if event:
-            logging.info(f'Received event {event}')
+            logging.info(f'Received {len(event["Records"])} records event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
@@ -49,7 +49,10 @@ def handler(event, context):
 
                     retstart = retstart + page_size
 
-                sqs.send_message_batch(QueueUrl=output_sqs, Entries=messages)
+                message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+
+                for message_batch in message_batches:
+                    sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
                 logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
     except Exception as exception:

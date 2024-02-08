@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import boto3
 from env_params import env_params
@@ -15,7 +16,7 @@ def handler(event, context):
     try:
         output_sqs, schema = env_params.params_per_env(context.function_name)
         if event:
-            logging.info(f'Received event {event}')
+            logging.info(f'Received {len(event["Records"])} records event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
@@ -34,12 +35,21 @@ def handler(event, context):
                     if srrs:
                         logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
 
+                        messages = []
+
                         for srr in srrs:
-                            response = json.dumps({**request_body, 'srr': srr})
-                            sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                            logging.info(f'Sent event to {output_sqs} with body {response}')
+                            messages.append({
+                                'Id': str(time.time()).replace('.', ''),
+                                'MessageBody': json.dumps({**request_body, 'srr': srr})
+                            })
 
                         _store_srrs_in_db(schema, srrs, request_id, srp)
+
+                        message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+                        for message_batch in message_batches:
+                            sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
+
+                        logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                     else:
                         logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
                 except AttributeError as attribute_error:  ## TODO split to a F2_* link 2 DLQ?
@@ -77,3 +87,6 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+
+# TODO An exception has occurred: null value in column "sra_project_id" of relation "sra_run" violates not-null constraint DETAIL: Failing row contains (22633, SRR5861494, null).
+#  also happens here {"request_id": "S0Jp-jeEliAEPNg=", "ncbi_query": "rna seq and homo sapiens and myeloid and leukemia", "study_id": "200101788", "gse": "GSE101788", "srp": "SRP113442"}

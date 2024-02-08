@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 import time
 
 import boto3
@@ -18,7 +19,7 @@ http = urllib3.PoolManager()
 def handler(event, context):
     try:
         if event:
-            logging.info(f'Received event {event}')
+            logging.info(f'Received {len(event["Records"])} records event {event}')
             ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
             ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
@@ -35,6 +36,9 @@ def handler(event, context):
                 logging.debug(f'The URL is {url}')
                 response_status = 0
 
+                base_delay = 1
+                attempts = 0
+
                 while response_status != 200:
                     response = http.request('GET', url)
                     response_status = response.status
@@ -43,11 +47,11 @@ def handler(event, context):
                         summary = json.loads(response.data)['result'][study_id]
                         _summary_process(context.function_name, study_id, request_info, summary)
                     else:
-                        logging.warning(f'API Limit reached, retrying')
-                        time.sleep(1)
+                        exponential_backoff = base_delay * (2 ** attempts) + random.uniform(0, 0.1)
+                        logging.debug(f'API Limit reached, retrying in {round(exponential_backoff,2)} seconds')
+                        time.sleep(exponential_backoff)
                         continue
 
-                return {'statusCode': 200}
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -103,3 +107,4 @@ def _store_gse_in_db(schema: str, study_id: str, request_id: str, gse: str):
         raise exception
 
 ## TODO missing here to store valueerror and systemerror
+## TODO batch send here

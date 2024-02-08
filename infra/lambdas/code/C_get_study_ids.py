@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import boto3
 import urllib3
@@ -19,7 +20,7 @@ def handler(event, context):
     try:
         output_sqs, _ = env_params.params_per_env(context.function_name)
         if event:
-            logging.info(f'Received event {event}')
+            logging.info(f'Received {len(event["Records"])} records event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
@@ -42,14 +43,20 @@ def handler(event, context):
 
                 request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
+                messages = []
+
                 for study_id in study_list:
-                    message = json.dumps({'request_info': request_info, 'study_id': study_id})
+                    messages.append({
+                        'Id': str(time.time()).replace('.', ''),
+                        'MessageBody': json.dumps({'request_info': request_info, 'study_id': study_id})
+                    })
 
-                    sqs.send_message(QueueUrl=output_sqs, MessageBody=message)
+                message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
 
-                logging.info(f'Sent {len(study_list)} messages to {output_sqs}')
+                for message_batch in message_batches:
+                    sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
-                return {'statusCode': 200}
+                logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
