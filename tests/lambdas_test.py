@@ -16,8 +16,8 @@ from utils_test import _wait_test_server_readiness
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
-_2XL_QUERY = 'rna seq and homo sapiens and myeloid and leukemia'
-_S_QUERY = 'stroke AND single cell rna seq AND musculus'
+_S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8}
+_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1088}
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -96,48 +96,50 @@ def test_a_get_user_query(lambda_client, sqs_client):
 def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     function_name = 'B_get_query_pages'
 
-    expected_request_id = _provide_random_request_id()
-    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _2XL_QUERY}).replace('"', '\"')
+    expected_request_id_1 = _provide_random_request_id()
+    expected_request_id_2 = _provide_random_request_id()
+    expected_bodies = [
+        json.dumps({'request_id': expected_request_id_1, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"'),
+        json.dumps({'request_id': expected_request_id_2, 'ncbi_query': _2XL_QUERY['query']}).replace('"', '\"'),
+    ]
 
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_bodies)))
 
     assert 200 == response['StatusCode']
 
     database_cursor, _ = database_holder
 
-    database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{expected_request_id}'")
-    rows = database_cursor.fetchall()
+    database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id in ('{expected_request_id_1}', '{expected_request_id_2}')")
+    actual_rows = database_cursor.fetchall()
+    actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
 
-    assert 1 == len(rows)
-    assert expected_request_id == rows[0][0]
-    assert _2XL_QUERY == rows[0][1]
-    assert 1088 <= rows[0][2]
+    expected_rows = [
+        (expected_request_id_1, _S_QUERY['query'], _S_QUERY['results']),
+        (expected_request_id_2, _2XL_QUERY['query'], _2XL_QUERY['results'])
+    ]
+    expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
 
-    messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=3)
+    assert expected_rows == actual_rows
 
-    messages_body = [json.loads(message['Body']) for message in messages]
+    expected_message_bodies = [{'request_id': expected_request_id_1, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500},
+                               {'request_id': expected_request_id_2, 'ncbi_query': _2XL_QUERY['query'], 'retstart': 0, 'retmax': 500},
+                               {'request_id': expected_request_id_2, 'ncbi_query': _2XL_QUERY['query'], 'retstart': 500, 'retmax': 500},
+                               {'request_id': expected_request_id_2, 'ncbi_query': _2XL_QUERY['query'], 'retstart': 1000, 'retmax': 500}]
 
-    request_id = {body['request_id'] for body in messages_body}
-    ncbi_query = {body['ncbi_query'] for body in messages_body}
-    retmax = {body['retmax'] for body in messages_body}
-    retstarts = [body['retstart'] for body in messages_body]
-    retstarts.sort()
+    expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['retstart']))
 
-    assert 1 == len(request_id)
-    assert expected_request_id in request_id
-    assert 1 == len(ncbi_query)
-    assert _2XL_QUERY in ncbi_query
-    assert 1 == len(retmax)
-    assert 500 in retmax
-    assert 3 == len(retstarts)
-    assert [0, 500, 1000] == retstarts
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
+    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['retstart']))
+
+    assert expected_message_bodies == actual_message_bodies
 
 
 def test_c_get_study_ids(lambda_client, sqs_client):
     function_name = 'C_get_study_ids'
 
     expected_request_id = _provide_random_request_id()
-    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'retstart': 0, 'retmax': 500}).replace('"', '\"')
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"')
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
@@ -154,7 +156,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     assert 1 == len(request_id)
     assert expected_request_id in request_id
     assert 1 == len(ncbi_query)
-    assert _S_QUERY in ncbi_query
+    assert _S_QUERY['query'] in ncbi_query
     assert [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391] == study_ids
 
 
@@ -165,9 +167,9 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     expected_study_id = 200126815
     expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
 
-    expected_body = json.dumps({'request_info': {'request_id': expected_request_id, 'ncbi_query': _S_QUERY}, 'study_id': expected_study_id}).replace('"', '\"')
+    expected_body = json.dumps({'request_info': {'request_id': expected_request_id, 'ncbi_query': _S_QUERY['query']}, 'study_id': expected_study_id}).replace('"', '\"')
 
-    _store_test_request(database_holder, expected_request_id, _S_QUERY)
+    _store_test_request(database_holder, expected_request_id, _S_QUERY['query'])
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
 
@@ -193,7 +195,7 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     assert 1 == len(request_id)
     assert expected_request_id in request_id
     assert 1 == len(ncbi_query)
-    assert _S_QUERY in ncbi_query
+    assert _S_QUERY['query'] in ncbi_query
     assert 1 == len(study_id)
     assert f'{expected_study_id}' in study_id
     assert 1 == len(gse)
@@ -208,9 +210,9 @@ def test_e_get_study_srp(lambda_client, sqs_client, database_holder):
     expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
     expected_srp = 'SRP185522'
 
-    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
 
-    _store_test_request(database_holder, expected_request_id, _S_QUERY)
+    _store_test_request(database_holder, expected_request_id, _S_QUERY['query'])
     inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
 
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
@@ -237,7 +239,7 @@ def test_e_get_study_srp(lambda_client, sqs_client, database_holder):
     assert 1 == len(request_id)
     assert expected_request_id in request_id
     assert 1 == len(ncbi_query)
-    assert _S_QUERY in ncbi_query
+    assert _S_QUERY['query'] in ncbi_query
     assert 1 == len(study_id)
     assert expected_study_id in study_id
     assert 1 == len(gse)
@@ -279,6 +281,7 @@ def test_e_get_study_srp_attribute_error(lambda_client, sqs_client, database_hol
     assert 1 == len(ko_rows)
     assert pysradb_error_reference_id == ko_rows[0][2]
     assert "'NoneType' object has no attribute 'rename'" == ko_rows[0][3]
+
 
 ## TODO test de keyerror
 ## TODO test de muchos mensajes recibidos al mismo tiempo, en todas
@@ -362,10 +365,10 @@ def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
     expected_srp = 'SRP414713'
     expected_srrs = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
 
-    expected_body = (json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY, 'study_id': expected_study_id, 'gse': expected_gse, 'srp': expected_srp})
+    expected_body = (json.dumps({'request_id': expected_request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': expected_study_id, 'gse': expected_gse, 'srp': expected_srp})
                      .replace('"', '\"'))
 
-    _store_test_request(database_holder, expected_request_id, _S_QUERY)
+    _store_test_request(database_holder, expected_request_id, _S_QUERY['query'])
     inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
     inserted_sra_project_id = _store_test_srp(database_holder, expected_srp, inserted_geo_study_id)
 
@@ -397,7 +400,7 @@ def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
     assert 1 == len(request_id)
     assert expected_request_id in request_id
     assert 1 == len(ncbi_query)
-    assert _S_QUERY in ncbi_query
+    assert _S_QUERY['query'] in ncbi_query
     assert 1 == len(study_id)
     assert expected_study_id in study_id
     assert 1 == len(gse)

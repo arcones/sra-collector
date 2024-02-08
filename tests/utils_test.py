@@ -113,8 +113,9 @@ def _store_test_srp(database_holder, expected_srp, inserted_geo_study_id):
     return inserted_sra_project_id
 
 
-def _get_customized_input_from_sqs(function_name: str, expected_body: str) -> dict:
+def _get_customized_input_from_sqs(function_name: str, expected_bodies: [str]) -> dict:
     with open(f'tests/fixtures/{function_name}_input.json') as json_data:
         payload = json.load(json_data)
-        payload['Records'][0]['body'] = expected_body
+        for index, record in enumerate(payload['Records']):
+            record['body'] = expected_bodies[index]
         return payload

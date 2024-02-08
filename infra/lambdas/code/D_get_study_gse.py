@@ -43,12 +43,12 @@ def handler(event, context):
                     response = http.request('GET', url)
                     response_status = response.status
                     if response_status == 200:
-                        logging.debug(f'The response is {response.data}')
+                        logging.debug(f'The response in attempt #{attempts} is {response.data}')
                         summary = json.loads(response.data)['result'][study_id]
                         _summary_process(context.function_name, study_id, request_info, summary)
                     else:
                         exponential_backoff = base_delay * (2 ** attempts) + random.uniform(0, 0.1)
-                        logging.debug(f'API Limit reached, retrying in {round(exponential_backoff,2)} seconds')
+                        logging.debug(f'API Limit reached in attempt #{attempts}, retrying in {round(exponential_backoff,2)} seconds')
                         time.sleep(exponential_backoff)
                         continue
 
