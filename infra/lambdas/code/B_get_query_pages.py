@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import boto3
 import urllib3
@@ -18,10 +19,11 @@ def handler(event, context):
         output_sqs, schema = env_params.params_per_env(context.function_name)
 
         if event:
+            logging.info(f'Received event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
-                logging.info(f'Received event {request_body}')
+                logging.info(f'Processing record {request_body}')
 
                 ncbi_query = request_body['ncbi_query']
                 request_id = request_body['request_id']
@@ -33,22 +35,23 @@ def handler(event, context):
                 _store_request_in_db(schema, request_id, ncbi_query, study_count)
 
                 retstart = 0
-                message_sent_count = 0
+                messages = []
 
                 while retstart <= study_count:
                     if retstart > study_count:
                         retstart = study_count
                         continue
 
-                    message = json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
-
-                    sqs.send_message(QueueUrl=output_sqs, MessageBody=message)
-                    message_sent_count = message_sent_count + 1
-                    logging.info(f'Sent {message} message to {output_sqs}')
+                    messages.append({
+                        'Id': str(time.time()).replace('.', ''),
+                        'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
+                    })
 
                     retstart = retstart + page_size
 
-                logging.info(f'Sent {message_sent_count} messages to {output_sqs}')
+                sqs.send_message_batch(QueueUrl=output_sqs, Entries=messages)
+
+                logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

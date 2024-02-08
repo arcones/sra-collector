@@ -18,6 +18,7 @@ http = urllib3.PoolManager()
 def handler(event, context):
     try:
         if event:
+            logging.info(f'Received event {event}')
             ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
             ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
@@ -26,7 +27,7 @@ def handler(event, context):
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
-                logging.info(f'Received event {request_body}')
+                logging.info(f'Processing record {request_body}')
                 study_id = str(request_body['study_id'])
                 request_info = request_body['request_info']
 

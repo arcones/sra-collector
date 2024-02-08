@@ -22,21 +22,22 @@ def handler(event, context):
     try:
         output_sqs, schema = env_params.params_per_env(context.function_name)
         if event:
+            logging.info(f'Received event {event}')
             for record in event['Records']:
-                study_with_missing_srp = json.loads(record['body'])
-                logging.info(f'Received event {study_with_missing_srp}')
+                request_body = json.loads(record['body'])
+                logging.info(f'Processing record {request_body}')
 
-                study_id = study_with_missing_srp['study_id']
-                request_id = study_with_missing_srp['request_id']
+                study_id = request_body['study_id']
+                request_id = request_body['request_id']
 
-                gse = study_with_missing_srp['gse']
+                gse = request_body['gse']
                 try:
                     raw_pysradb_response = SRAweb().gse_to_srp(gse)
                     srp = raw_pysradb_response['study_accession'][0]
 
                     if srp:
                         logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb for study {study_id}, pushing message to study summaries queue')
-                        response = json.dumps({**study_with_missing_srp, 'srp': srp})
+                        response = json.dumps({**request_body, 'srp': srp})
                         sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                         logging.info(f'Sent event to {output_sqs} with body {response}')
                         _store_srp_in_db(schema, request_id, gse, srp)

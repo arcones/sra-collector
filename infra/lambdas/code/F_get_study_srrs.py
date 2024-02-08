@@ -15,10 +15,11 @@ def handler(event, context):
     try:
         output_sqs, schema = env_params.params_per_env(context.function_name)
         if event:
+            logging.info(f'Received event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
 
-                logging.info(f'Received event {request_body}')
+                logging.info(f'Processing record {request_body}')
 
                 srp = request_body['srp']
                 gse = request_body['gse']
