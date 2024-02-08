@@ -6,25 +6,25 @@ from env_params import env_params
 from postgres_connection import postgres_connection
 from pysradb import SRAweb
 
+boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
+
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
-    output_sqs, schema = env_params.params_per_env(context.function_name)
-
     try:
+        output_sqs, schema = env_params.params_per_env(context.function_name)
         if event:
-            request_id = json.loads(event['Records'][0]['body'])['request_id']
-            logging.info(f'Received event {event}')
             for record in event['Records']:
-                study_with_missing_srrs = json.loads(record['body'])
-                logging.debug(f'Received event {study_with_missing_srrs}')
+                request_body = json.loads(record['body'])
 
-                srp = study_with_missing_srrs['srp']
-                gse = study_with_missing_srrs['gse']
-                request_id = study_with_missing_srrs['request_id']
+                logging.info(f'Received event {request_body}')
 
-                study_id = study_with_missing_srrs['study_id']
+                srp = request_body['srp']
+                gse = request_body['gse']
+                request_id = request_body['request_id']
+
+                study_id = request_body['study_id']
 
                 try:
                     raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
@@ -32,43 +32,39 @@ def handler(event, context):
 
                     if srrs:
                         logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
+
                         for srr in srrs:
-                            response = json.dumps({**study_with_missing_srrs, 'srr': srr})
+                            response = json.dumps({**request_body, 'srr': srr})
                             sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                            _store_srr_in_db(schema, srr, request_id, srp)
                             logging.info(f'Sent event to {output_sqs} with body {response}')
+
+                        _store_srrs_in_db(schema, srrs, request_id, srp)
                     else:
                         logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
                 except AttributeError as attribute_error:  ## TODO split to a F2_* link 2 DLQ?
                     logging.error(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
 
 
-def _store_srr_in_db(schema: str, srr: str, request_id: str, srp: str):
+def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
     try:
-        database_connection = postgres_connection.get_connection()
+        database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
-        cursor = database_connection.cursor()
-        statement = cursor.mogrify(
-            f'insert into {schema}.sra_run (srr, sra_project_id) values (%s, %s)',
-            (srr, sra_project_id)
-        )
-        logging.debug(f'Executing: {statement}...')
-        cursor.execute(statement)
-        logging.info(f'Inserted sra run info in database')
-        database_connection.commit()
-        cursor.close()
-        database_connection.close()
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+        srr_and_sra_id_tuples = [(srr, sra_project_id) for srr in srrs]
+        logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
+        statement = f'insert into {schema}.sra_run (srr, sra_project_id) values (%s, %s)'
+        postgres_connection.execute_bulk_write_statement(database_connection, database_cursor, statement, srr_and_sra_id_tuples)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
 
 
 def _get_id_sra_project(schema: str, request_id: str, srp: str):
     try:
-        database_connection = postgres_connection.get_connection()
-        cursor = database_connection.cursor()
-        statement = cursor.mogrify(
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        statement = database_cursor.mogrify(
             f'''
             select sp.id from {schema}.sra_project sp
             join {schema}.geo_study gs on gs.id = sp.geo_study_id
@@ -76,12 +72,7 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str):
             ''',
             (request_id, srp)
         )
-        logging.debug(f'Executing: {statement}...')
-        cursor.execute(statement)
-        sra_project_id = cursor.fetchone()
-        logging.info(f'Selected the sra_project row with id {sra_project_id}')
-        cursor.close()
-        database_connection.close()
-        return sra_project_id
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+        return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception

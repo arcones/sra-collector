@@ -5,6 +5,7 @@ import boto3
 import urllib3
 from env_params import env_params
 
+boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 STUDY_ID_MIN = 200000000
 STUDY_ID_MAX = 299999999
@@ -15,13 +16,13 @@ http = urllib3.PoolManager()
 
 
 def handler(event, context):
-    output_sqs, _ = env_params.params_per_env(context.function_name)
-
     try:
+        output_sqs, _ = env_params.params_per_env(context.function_name)
         if event:
-            logging.info(f'Received event {event}')
             for record in event['Records']:
                 request_body = json.loads(record['body'])
+
+                logging.info(f'Received event {request_body}')
 
                 ncbi_query = request_body['ncbi_query']
                 request_id = request_body['request_id']
@@ -48,8 +49,9 @@ def handler(event, context):
                 logging.info(f'Sent {len(study_list)} messages to {output_sqs}')
 
                 return {'statusCode': 200}
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
 
 
 def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
@@ -61,5 +63,6 @@ def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[
         entities_list = response['esearchresult']['idlist']
         logging.info(f"Entity list contains: {','.join(entities_list)}")
         return list(map(int, entities_list))
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception

@@ -1,7 +1,7 @@
 FROM python:3.11
 
 ENV DB_CONNECTION_LIB_FOLDER=postgres_connection
-ENV DB_CONNECTION_LIB_VERSION=0.0.1
+ENV DB_CONNECTION_LIB_VERSION=0.0.2
 
 ENV PARAMS_LIB_FOLDER=env_params
 ENV PARAMS_LIB_VERSION=0.0.1
@@ -29,6 +29,6 @@ RUN cd ${DEPS_FOLDER} \
     && zip -ur9 ../dependencies.zip .
 
 RUN cd ${DEPS_FOLDER} \
-    && pip install /${PARAMS_LIB_FOLDER}/dist/${PARAMS_LIB_FOLDER}-${DB_CONNECTION_LIB_VERSION}-py3-none-any.whl -t . \
+    && pip install /${PARAMS_LIB_FOLDER}/dist/${PARAMS_LIB_FOLDER}-${PARAMS_LIB_VERSION}-py3-none-any.whl -t . \
     && cd .. \
     && zip -ur9 ../dependencies.zip .

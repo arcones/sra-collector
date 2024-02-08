@@ -280,6 +280,8 @@ def test_e_get_study_srp_attribute_error(lambda_client, sqs_client, database_hol
     assert pysradb_error_reference_id == ko_rows[0][2]
     assert "'NoneType' object has no attribute 'rename'" == ko_rows[0][3]
 
+## TODO test de keyerror
+## TODO test de muchos mensajes recibidos al mismo tiempo, en todas
 
 def test_e_get_study_srp_value_error(lambda_client, sqs_client, database_holder):
     function_name = 'E_get_study_srp'
@@ -314,6 +316,41 @@ def test_e_get_study_srp_value_error(lambda_client, sqs_client, database_holder)
     assert 1 == len(ko_rows)
     assert pysradb_error_reference_id == ko_rows[0][2]
     assert 'All arrays must be of the same length' == ko_rows[0][3]
+
+
+def test_e_get_study_srp_key_error(lambda_client, sqs_client, database_holder):
+    function_name = 'E_get_study_srp'
+
+    expected_request_id = _provide_random_request_id()
+    expected_ncbi_query = 'Astrocyte-produced HB-EGF limits autoimmune CNS pathology RNA-Seq'
+    expected_study_id = 200225606
+    expected_gse = str(expected_study_id).replace('200', 'GSE', 3)
+    expected_pysradb_error = 'KEY_ERROR'
+
+    expected_body = json.dumps({'request_id': expected_request_id, 'ncbi_query': expected_ncbi_query, 'study_id': expected_study_id, 'gse': expected_gse}).replace('"', '\"')
+
+    _store_test_request(database_holder, expected_request_id, expected_ncbi_query)
+    inserted_geo_study_id = _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse)
+
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, expected_body)))
+
+    assert 200 == response['StatusCode']
+
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select srp from sracollector_dev.sra_project where geo_study_id={inserted_geo_study_id}')
+    ok_rows = database_cursor.fetchall()
+
+    assert 0 == len(ok_rows)
+
+    database_cursor.execute(f"select * from sracollector_dev.sra_project_missing where geo_study_id='{inserted_geo_study_id}'")
+    ko_rows = database_cursor.fetchall()
+
+    database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where name='{expected_pysradb_error}'")
+    pysradb_error_reference_id = database_cursor.fetchone()[0]
+
+    assert 1 == len(ko_rows)
+    assert pysradb_error_reference_id == ko_rows[0][2]
+    assert "'Summary'" == ko_rows[0][3]
 
 
 def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):

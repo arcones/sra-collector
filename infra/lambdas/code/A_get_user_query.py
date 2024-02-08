@@ -4,7 +4,10 @@ import logging
 import boto3
 from env_params import env_params
 
+boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
+
 sqs = boto3.client('sqs', region_name='eu-central-1')
+
 
 def handler(event, context):
     try:
@@ -23,5 +26,6 @@ def handler(event, context):
         logging.info(f'Sent {request_info} message to {output_sqs}')
 
         return {'statusCode': 201, 'body': json.dumps(request_info), 'headers': {'content-type': 'application/json'}}
-    except Exception as e:
-        logging.exception(f'An exception has occurred: {e}')
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
