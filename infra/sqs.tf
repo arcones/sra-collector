@@ -2,7 +2,7 @@ resource "aws_sqs_queue" "A_user_query" {
   name = "A_user_query"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.A_DLQ_user_query_2_query_pages.arn,
-    maxReceiveCount     = 1 ## TODO evaluate whether to raise this param
+    maxReceiveCount     = 1
   })
 }
 

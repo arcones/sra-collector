@@ -50,8 +50,6 @@ def handler(event, context):
                 except KeyError as key_error:
                     logging.warning(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.KEY_ERROR, str(key_error))
-                # TODO Investigate: GSE187816 -> An exception has occurred: null value in column "geo_study_id" of relation "sra_project" violates not-null constraint DETAIL: Failing row contains (363, SRP013565, null).
-                # TODO investigate GSE138266 -> An exception has occurred: 0
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

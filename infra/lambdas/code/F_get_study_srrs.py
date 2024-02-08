@@ -87,6 +87,3 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-
-# TODO An exception has occurred: null value in column "sra_project_id" of relation "sra_run" violates not-null constraint DETAIL: Failing row contains (22633, SRR5861494, null).
-#  also happens here {"request_id": "S0Jp-jeEliAEPNg=", "ncbi_query": "rna seq and homo sapiens and myeloid and leukemia", "study_id": "200101788", "gse": "GSE101788", "srp": "SRP113442"}

@@ -105,6 +105,3 @@ def _store_gse_in_db(schema: str, study_id: str, request_id: str, gse: str):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-
-## TODO missing here to store valueerror and systemerror
-## TODO batch send here
