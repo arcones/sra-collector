@@ -38,17 +38,17 @@ def handler(event, context):
                     if srp:
                         logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb for study {study_id}, pushing message to study summaries queue')
                         response = json.dumps({**request_body, 'srp': srp})
+                        _store_srp_in_db(schema, request_id, gse, srp)
                         sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                         logging.info(f'Sent event to {output_sqs} with body {response}')
-                        _store_srp_in_db(schema, request_id, gse, srp)
                 except AttributeError as attribute_error:
-                    logging.warning(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
+                    logging.info(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                 except ValueError as value_error:
-                    logging.warning(f'For study {study_id} with {gse}, pysradb produced value error: {value_error}')
+                    logging.info(f'For study {study_id} with {gse}, pysradb produced value error: {value_error}')
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.VALUE_ERROR, str(value_error))
                 except KeyError as key_error:
-                    logging.warning(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
+                    logging.info(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.KEY_ERROR, str(key_error))
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')

@@ -65,9 +65,9 @@ def _summary_process(function_name: str, request_body: dict, summary: str):
         if gse:
             logging.info(f"Retrieved gse {gse} for study {request_body['study_id']}")
             message = {**request_body, 'gse': gse}
+            _store_gse_in_db(schema, request_body['request_id'], request_body['study_id'], gse)
             sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
             logging.info(f"Sent message {message} for study {request_body['study_id']}")
-            _store_gse_in_db(schema, request_body['request_id'], request_body['study_id'], gse)
         else:
             raise SystemError(f"Unable to fetch gse from {request_body['study_id']}")
     except Exception as exception:

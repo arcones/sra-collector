@@ -10,7 +10,7 @@ from psycopg2.errorcodes import UNIQUE_VIOLATION
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
-DB_CONNECTION_MAX_TRIES = 5
+MAX_TRIES = 5
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
@@ -45,7 +45,8 @@ def execute_bulk_write_statement(database_connection, database_cursor, statement
             logger.info(f'Executed {mogrified_statement}')
             database_connection.commit()
         except errors.lookup(UNIQUE_VIOLATION) as unique_violation:
-            logger.warning(f'The {mogrified_statement} failed with unique violation: {unique_violation}')
+            logger.info(f'The {mogrified_statement} failed with unique violation: {unique_violation}')
+            database_connection.rollback()
     database_cursor.close()
     database_connection.close()
 
@@ -53,11 +54,19 @@ def execute_bulk_write_statement(database_connection, database_cursor, statement
 def execute_read_statement_for_primary_key(database_connection, database_cursor, statement: str) -> int:
     logger.info(f'Executing: {statement}...')
     result_id = None
+    retrieval_attempts = 0
     while result_id is None:
         database_cursor.execute(statement)
         result_id = database_cursor.fetchone()
-        if result_id is None:
+        if result_id is not None:
+            logger.info(f'Retrieval successfully in attempt #{retrieval_attempts}')
+        elif result_id is None and retrieval_attempts < MAX_TRIES:
+            logger.info(f'Still getting none from the query in attempt #{retrieval_attempts}')
             time.sleep(1)
+            retrieval_attempts += 1
+        else:
+            logger.error(f'Not able to retrieve the id in {retrieval_attempts} attempts')
+            raise Exception(f'Not able to retrieve the id in {retrieval_attempts} attempts')
     logger.info(f'Executed {statement}')
     database_cursor.close()
     database_connection.close()
@@ -73,21 +82,21 @@ def _get_connection():
     connection_string = f"host={host} dbname='sracollector' user='{username}' password='{password}'"
 
     database_connection = None
-    connection_tries = 0
+    connection_attempts = 0
 
     while database_connection is None:
         try:
             database_connection = psycopg2.connect(connection_string)
-            logger.info(f'Successfully connected with database in try #{connection_tries}')
+            logger.info(f'Successfully connected with database in attempt #{connection_attempts}')
         except OperationalError as operationalError:
-            if connection_tries == DB_CONNECTION_MAX_TRIES:
-                logger.error(f'Not able to connect with database after {connection_tries} attempts')
+            if connection_attempts == MAX_TRIES:
+                logger.error(f'Not able to connect with database after {connection_attempts} attempts')
                 logger.error(str(operationalError))
                 raise operationalError
             else:
-                logger.warning(f'Not able to connect with database in try #{connection_tries}')
+                logger.warning(f'Not able to connect with database in attempt #{connection_attempts}')
                 logger.warning(str(operationalError))
-                connection_tries += 1
+                connection_attempts += 1
                 time.sleep(1)
 
     return database_connection
