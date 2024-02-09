@@ -166,18 +166,16 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
 
     expected_message_bodies = \
-        [{'request_info': {'ncbi_query': _S_QUERY['query'], 'request_id': request_id_1}, 'study_id': expected_study_id} for expected_study_id in expected_study_ids] + \
-        [{'request_info': {'ncbi_query': _S_QUERY['query'], 'request_id': request_id_2}, 'study_id': expected_study_id} for expected_study_id in expected_study_ids]
-    expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_info']['request_id'], message['study_id']))
+        [{'ncbi_query': _S_QUERY['query'], 'request_id': request_id_1, 'study_id': expected_study_id} for expected_study_id in expected_study_ids] + \
+        [{'ncbi_query': _S_QUERY['query'], 'request_id': request_id_2, 'study_id': expected_study_id} for expected_study_id in expected_study_ids]
+    expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['study_id']))
 
     actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
-    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_info']['request_id'], message['study_id']))
+    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id']))
 
     assert actual_message_bodies == expected_message_bodies
 
-
-# TODO quitar el wrappeo del request_info
 
 def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     # GIVEN
@@ -189,7 +187,7 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     study_ids_and_gse = list(zip(study_ids, gses))
 
     input_bodies = [
-        json.dumps({'request_info': {'request_id': request_id, 'ncbi_query': _S_QUERY['query']}, 'study_id': study_id}).replace('"', '\"')
+        json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
         for study_id in study_ids
     ]
 

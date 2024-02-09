@@ -52,8 +52,12 @@ def execute_bulk_write_statement(database_connection, database_cursor, statement
 
 def execute_read_statement_for_primary_key(database_connection, database_cursor, statement: str) -> int:
     logger.info(f'Executing: {statement}...')
-    database_cursor.execute(statement)
-    result_id = database_cursor.fetchone()
+    result_id = None
+    while result_id is None:
+        database_cursor.execute(statement)
+        result_id = database_cursor.fetchone()
+        if result_id is None:
+            time.sleep(1)
     logger.info(f'Executed {statement}')
     database_cursor.close()
     database_connection.close()

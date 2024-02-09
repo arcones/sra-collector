@@ -72,7 +72,7 @@ def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
         raise exception
 
 
-def _get_id_sra_project(schema: str, request_id: str, srp: str):
+def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(

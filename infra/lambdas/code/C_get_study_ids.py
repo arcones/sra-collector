@@ -41,14 +41,12 @@ def handler(event, context):
 
                 logging.debug(f"Study list contains: {','.join(map(str, sorted(study_list)))}")
 
-                request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
-
                 messages = []
 
                 for study_id in study_list:
                     messages.append({
                         'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'request_info': request_info, 'study_id': study_id})
+                        'MessageBody': json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query, 'study_id': study_id})
                     })
 
                 message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
