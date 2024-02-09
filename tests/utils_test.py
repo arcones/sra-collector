@@ -83,30 +83,30 @@ def _provide_random_ncbi_query():
     return ''.join(random.choice(CHARACTERS) for char in range(50))
 
 
-def _store_test_request(database_holder, expected_request_id, ncbi_query):
+def _store_test_request(database_holder, request_id, ncbi_query):
     database_cursor, database_connection = database_holder
 
-    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (expected_request_id, ncbi_query, 1))
+    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (request_id, ncbi_query, 1))
     database_cursor.execute(request_statement)
     database_connection.commit()
 
 
-def _store_test_study(database_holder, expected_request_id, expected_study_id, expected_gse):
+def _store_test_study(database_holder, request_id, study_id, gse):
     database_cursor, database_connection = database_holder
 
     study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
-                                              (expected_request_id, expected_study_id, expected_gse))
+                                              (request_id, study_id, gse))
     database_cursor.execute(study_statement)
     inserted_geo_study_id = database_cursor.fetchone()[0]
     database_connection.commit()
     return inserted_geo_study_id
 
 
-def _store_test_srp(database_holder, expected_srp, inserted_geo_study_id):
+def _store_test_srp(database_holder, srp, geo_study_id):
     database_cursor, database_connection = database_holder
 
     project_statement = database_cursor.mogrify(f'insert into sracollector_dev.sra_project (srp, geo_study_id) values (%s, %s) returning id',
-                                                (expected_srp, inserted_geo_study_id))
+                                                (srp, geo_study_id))
     database_cursor.execute(project_statement)
     inserted_sra_project_id = database_cursor.fetchone()[0]
     database_connection.commit()

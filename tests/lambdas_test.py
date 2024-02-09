@@ -67,7 +67,6 @@ def test_a_get_user_query(lambda_client, sqs_client):
     lambda_function = 'A_get_user_query'
 
     request_id = _provide_random_request_id()
-    print(f'D request_id: {request_id}')
     ncbi_query = _provide_random_ncbi_query()
     input_body = json.dumps({'ncbi_query': ncbi_query}).replace('"', '\"')
 
@@ -105,9 +104,7 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     function_name = 'B_get_query_pages'
 
     request_id_1 = _provide_random_request_id()
-    print(f'B request_id_1: {request_id_1}')
     request_id_2 = _provide_random_request_id()
-    print(f'B request_id_1: {request_id_2}')
     input_bodies = [
         json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"'),
         json.dumps({'request_id': request_id_2, 'ncbi_query': _2XL_QUERY['query']}).replace('"', '\"'),
@@ -153,9 +150,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     function_name = 'C_get_study_ids'
 
     request_id_1 = _provide_random_request_id()
-    print(f'D request_id_1: {request_id_1}')
     request_id_2 = _provide_random_request_id()
-    print(f'D request_id_2: {request_id_2}')
     input_bodies = [
         json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
         json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
@@ -181,6 +176,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
 
     assert actual_message_bodies == expected_message_bodies
 
+
 # TODO quitar el wrappeo del request_info
 
 def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
@@ -188,7 +184,6 @@ def test_d_get_study_gse(lambda_client, sqs_client, database_holder):
     function_name = 'D_get_study_gse'
 
     request_id = _provide_random_request_id()
-    print(f'D request_id: {request_id}')
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
     study_ids_and_gse = list(zip(study_ids, gses))
@@ -236,7 +231,6 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     function_name = 'E_get_study_srp'
 
     request_id = _provide_random_request_id()
-    print(f'D request_id: {request_id}')
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
 
@@ -292,8 +286,6 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
 
     actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
-    print('ACTUAL MESSAGE BODIES')
-    print(actual_message_bodies)
     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['study_id']))
 
     assert actual_message_bodies == expected_message_bodies
@@ -351,73 +343,84 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
 
     assert actual_messages == 0
 
-#
-# def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
-#     function_name = 'F_get_study_srrs'
-#
-#     request_id = _provide_random_request_id()
-#     study_ids = [200126815, 200150644]
-#     gses = [str(study_ids).replace('200', 'GSE', 3) for expected_study_id in study_ids]
-#     srps = ['SRP414713', 'SRP261818']
-#     study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
-#     srrs = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
-#
-#     input_bodies = [
-#         json.dumps({
-#             'request_id': request_id,
-#             'ncbi_query': _S_QUERY['query'],
-#             'study_id': expected_study_id_and_gse_and_srp[0],
-#             'gse': expected_study_id_and_gse_and_srp[1],
-#             'srp': expected_study_id_and_gse_and_srp[2]
-#         }).replace('"', '\"')
-#         for expected_study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-#     ]
-#
-#     _store_test_request(database_holder, request_id, _S_QUERY['query'])
-#     inserted_geo_study_ids = []
-#     inserted_sra_project_ids = []
-#     for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-#         inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
-#         ## GSE DEBERIA IR CAMBIANDO Y PARECE QUE NO LO HACE, AQUIMEQUEDE!
-#
-#     for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-#         inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
-#
-#     # WHEN
-#     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, input_bodies)))
-#
-#     # THEN REGARDING LAMBDA
-#     assert response['StatusCode'] == 200
-#
-#     # THEN REGARDING DATA
-#     database_cursor, _ = database_holder
-#     inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
-#     database_cursor.execute(f"select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})")
-#     actual_rows = database_cursor.fetchall()
-#     assert actual_rows == srrs
-#
-#     # THEN REGARDING MESSAGES
-#     messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(srrs))
-#
-#     messages_body = [json.loads(message['Body']) for message in messages]
-#
-#     request_id = {body['request_id'] for body in messages_body}
-#     ncbi_query = {body['ncbi_query'] for body in messages_body}
-#     study_id = {body['study_id'] for body in messages_body}
-#     gse = {body['gse'] for body in messages_body}
-#     srp = {body['srp'] for body in messages_body}
-#     srrs = [body['srr'] for body in messages_body]
-#     srrs.sort()
-#
-#     assert 1 == len(request_id)
-#     assert request_id in request_id
-#     assert 1 == len(ncbi_query)
-#     assert _S_QUERY['query'] in ncbi_query
-#     assert 1 == len(study_id)
-#     assert study_ids in study_id
-#     assert 1 == len(gse)
-#     assert expected_gse in gse
-#     assert 1 == len(srp)
-#     assert expected_srp in srp
-#     assert len(srrs) == len(srrs)
-#     assert srrs == srrs
+
+def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
+    function_name = 'F_get_study_srrs'
+
+    request_id = _provide_random_request_id()
+    study_ids = [200126815, 200308347]
+    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+    srps = ['SRP414713', 'SRP308347']
+    study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
+    srrs_for_srp414713 = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
+    srrs_for_srp308347 = ['SRR13790583', 'SRR13790584', 'SRR13790585', 'SRR13790586', 'SRR13790587', 'SRR13790588', 'SRR13790589', 'SRR13790590', 'SRR13790591', 'SRR13790592',
+                          'SRR13790593', 'SRR13790594']
+
+    input_bodies = [
+        json.dumps({
+            'request_id': request_id,
+            'ncbi_query': _S_QUERY['query'],
+            'study_id': study_id_and_gse_and_srp[0],
+            'gse': study_id_and_gse_and_srp[1],
+            'srp': study_id_and_gse_and_srp[2]
+        }).replace('"', '\"')
+        for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
+    ]
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    inserted_geo_study_ids = []
+    for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
+        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
+
+    inserted_sra_project_ids = []
+    for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
+        inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, input_bodies)))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
+    database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_rows = database_cursor.fetchall()
+    actual_rows = actual_rows.sort()
+    expected_rows = [(srr,) for srr in (srrs_for_srp414713, srrs_for_srp308347)]
+    expected_rows = expected_rows.sort()
+    assert actual_rows == expected_rows
+
+    # THEN REGARDING MESSAGES
+    expected_message_bodies_srp308347 = [
+        {
+            'request_id': request_id,
+            'ncbi_query': _S_QUERY['query'],
+            'study_id': 200308347,
+            'gse': 'GSE308347',
+            'srp': 'SRP308347',
+            'srr': srr,
+        }
+        for srr in srrs_for_srp308347
+    ]
+    expected_message_bodies_srp414713 = [
+        {
+            'request_id': request_id,
+            'ncbi_query': _S_QUERY['query'],
+            'study_id': 200126815,
+            'gse': 'GSE126815',
+            'srp': 'SRP414713',
+            'srr': srr,
+        }
+        for srr in srrs_for_srp414713
+    ]
+
+    expected_message_bodies = sorted((expected_message_bodies_srp308347 + expected_message_bodies_srp414713), key=lambda message: (message['request_id'],message['study_id'], message['srr']))
+
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
+    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'],message['study_id'], message['srr']))
+
+    assert len(actual_message_bodies) == len(expected_message_bodies)
+    assert actual_message_bodies == expected_message_bodies
