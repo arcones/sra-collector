@@ -24,7 +24,7 @@ def _wait_test_server_readiness():
         except Exception as connection_refused_error:
             if time.time() - start_waiting < 60:
                 print('Tests are still initializing...')
-                time.sleep(5)
+                time.sleep(1)
             else:
                 print('Timeout while waiting test server to launch :(')
                 raise connection_refused_error
@@ -38,7 +38,7 @@ def _ensure_queue_is_empty(sqs_client, queue):
         messages_left = int(response['Attributes']['ApproximateNumberOfMessages'])
         if time.time() - start_waiting < 60:
             print('SQS queue is still not empty...')
-            time.sleep(5)
+            time.sleep(1)
         else:
             print('Timeout while waiting SQS queue to be purged :(')
             raise Exception
@@ -91,11 +91,11 @@ def _store_test_request(database_holder, expected_request_id, ncbi_query):
     database_connection.commit()
 
 
-def _store_test_study(database_holder, expected_study_id, expected_request_id, expected_gse):
+def _store_test_study(database_holder, expected_request_id, expected_study_id, expected_gse):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s) returning id',
-                                              (expected_study_id, expected_request_id, expected_gse))
+    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
+                                              (expected_request_id, expected_study_id, expected_gse))
     database_cursor.execute(study_statement)
     inserted_geo_study_id = database_cursor.fetchone()[0]
     database_connection.commit()
@@ -116,6 +116,7 @@ def _store_test_srp(database_holder, expected_srp, inserted_geo_study_id):
 def _get_customized_input_from_sqs(function_name: str, expected_bodies: [str]) -> dict:
     with open(f'tests/fixtures/{function_name}_input.json') as json_data:
         payload = json.load(json_data)
+        assert len(payload['Records']) == len(expected_bodies), 'Fixture file should contain the same number of empty bodies as the expected_bodies list length'
         for index, record in enumerate(payload['Records']):
             record['body'] = expected_bodies[index]
         return payload

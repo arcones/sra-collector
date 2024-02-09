@@ -129,7 +129,7 @@ build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt && cd ..
 
 integration-tests-server: build-lambda-dependencies
-	cd infra && sam local start-lambda --debug --hook-name terraform --env-vars ../tests/environments.json
+	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers EAGER --hook-name terraform --env-vars ../tests/environments.json
 
 integration-tests: build-integration-tests-dependencies
 	pytest -s

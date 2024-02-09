@@ -29,7 +29,7 @@ def handler(event, context):
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
-                study_id = str(request_body['study_id'])
+                study_id = request_body['study_id']
                 request_info = request_body['request_info']
 
                 url = f'{base_url}&id={study_id}'
@@ -44,7 +44,7 @@ def handler(event, context):
                     response_status = response.status
                     if response_status == 200:
                         logging.debug(f'The response in attempt #{attempts} is {response.data}')
-                        summary = json.loads(response.data)['result'][study_id]
+                        summary = json.loads(response.data)['result'][f'{study_id}']
                         _summary_process(context.function_name, study_id, request_info, summary)
                     else:
                         exponential_backoff = base_delay * (2 ** attempts) + random.uniform(0, 0.1)
@@ -57,7 +57,7 @@ def handler(event, context):
         raise exception
 
 
-def _summary_process(function_name: str, study_id: str, request_info: dict, summary: str):
+def _summary_process(function_name: str, study_id: int, request_info: dict, summary: str):
     try:
         output_sqs, schema = env_params.params_per_env(function_name)
         logging.debug(f'Study summary from study {study_id} is {summary}')
@@ -94,7 +94,7 @@ def _extract_gse_from_summaries(summary: str) -> str:
         raise exception
 
 
-def _store_gse_in_db(schema: str, study_id: str, request_id: str, gse: str):
+def _store_gse_in_db(schema: str, study_id: int, request_id: str, gse: str):
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(
