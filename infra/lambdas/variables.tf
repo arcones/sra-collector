@@ -8,17 +8,35 @@ variable "s3_bucket_id" {
 
 variable "queues" {
   type = object({
-    A_user_query_sqs_arn               = string,
+    A_user_query_sqs = object({
+      A_user_query_sqs_arn                = string
+      A_user_query_sqs_visibility_timeout = number
+    }),
     A_DLQ_user_query_2_query_pages_arn = string,
-    B_query_pages_sqs_arn              = string,
-    B_DLQ_query_pages_2_study_ids_arn  = string,
-    C_study_ids_sqs_arn                = string,
-    C_DLQ_study_ids_2_gses_arn         = string,
-    D_gses_sqs_arn                     = string,
-    D_DLQ_gses_2_srps_arn              = string,
-    E_srps_sqs_arn                     = string,
-    E_DLQ_srps_2_srrs_arn              = string,
-    F_srrs_sqs_arn                     = string,
+    B_query_pages_sqs = object({
+      B_query_pages_sqs_arn                = string
+      B_query_pages_sqs_visibility_timeout = number
+    }),
+    B_DLQ_query_pages_2_study_ids_arn = string,
+    C_study_ids_sqs = object({
+      C_study_ids_sqs_arn                = string
+      C_study_ids_sqs_visibility_timeout = number
+    }),
+    C_DLQ_study_ids_2_gses_arn = string,
+    D_gses_sqs = object({
+      D_gses_sqs_arn                = string
+      D_gses_sqs_visibility_timeout = number
+    }),
+    D_DLQ_gses_2_srps_arn = string,
+    E_srps_sqs = object({
+      E_srps_sqs_arn                = string
+      E_srps_sqs_visibility_timeout = number
+    }),
+    E_DLQ_srps_2_srrs_arn = string,
+    F_srrs_sqs = object({
+      F_srrs_sqs_arn                = string
+      F_srrs_sqs_visibility_timeout = number
+    }),
   })
 }
 

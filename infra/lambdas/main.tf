@@ -16,7 +16,7 @@ module "A_get_user_query_lambda" {
   function_name         = "A_get_user_query"
   queues = {
     input_sqs_arn  = null
-    output_sqs_arn = var.queues.A_user_query_sqs_arn
+    output_sqs_arn = var.queues.A_user_query_sqs.A_user_query_sqs_arn
     dlq_arn        = null
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
@@ -29,13 +29,14 @@ module "B_get_query_pages_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "B_get_query_pages"
   queues = {
-    input_sqs_arn  = var.queues.A_user_query_sqs_arn
-    output_sqs_arn = var.queues.B_query_pages_sqs_arn
+    input_sqs_arn  = var.queues.A_user_query_sqs.A_user_query_sqs_arn
+    output_sqs_arn = var.queues.B_query_pages_sqs.B_query_pages_sqs_arn
     dlq_arn        = var.queues.A_DLQ_user_query_2_query_pages_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout
 }
 
 module "C_get_study_ids_lambda" {
@@ -44,11 +45,12 @@ module "C_get_study_ids_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "C_get_study_ids"
   queues = {
-    input_sqs_arn  = var.queues.B_query_pages_sqs_arn
-    output_sqs_arn = var.queues.C_study_ids_sqs_arn
+    input_sqs_arn  = var.queues.B_query_pages_sqs.B_query_pages_sqs_arn
+    output_sqs_arn = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
     dlq_arn        = var.queues.B_DLQ_query_pages_2_study_ids_arn
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout
 }
 
 module "D_get_study_gse_lambda" {
@@ -57,14 +59,15 @@ module "D_get_study_gse_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "D_get_study_gse"
   queues = {
-    input_sqs_arn  = var.queues.C_study_ids_sqs_arn
-    output_sqs_arn = var.queues.D_gses_sqs_arn
+    input_sqs_arn  = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
+    output_sqs_arn = var.queues.D_gses_sqs.D_gses_sqs_arn
     dlq_arn        = var.queues.C_DLQ_study_ids_2_gses_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout
 }
 
 module "E_get_study_srp_lambda" {
@@ -73,13 +76,14 @@ module "E_get_study_srp_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "E_get_study_srp"
   queues = {
-    input_sqs_arn  = var.queues.D_gses_sqs_arn
-    output_sqs_arn = var.queues.E_srps_sqs_arn
+    input_sqs_arn  = var.queues.D_gses_sqs.D_gses_sqs_arn
+    output_sqs_arn = var.queues.E_srps_sqs.E_srps_sqs_arn
     dlq_arn        = var.queues.D_DLQ_gses_2_srps_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.D_gses_sqs.D_gses_sqs_visibility_timeout
 }
 
 module "F_get_study_srrs_lambda" {
@@ -88,12 +92,12 @@ module "F_get_study_srrs_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "F_get_study_srrs"
   queues = {
-    input_sqs_arn  = var.queues.E_srps_sqs_arn
-    output_sqs_arn = var.queues.F_srrs_sqs_arn
+    input_sqs_arn  = var.queues.E_srps_sqs.E_srps_sqs_arn
+    output_sqs_arn = var.queues.F_srrs_sqs.F_srrs_sqs_arn
     dlq_arn        = var.queues.E_DLQ_srps_2_srrs_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = 60
+  timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout
 }

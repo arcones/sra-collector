@@ -8,9 +8,19 @@ truncate-db-tables:
 	cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
+truncate-dev-db-tables:
+	@sudo apt install -y gridsite-clients && \
+	cd utils/truncate_tables && \
+	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_dev_tables.sql
+
 remove-db-tables:
 	@cd utils/remove_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
+
+remove-dev-db-tables:
+	@cd utils/remove_tables && \
+	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_dev_tables.sql
+
 
 db-migrations:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
@@ -119,7 +129,7 @@ build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt && cd ..
 
 integration-tests-server: build-lambda-dependencies
-	cd infra && sam local start-lambda --debug --hook-name terraform --env-vars ../tests/environments.json
+	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers EAGER --hook-name terraform --env-vars ../tests/environments.json
 
 integration-tests: build-integration-tests-dependencies
 	pytest -s

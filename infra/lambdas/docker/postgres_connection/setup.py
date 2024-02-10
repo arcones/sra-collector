@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='postgres_connection',
-    version='0.0.1',
+    version='0.0.2',
     author='Marta Arcones',
     author_email='marta.arcones@alumnos.upm.es',
     description='Postgres connection used in my lambdas',
