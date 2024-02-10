@@ -27,7 +27,7 @@ resource "aws_sqs_queue" "C_study_ids" {
   visibility_timeout_seconds = 120
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_gses.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 10
   })
 }
 

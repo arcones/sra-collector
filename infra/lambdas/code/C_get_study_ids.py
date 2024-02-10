@@ -33,11 +33,7 @@ def handler(event, context):
 
                 logging.debug(f'Query received for keyword {ncbi_query} with retstart {retstart} and retmax {retmax}')
 
-                entities_list = _esearch_entities_list(ncbi_query, retstart, retmax)
-
-                study_list = [study for study in entities_list if STUDY_ID_MIN <= study < STUDY_ID_MAX]
-
-                logging.info(f'From {len(entities_list)} entities, {len(study_list)} studies were extracted')
+                study_list = _esearch_entities_list(ncbi_query, retstart, retmax)
 
                 logging.debug(f"Study list contains: {','.join(map(str, sorted(study_list)))}")
 

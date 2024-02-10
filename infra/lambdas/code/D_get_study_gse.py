@@ -59,14 +59,17 @@ def _summary_process(function_name: str, request_body: dict, summary: str):
     try:
         output_sqs, schema = env_params.params_per_env(function_name)
         logging.debug(f"Study summary from study {request_body['study_id']} is {summary}")
-        gse = _extract_gse_from_summaries(summary)
+        geo_entity = _extract_geo_entity_from_summaries(summary)
 
-        if gse:
-            logging.info(f"Retrieved gse {gse} for study {request_body['study_id']}")
-            message = {**request_body, 'gse': gse}
-            _store_gse_in_db(schema, request_body['request_id'], request_body['study_id'], gse)
+        if geo_entity.startswith('GSE'):
+            logging.info(f"Retrieved gse {geo_entity} for study {request_body['study_id']}")
+            message = {**request_body, 'gse': geo_entity}
+            _store_gse_in_db(schema, request_body['request_id'], request_body['study_id'], geo_entity)
             sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
             logging.info(f"Sent message {message} for study {request_body['study_id']}")
+        elif geo_entity.startswith('GSM'):
+            logging.info(f"Retrieved gsm {geo_entity} for study {request_body['study_id']}")
+            _store_gsm_in_db(schema, request_body['request_id'], request_body['study_id'], geo_entity)
         else:
             raise SystemError(f"Unable to fetch gse from {request_body['study_id']}")
     except Exception as exception:
@@ -75,15 +78,15 @@ def _summary_process(function_name: str, request_body: dict, summary: str):
         raise exception
 
 
-def _extract_gse_from_summaries(summary: str) -> str:
+def _extract_geo_entity_from_summaries(summary: str) -> str:
     try:
         logging.info(f'Extracting GSE from {summary}')
-        if summary['entrytype'] == 'GSE':
-            gse = summary['accession']
-            logging.info(f'Extracted GSE {gse}')
-            return gse
+        if summary['entrytype'] == 'GSE' or summary['entrytype'] == 'GSM':
+            geo_entity = summary['accession']
+            logging.info(f'Extracted GEO entity {geo_entity}')
+            return geo_entity
         else:
-            message = f'For summary {summary} there are none GSE entrytype'
+            message = f'For summary {summary} there are none GEO entity'
             logging.error(message)
             raise ValueError(message)
     except Exception as exception:
@@ -98,6 +101,19 @@ def _store_gse_in_db(schema: str, request_id: str, study_id: int, gse: str):
         statement = database_cursor.mogrify(
             f'insert into {schema}.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s)',
             (study_id, request_id, gse)
+        )
+        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _store_gsm_in_db(schema: str, request_id: str, study_id: int, gsm: str):
+    try:
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        statement = database_cursor.mogrify(
+            f'insert into {schema}.geo_experiment (ncbi_id, request_id, gsm) values (%s, %s, %s)',
+            (study_id, request_id, gsm)
         )
         postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
     except Exception as exception:
