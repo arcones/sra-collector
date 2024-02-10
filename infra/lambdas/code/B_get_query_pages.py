@@ -32,29 +32,32 @@ def handler(event, context):
 
                 study_count = _get_study_count(ncbi_query)
 
-                _store_request_in_db(schema, request_id, ncbi_query, study_count)
+                if _is_request_pending_to_be_processed:
+                    _store_request_in_db(schema, request_id, ncbi_query, study_count)
 
-                retstart = 0
-                messages = []
+                    retstart = 0
+                    messages = []
 
-                while retstart <= study_count:
-                    if retstart > study_count:
-                        retstart = study_count
-                        continue
+                    while retstart <= study_count:
+                        if retstart > study_count:
+                            retstart = study_count
+                            continue
 
-                    messages.append({
-                        'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
-                    })
+                        messages.append({
+                            'Id': str(time.time()).replace('.', ''),
+                            'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
+                        })
 
-                    retstart = retstart + page_size
+                        retstart = retstart + page_size
 
-                message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+                    message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
 
-                for message_batch in message_batches:
-                    sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
+                    for message_batch in message_batches:
+                        sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
-                logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                    logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                else:
+                    logging.info('The record has already been processed')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -81,6 +84,23 @@ def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_co
             (request_id, ncbi_query, study_count)
         )
         postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str, study_count: int):
+    try:
+        try:
+            database_connection, database_cursor = postgres_connection.get_database_holder()
+            statement = database_cursor.mogrify(
+                f'select id from {schema}.request where request_id=%s and ncbi_query=%s and study_count=%s',
+                (request_id, ncbi_query, study_count)
+            )
+            postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+            return False
+        except KeyError as keyError:
+            return True
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

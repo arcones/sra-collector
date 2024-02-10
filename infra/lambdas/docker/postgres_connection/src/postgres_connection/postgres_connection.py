@@ -65,8 +65,8 @@ def execute_read_statement_for_primary_key(database_connection, database_cursor,
             time.sleep(1)
             retrieval_attempts += 1
         else:
-            logger.error(f'Not able to retrieve the id in {retrieval_attempts} attempts')
-            raise Exception(f'Not able to retrieve the id in {retrieval_attempts} attempts')
+            logger.info(f'Not able to retrieve the id in {retrieval_attempts} attempts')
+            raise KeyError(f'Not able to retrieve the id in {retrieval_attempts} attempts')
     logger.info(f'Executed {statement}')
     database_cursor.close()
     database_connection.close()

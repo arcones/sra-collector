@@ -106,3 +106,24 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+
+
+def _is_srp_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: str):
+    try:
+        try:
+            database_connection, database_cursor = postgres_connection.get_database_holder()
+            statement = database_cursor.mogrify(
+                f'''
+                select id from {schema}.geo_study where request_id=%s and ncbi_id=%s and gse=%s
+                union
+                select id from {schema}.geo_experiment where request_id=%s and ncbi_id=%s and gsm=%s
+                ''',
+                (request_id, study_id, geo_entity, request_id, study_id, geo_entity)
+            )
+            postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+            return False
+        except KeyError as keyError:
+            return True
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception

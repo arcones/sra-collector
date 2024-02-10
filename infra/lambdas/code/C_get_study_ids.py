@@ -8,9 +8,6 @@ from env_params import env_params
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
-STUDY_ID_MIN = 200000000
-STUDY_ID_MAX = 299999999
-
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
 http = urllib3.PoolManager()
