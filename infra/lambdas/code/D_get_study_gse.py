@@ -50,7 +50,6 @@ def handler(event, context):
                         logging.debug(f'API Limit reached in attempt #{attempts}, retrying in {round(exponential_backoff,2)} seconds')
                         time.sleep(exponential_backoff)
                         continue
-
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

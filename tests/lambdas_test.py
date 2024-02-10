@@ -327,7 +327,7 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     assert actual_ok_rows == []
 
     pysradb_errors_for_sql_in = ','.join(["'ATTRIBUTE_ERROR'", "'VALUE_ERROR'", "'KEY_ERROR'"])
-    database_cursor.execute(f'select id from sracollector_dev.pysradb_error_reference where name in ({pysradb_errors_for_sql_in})')
+    database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name in ({pysradb_errors_for_sql_in})")
     pysradb_error_reference_ids = [pysradb_error_reference_row[0] for pysradb_error_reference_row in database_cursor.fetchall()]
     expected_details = ["'NoneType' object has no attribute 'rename'", 'All arrays must be of the same length', "'Summary'"]
 
@@ -342,7 +342,7 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     assert actual_messages == 0
 
 
-def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
+def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
     function_name = 'F_get_study_srrs'
 
     request_id = _provide_random_request_id()
@@ -384,11 +384,15 @@ def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
     database_cursor, _ = database_holder
     inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
     database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-    actual_rows = database_cursor.fetchall()
-    actual_rows = actual_rows.sort()
+    actual_ok_rows = database_cursor.fetchall()
+    actual_ok_rows = actual_ok_rows.sort()
     expected_rows = [(srr,) for srr in (srrs_for_srp414713, srrs_for_srp308347)]
     expected_rows = expected_rows.sort()
-    assert actual_rows == expected_rows
+    assert actual_ok_rows == expected_rows
+
+    database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == []
 
     # THEN REGARDING MESSAGES
     expected_message_bodies_srp308347 = [
@@ -414,11 +418,68 @@ def test_f_get_study_srrs(lambda_client, sqs_client, database_holder):
         for srr in srrs_for_srp414713
     ]
 
-    expected_message_bodies = sorted((expected_message_bodies_srp308347 + expected_message_bodies_srp414713), key=lambda message: (message['request_id'],message['study_id'], message['srr']))
+    expected_message_bodies = sorted((expected_message_bodies_srp308347 + expected_message_bodies_srp414713),
+                                     key=lambda message: (message['request_id'], message['study_id'], message['srr']))
 
     actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
-    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'],message['study_id'], message['srr']))
+    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))
 
     assert len(actual_message_bodies) == len(expected_message_bodies)
     assert actual_message_bodies == expected_message_bodies
+
+
+def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
+    function_name = 'F_get_study_srrs'
+
+    request_id = _provide_random_request_id()
+    study_ids = [200126815, 200118257]
+    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+    srps = ['SRP185522', 'SRP178139']
+    study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
+
+    input_bodies = [
+        json.dumps({
+            'request_id': request_id,
+            'ncbi_query': _S_QUERY['query'],
+            'study_id': study_id_and_gse_and_srp[0],
+            'gse': study_id_and_gse_and_srp[1],
+            'srp': study_id_and_gse_and_srp[2]
+        }).replace('"', '\"')
+        for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
+    ]
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    inserted_geo_study_ids = []
+    for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
+        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
+
+    inserted_sra_project_ids = []
+    for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
+        inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(function_name, input_bodies)))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
+    database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_ok_rows = database_cursor.fetchall()
+    assert actual_ok_rows == []
+
+    database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='srp_to_srr' and name='ATTRIBUTE_ERROR'")
+    pysradb_error_reference_id = database_cursor.fetchone()[0]
+    expected_detail = "'NoneType' object has no attribute 'columns'"
+
+    database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0

@@ -16,5 +16,5 @@ resource "aws_db_instance" "sra_collector_db" {
   vpc_security_group_ids        = [aws_security_group.db_security_group.id]
   publicly_accessible           = true
   skip_final_snapshot           = true
-  #  performance_insights_enabled = true
+  performance_insights_enabled  = true
 }

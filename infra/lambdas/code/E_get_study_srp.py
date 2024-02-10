@@ -13,6 +13,7 @@ class PysradbError(Enum):
     ATTRIBUTE_ERROR = 'ATTRIBUTE_ERROR'
     VALUE_ERROR = 'VALUE_ERROR'
     KEY_ERROR = 'KEY_ERROR'
+    NOT_FOUND = 'NOT_FOUND'
 
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
@@ -41,6 +42,9 @@ def handler(event, context):
                         _store_srp_in_db(schema, request_id, gse, srp)
                         sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                         logging.info(f'Sent event to {output_sqs} with body {response}')
+                    else:
+                        logging.info(f'No SRP for {study_id} and {gse} found via pysradb')
+                        _store_missing_srp_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRP found')
                 except AttributeError as attribute_error:
                     logging.info(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
@@ -97,7 +101,7 @@ def _get_id_geo_study(schema: str, request_id: str, gse: str) -> int:
 def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(f'select id from {schema}.pysradb_error_reference where name=%s', (pysradb_error.value,))
+        statement = database_cursor.mogrify(f"select id from {schema}.pysradb_error_reference where name=%s and operation='gse_to_srp'", (pysradb_error.value,))
         return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')

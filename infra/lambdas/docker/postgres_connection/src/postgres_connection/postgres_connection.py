@@ -38,14 +38,14 @@ def execute_write_statement(database_connection, database_cursor, statement: str
 def execute_bulk_write_statement(database_connection, database_cursor, statement_pattern: str, tuples: [tuple]):
     logger.info(f'Executing {len(tuples)} statements with SQL {statement_pattern}...')
     for the_tuple in tuples:
-        mogrified_statement = database_cursor.mogrify(statement_pattern, the_tuple)
+        statement = database_cursor.mogrify(statement_pattern, the_tuple)
         try:
-            logger.info(f'Executing: {mogrified_statement}...')
-            database_cursor.execute(mogrified_statement)
-            logger.info(f'Executed {mogrified_statement}')
+            logger.info(f'Executing: {statement}...')
+            database_cursor.execute(statement)
+            logger.info(f'Executed {statement}')
             database_connection.commit()
         except errors.lookup(UNIQUE_VIOLATION) as unique_violation:
-            logger.info(f'The {mogrified_statement} failed with unique violation: {unique_violation}')
+            logger.info(f'The {statement} failed with unique violation: {unique_violation}')
             database_connection.rollback()
     database_cursor.close()
     database_connection.close()

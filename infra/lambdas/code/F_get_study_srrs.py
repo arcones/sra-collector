@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from enum import Enum
 
 import boto3
 from env_params import env_params
@@ -11,6 +12,9 @@ boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
+class PysradbError(Enum):
+    ATTRIBUTE_ERROR = 'ATTRIBUTE_ERROR'
+    NOT_FOUND = 'NOT_FOUND'
 
 def handler(event, context):
     try:
@@ -52,8 +56,10 @@ def handler(event, context):
                         logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                     else:
                         logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
-                except AttributeError as attribute_error:  ## TODO split to a F2_* link 2 DLQ?
-                    logging.error(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
+                        _store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
+                except AttributeError as attribute_error:
+                    logging.info(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
+                    _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -83,6 +89,31 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
             ''',
             (request_id, srp)
         )
+        return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_error: PysradbError, details: str):
+    try:
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        sra_project_id = _get_id_sra_project(schema, request_id, srp)
+        pysradb_error_reference_id = _get_pysradb_error_reference(schema, pysradb_error)
+        statement = database_cursor.mogrify(
+            f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s)',
+            (sra_project_id, pysradb_error_reference_id, details)
+        )
+        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
+    try:
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        statement = database_cursor.mogrify(f"select id from {schema}.pysradb_error_reference where name=%s and operation='srp_to_srr'", (pysradb_error.value,))
         return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
