@@ -15,15 +15,15 @@ locals {
     (module.lambdas.get_user_query_function_name)  = 1,
     (module.lambdas.get_query_pages_function_name) = 5,
     (module.lambdas.get_study_ids_function_name)   = 5,
-    (module.lambdas.get_study_gse_function_name)   = 5,
+    (module.lambdas.get_study_geo_function_name)   = 5,
     (module.lambdas.get_study_srp_function_name)   = 10,
     (module.lambdas.get_study_srrs_function_name)  = 10
   }
   dlqs = [
     aws_sqs_queue.A_DLQ_user_query_2_query_pages.name,
     aws_sqs_queue.B_DLQ_query_pages_2_study_ids.name,
-    aws_sqs_queue.C_DLQ_study_ids_2_gses.name,
-    aws_sqs_queue.D_DLQ_gses_2_srps.name,
+    aws_sqs_queue.C_DLQ_study_ids_2_geos.name,
+    aws_sqs_queue.D_DLQ_geos_2_srps.name,
     aws_sqs_queue.E_DLQ_srps_2_srrs.name,
   ]
 }

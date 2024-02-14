@@ -32,38 +32,43 @@ def handler(event, context):
 
                 study_id = request_body['study_id']
 
-                try:
-                    raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
-                    srrs = list(raw_pysradb_data_frame['run_accession'])
+                if _is_srr_pending_to_be_processed(schema, request_id, srp):
 
-                    if srrs:
-                        logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
+                    try:
+                        raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
+                        srrs = list(raw_pysradb_data_frame['run_accession'])
 
-                        messages = []
+                        if srrs:
+                            logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
 
-                        for srr in srrs:
-                            messages.append({
-                                'Id': str(time.time()).replace('.', ''),
-                                'MessageBody': json.dumps({**request_body, 'srr': srr})
-                            })
+                            messages = []
 
-                        _store_srrs_in_db(schema, srrs, request_id, srp)
+                            for srr in srrs:
+                                messages.append({
+                                    'Id': str(time.time()).replace('.', ''),
+                                    'MessageBody': json.dumps({**request_body, 'srr': srr})
+                                })
 
-                        message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-                        for message_batch in message_batches:
-                            sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
+                            _store_srrs_in_db(schema, srrs, request_id, srp)
 
-                        logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
-                    else:
-                        logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
-                        _store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
-                except AttributeError as attribute_error:
-                    logging.info(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
-                    _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                            message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+                            for message_batch in message_batches:
+                                sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
+
+                            logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                        else:
+                            logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
+                            _store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
+                    except AttributeError as attribute_error:
+                        logging.info(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
+                        _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                else:
+                    logging.info(f'The record with {request_id} and {srp} has already been processed')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-
+        return {
+            'statusCode': 500  # TODO  parece q es necesario en cualquier error: ver sam-cli
+        }
 
 def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
     try:
@@ -71,8 +76,7 @@ def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
         srr_and_sra_id_tuples = [(srr, sra_project_id) for srr in srrs]
         logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
-        statement = f'insert into {schema}.sra_run (srr, sra_project_id) values (%s, %s)'
-        postgres_connection.execute_bulk_write_statement(database_connection, database_cursor, statement, srr_and_sra_id_tuples)
+        postgres_connection.execute_bulk_write_statement(database_connection, database_cursor, schema, 'sra_run', ['srr', 'sra_project_id'], srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -101,7 +105,7 @@ def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_err
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
         pysradb_error_reference_id = _get_pysradb_error_reference(schema, pysradb_error)
         statement = database_cursor.mogrify(
-            f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s)',
+            f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s);',
             (sra_project_id, pysradb_error_reference_id, details)
         )
         postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
@@ -115,6 +119,24 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(f"select id from {schema}.pysradb_error_reference where name=%s and operation='srp_to_srr'", (pysradb_error.value,))
         return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool:
+    try:
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        sra_project_id = _get_id_sra_project(schema, request_id, srp)
+        statement = database_cursor.mogrify(
+            f'''
+            select id from {schema}.sra_run where sra_project_id=%s
+            union
+            select id from {schema}.sra_run_missing where sra_project_id=%s
+            ''',
+            (sra_project_id, sra_project_id)
+        )
+        return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

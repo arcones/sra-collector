@@ -8,7 +8,7 @@
         "ApproximateReceiveCount": "1",
         "AWSTraceHeader": "Root=1-65be78f1-c4f4bd7b977e97f5b716437e;Parent=4d1924910afcb338;Sampled=0;Lineage=2dfc983d:0%7C3240af10:0%7C8f0b6619:0%7C3f72389b:0",
         "SentTimestamp": "1706981620120",
-        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_gse",
+        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_geo",
         "ApproximateFirstReceiveTimestamp": "1706981620125"
       },
       "messageAttributes": {
@@ -26,7 +26,7 @@
         "ApproximateReceiveCount": "1",
         "AWSTraceHeader": "Root=1-65be78f1-c4f4bd7b977e97f5b716437e;Parent=4d1924910afcb338;Sampled=0;Lineage=2dfc983d:0%7C3240af10:0%7C8f0b6619:0%7C3f72389b:0",
         "SentTimestamp": "1706981620120",
-        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_gse",
+        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_geo",
         "ApproximateFirstReceiveTimestamp": "1706981620125"
       },
       "messageAttributes": {
@@ -44,7 +44,7 @@
         "ApproximateReceiveCount": "1",
         "AWSTraceHeader": "Root=1-65be78f1-c4f4bd7b977e97f5b716437e;Parent=4d1924910afcb338;Sampled=0;Lineage=2dfc983d:0%7C3240af10:0%7C8f0b6619:0%7C3f72389b:0",
         "SentTimestamp": "1706981620120",
-        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_gse",
+        "SenderId": "AROARYGZXFUU6SB4VEZP6:D_get_study_geo",
         "ApproximateFirstReceiveTimestamp": "1706981620125"
       },
       "messageAttributes": {

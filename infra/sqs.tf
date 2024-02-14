@@ -2,7 +2,7 @@ resource "aws_sqs_queue" "A_user_query" {
   name = "A_user_query"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.A_DLQ_user_query_2_query_pages.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 2
   })
 }
 
@@ -14,7 +14,7 @@ resource "aws_sqs_queue" "B_query_pages" {
   name = "B_query_pages"
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.B_DLQ_query_pages_2_study_ids.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 2
   })
 }
 
@@ -24,28 +24,28 @@ resource "aws_sqs_queue" "B_DLQ_query_pages_2_study_ids" {
 
 resource "aws_sqs_queue" "C_study_ids" {
   name                       = "C_study_ids"
-  visibility_timeout_seconds = 120
+  visibility_timeout_seconds = 180
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_gses.arn,
-    maxReceiveCount     = 10
-  })
-}
-
-resource "aws_sqs_queue" "C_DLQ_study_ids_2_gses" {
-  name = "C_DLQ_study_ids_2_gses"
-}
-
-resource "aws_sqs_queue" "D_gses" {
-  name                       = "D_gses"
-  visibility_timeout_seconds = 150
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.D_DLQ_gses_2_srps.arn,
+    deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_geos.arn,
     maxReceiveCount     = 3
   })
 }
 
-resource "aws_sqs_queue" "D_DLQ_gses_2_srps" {
-  name = "D_DLQ_gses_2_srps"
+resource "aws_sqs_queue" "C_DLQ_study_ids_2_geos" {
+  name = "C_DLQ_study_ids_2_geos"
+}
+
+resource "aws_sqs_queue" "D_geos" {
+  name                       = "D_geos"
+  visibility_timeout_seconds = 150
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.D_DLQ_geos_2_srps.arn,
+    maxReceiveCount     = 2
+  })
+}
+
+resource "aws_sqs_queue" "D_DLQ_geos_2_srps" {
+  name = "D_DLQ_geos_2_srps"
 }
 
 resource "aws_sqs_queue" "E_srps" {
@@ -53,7 +53,7 @@ resource "aws_sqs_queue" "E_srps" {
   visibility_timeout_seconds = 360
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.E_DLQ_srps_2_srrs.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 2
   })
 }
 

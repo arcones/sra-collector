@@ -51,23 +51,25 @@ module "C_get_study_ids_lambda" {
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout
+  memory_size                           = 256
 }
 
-module "D_get_study_gse_lambda" {
+module "D_get_study_geo_lambda" {
   source                = "./infra"
   code_path             = "${path.module}/code"
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "D_get_study_gse"
+  function_name         = "D_get_study_geo"
   queues = {
     input_sqs_arn  = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
-    output_sqs_arn = var.queues.D_gses_sqs.D_gses_sqs_arn
-    dlq_arn        = var.queues.C_DLQ_study_ids_2_gses_arn
+    output_sqs_arn = var.queues.D_geos_sqs.D_geos_sqs_arn
+    dlq_arn        = var.queues.C_DLQ_study_ids_2_geos_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout
+  memory_size                           = 256
 }
 
 module "E_get_study_srp_lambda" {
@@ -76,14 +78,15 @@ module "E_get_study_srp_lambda" {
   common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name         = "E_get_study_srp"
   queues = {
-    input_sqs_arn  = var.queues.D_gses_sqs.D_gses_sqs_arn
+    input_sqs_arn  = var.queues.D_geos_sqs.D_geos_sqs_arn
     output_sqs_arn = var.queues.E_srps_sqs.E_srps_sqs_arn
-    dlq_arn        = var.queues.D_DLQ_gses_2_srps_arn
+    dlq_arn        = var.queues.D_DLQ_geos_2_srps_arn
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.D_gses_sqs.D_gses_sqs_visibility_timeout
+  timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout
+  memory_size                           = 256
 }
 
 module "F_get_study_srrs_lambda" {
@@ -100,4 +103,5 @@ module "F_get_study_srrs_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout
+  memory_size                           = 512
 }

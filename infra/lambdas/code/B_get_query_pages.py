@@ -32,7 +32,7 @@ def handler(event, context):
 
                 study_count = _get_study_count(ncbi_query)
 
-                if _is_request_pending_to_be_processed:
+                if _is_request_pending_to_be_processed(schema, request_id, ncbi_query, study_count):
                     _store_request_in_db(schema, request_id, ncbi_query, study_count)
 
                     retstart = 0
@@ -57,7 +57,7 @@ def handler(event, context):
 
                     logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                 else:
-                    logging.info('The record has already been processed')
+                    logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -80,7 +80,7 @@ def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_co
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(
-            f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s)',
+            f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);',
             (request_id, ncbi_query, study_count)
         )
         postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
@@ -89,18 +89,14 @@ def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_co
         raise exception
 
 
-def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str, study_count: int):
+def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str, study_count: int) -> bool:
     try:
-        try:
-            database_connection, database_cursor = postgres_connection.get_database_holder()
-            statement = database_cursor.mogrify(
-                f'select id from {schema}.request where request_id=%s and ncbi_query=%s and study_count=%s',
-                (request_id, ncbi_query, study_count)
-            )
-            postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
-            return False
-        except KeyError as keyError:
-            return True
+        database_connection, database_cursor = postgres_connection.get_database_holder()
+        statement = database_cursor.mogrify(
+            f'select id from {schema}.request where id=%s and query=%s and geo_count=%s',
+            (request_id, ncbi_query, study_count)
+        )
+        return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

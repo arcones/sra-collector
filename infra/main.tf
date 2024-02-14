@@ -17,12 +17,12 @@ module "lambdas" {
       C_study_ids_sqs_arn                = aws_sqs_queue.C_study_ids.arn,
       C_study_ids_sqs_visibility_timeout = aws_sqs_queue.C_study_ids.visibility_timeout_seconds
     }
-    C_DLQ_study_ids_2_gses_arn = aws_sqs_queue.C_DLQ_study_ids_2_gses.arn,
-    D_gses_sqs = {
-      D_gses_sqs_arn                = aws_sqs_queue.D_gses.arn
-      D_gses_sqs_visibility_timeout = aws_sqs_queue.D_gses.visibility_timeout_seconds
+    C_DLQ_study_ids_2_geos_arn = aws_sqs_queue.C_DLQ_study_ids_2_geos.arn,
+    D_geos_sqs = {
+      D_geos_sqs_arn                = aws_sqs_queue.D_geos.arn
+      D_geos_sqs_visibility_timeout = aws_sqs_queue.D_geos.visibility_timeout_seconds
     },
-    D_DLQ_gses_2_srps_arn = aws_sqs_queue.D_DLQ_gses_2_srps.arn,
+    D_DLQ_geos_2_srps_arn = aws_sqs_queue.D_DLQ_geos_2_srps.arn,
     E_srps_sqs = {
       E_srps_sqs_arn                = aws_sqs_queue.E_srps.arn
       E_srps_sqs_visibility_timeout = aws_sqs_queue.E_srps.visibility_timeout_seconds
@@ -45,7 +45,7 @@ module "opensearch" {
     "get_user_query"    = module.lambdas.get_user_query_log_group_arn,
     "get_query_pages"   = module.lambdas.get_query_pages_log_group_arn,
     "get_study_ids"     = module.lambdas.get_study_ids_log_group_arn,
-    "get_study_gse"     = module.lambdas.get_study_gse_log_group_arn,
+    "get_study_geo"     = module.lambdas.get_study_geo_log_group_arn,
     "get_study_srp"     = module.lambdas.get_study_srp_log_group_arn,
     "get_study_srr"     = module.lambdas.get_study_srrs_log_group_arn
   }

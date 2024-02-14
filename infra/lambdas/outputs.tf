@@ -26,12 +26,12 @@ output "get_study_ids_log_group_arn" {
   value = module.C_get_study_ids_lambda.cloudwatch_log_group_arn
 }
 
-output "get_study_gse_function_name" {
-  value = module.D_get_study_gse_lambda.function.function_name
+output "get_study_geo_function_name" {
+  value = module.D_get_study_geo_lambda.function.function_name
 }
 
-output "get_study_gse_log_group_arn" {
-  value = module.D_get_study_gse_lambda.cloudwatch_log_group_arn
+output "get_study_geo_log_group_arn" {
+  value = module.D_get_study_geo_lambda.cloudwatch_log_group_arn
 }
 
 output "get_study_srp_function_name" {

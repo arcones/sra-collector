@@ -113,8 +113,10 @@ def _store_test_srp(database_holder, srp, geo_study_id):
     return inserted_sra_project_id
 
 
-def _get_customized_input_from_sqs(function_name: str, expected_bodies: [str]) -> dict:
-    with open(f'tests/fixtures/{function_name}_input.json') as json_data:
+def _get_customized_input_from_sqs(expected_bodies: [str], function_name: str, suffix: str = None) -> dict:
+    fixture_filename = function_name + (suffix if suffix is not None else '') + '_input.json'
+
+    with open(f'tests/fixtures/{fixture_filename}') as json_data:
         payload = json.load(json_data)
         assert len(payload['Records']) == len(expected_bodies), 'Fixture file should contain the same number of empty bodies as the expected_bodies list length'
         for index, record in enumerate(payload['Records']):
