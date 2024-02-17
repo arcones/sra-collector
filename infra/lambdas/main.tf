@@ -36,7 +36,7 @@ module "B_get_query_pages_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout
+  timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout - 10
 }
 
 module "C_get_study_ids_lambda" {
@@ -50,7 +50,7 @@ module "C_get_study_ids_lambda" {
     dlq_arn        = var.queues.B_DLQ_query_pages_2_study_ids_arn
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout
+  timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout - 10
   memory_size                           = 256
 }
 
@@ -68,7 +68,7 @@ module "D_get_study_geo_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout
+  timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout - 10
   memory_size                           = 256
 }
 
@@ -85,7 +85,7 @@ module "E_get_study_srp_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout
+  timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout - 10
   memory_size                           = 256
 }
 
@@ -102,6 +102,6 @@ module "F_get_study_srrs_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout
+  timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 512
 }

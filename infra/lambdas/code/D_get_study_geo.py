@@ -17,16 +17,19 @@ http = urllib3.PoolManager()
 
 
 def handler(event, context):
-    try:
-        output_sqs, schema = env_params.params_per_env(context.function_name)
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
-            ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
+    output_sqs, schema = env_params.params_per_env(context.function_name)
+    if event:
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+        ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
+        ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-            base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
+        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
 
-            for record in event['Records']:
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -68,9 +71,11 @@ def handler(event, context):
                         exponential_backoff = base_delay * (2 ** attempts) + random.uniform(0, 0.1)
                         logging.debug(f'API Limit reached in attempt #{attempts}, retrying in {round(exponential_backoff, 2)} seconds')
                         time.sleep(exponential_backoff)
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def _summary_process(schema: str, request_id: str, study_id: int, summary: str, output_sqs: str):

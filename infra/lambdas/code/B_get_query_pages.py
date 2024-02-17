@@ -15,12 +15,17 @@ page_size = 500
 
 
 def handler(event, context):
-    try:
-        output_sqs, schema = env_params.params_per_env(context.function_name)
+    output_sqs, schema = env_params.params_per_env(context.function_name)
 
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            for record in event['Records']:
+    if event:
+
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -58,9 +63,11 @@ def handler(event, context):
                     logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                 else:
                     logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def _get_study_count(ncbi_query: str) -> int:

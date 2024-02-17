@@ -14,11 +14,16 @@ http = urllib3.PoolManager()
 
 
 def handler(event, context):
-    try:
-        output_sqs, _ = env_params.params_per_env(context.function_name)
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            for record in event['Records']:
+    output_sqs, _ = env_params.params_per_env(context.function_name)
+    if event:
+
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -48,9 +53,11 @@ def handler(event, context):
                     sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
                 logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:

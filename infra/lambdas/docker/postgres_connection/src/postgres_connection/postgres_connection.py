@@ -91,6 +91,7 @@ def execute_read_statement_for_primary_key(database_connection, database_cursor,
     #     database_cursor.close()
     #     database_connection.close()
 
+
 def is_row_present(database_connection, database_cursor, statement: str) -> bool:
     logger.info(f'Executing: {statement}...')
     database_cursor.execute(statement)

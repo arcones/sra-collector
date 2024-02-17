@@ -86,15 +86,15 @@ def _provide_random_ncbi_query():
 def _store_test_request(database_holder, request_id, ncbi_query):
     database_cursor, database_connection = database_holder
 
-    request_statement = database_cursor.mogrify(f'insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (request_id, ncbi_query, 1))
+    request_statement = database_cursor.mogrify('insert into sracollector_dev.request (id, query, geo_count) values (%s, %s, %s)', (request_id, ncbi_query, 1))
     database_cursor.execute(request_statement)
     database_connection.commit()
 
 
-def _store_test_study(database_holder, request_id, study_id, gse):
+def _store_test_geo_study(database_holder, request_id, study_id, gse):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify(f'insert into sracollector_dev.geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
+    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
                                               (request_id, study_id, gse))
     database_cursor.execute(study_statement)
     inserted_geo_study_id = database_cursor.fetchone()[0]
@@ -102,15 +102,28 @@ def _store_test_study(database_holder, request_id, study_id, gse):
     return inserted_geo_study_id
 
 
-def _store_test_srp(database_holder, srp, geo_study_id):
+def _store_test_sra_project(database_holder, srp, geo_study_id):
     database_cursor, database_connection = database_holder
 
-    project_statement = database_cursor.mogrify(f'insert into sracollector_dev.sra_project (srp, geo_study_id) values (%s, %s) returning id',
-                                                (srp, geo_study_id))
+    project_statement = database_cursor.mogrify('insert into sracollector_dev.sra_project (srp) values (%s) returning id', (srp,))
     database_cursor.execute(project_statement)
     inserted_sra_project_id = database_cursor.fetchone()[0]
+    link_statement = database_cursor.mogrify('insert into sracollector_dev.geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s)',
+                                             (geo_study_id, inserted_sra_project_id))
+    database_cursor.execute(link_statement)
     database_connection.commit()
     return inserted_sra_project_id
+
+
+def _store_test_sra_run(database_holder, srr, sra_project_id):
+    database_cursor, database_connection = database_holder
+
+    run_statement = database_cursor.mogrify('insert into sracollector_dev.sra_run (srr, sra_project_id) values (%s, %s) returning id',
+                                            (srr, sra_project_id))
+    database_cursor.execute(run_statement)
+    inserted_sra_run_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_sra_run_id
 
 
 def _get_customized_input_from_sqs(expected_bodies: [str], function_name: str, suffix: str = None) -> dict:

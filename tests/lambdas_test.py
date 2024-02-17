@@ -9,15 +9,16 @@ from utils_test import _get_customized_input_from_sqs
 from utils_test import _get_db_connection
 from utils_test import _provide_random_ncbi_query
 from utils_test import _provide_random_request_id
+from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
-from utils_test import _store_test_srp
-from utils_test import _store_test_study
+from utils_test import _store_test_sra_project
+from utils_test import _store_test_sra_run
 from utils_test import _wait_test_server_readiness
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 _S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8}
-_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1091}
+_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1092}
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -273,6 +274,9 @@ def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
     assert actual_messages == 0
 
 
+  # TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table)
+
+
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     # GIVEN
     function_name = 'E_get_study_srp'
@@ -295,7 +299,7 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
 
     inserted_geo_study_ids = []
     for study_id_and_gse in study_ids_and_gses:
-        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
@@ -312,7 +316,7 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
                                 where geo_study_id in ({inserted_geo_study_ids_for_sql_in})
                             ''')
     actual_ok_rows = database_cursor.fetchall()
-    expected_ok_rows = [(expected_srp,) for expected_srp in srps]
+    expected_ok_rows = [(srp,) for srp in srps]
     assert actual_ok_rows == expected_ok_rows
 
     database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
@@ -362,7 +366,7 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
 
     inserted_geo_study_ids = []
     for study_id_and_gse in study_ids_and_gses:
-        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
@@ -423,12 +427,11 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
     inserted_geo_study_ids = []
     for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
 
     inserted_sra_project_ids = []
     for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-        # TODO AQUI ME QUEDE, ADAPTAR LOS TESTS DE F (Y EL CODIGO) A LA NUEVFA TABLA M:N Y A ESA ESTRUCTURA DE DATOS
-        inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+        inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
@@ -508,11 +511,11 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
     inserted_geo_study_ids = []
     for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-        inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
 
     inserted_sra_project_ids = []
     for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-        inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+        inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
@@ -534,6 +537,46 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
+# TODO colapsar las fixtures, q no haya q crear un fichero nuevo por cada una... crearlas dinamicamente
+
+
+def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, database_holder):
+    function_name = 'F_get_study_srrs'
+
+    request_id = _provide_random_request_id()
+    study_id = 200126815
+    gse = str(study_id).replace('200', 'GSE', 3)
+    srp = 'SRP185522'
+    srr = 'SRR787899'
+
+    input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id, 'gse': gse, 'srp': srp})
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)
+    sra_project_id = _store_test_sra_project(database_holder, srp, geo_study_id)
+    _store_test_sra_run(database_holder, srr, sra_project_id)
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs([input_body], function_name, '_skip_already_processed_srp')))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={sra_project_id}')
+    actual_ok_rows = database_cursor.fetchall()
+    assert actual_ok_rows == [(srr,)]
+
+    database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={sra_project_id}')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == []
 
     # THEN REGARDING MESSAGES
     actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
@@ -609,7 +652,7 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
 #     ]
 #
 #     expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))
-#
+#     # TODO Comprobar el número de mensajes por count... o ver si hay algun error pa que tarde tanto pq esto es inviable
 #     actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
 #     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
 #     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))

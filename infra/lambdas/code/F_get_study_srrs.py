@@ -12,16 +12,23 @@ boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
+
 class PysradbError(Enum):
     ATTRIBUTE_ERROR = 'ATTRIBUTE_ERROR'
     NOT_FOUND = 'NOT_FOUND'
 
+
 def handler(event, context):
-    try:
-        output_sqs, schema = env_params.params_per_env(context.function_name)
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            for record in event['Records']:
+    output_sqs, schema = env_params.params_per_env(context.function_name)
+    if event:
+
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -64,11 +71,12 @@ def handler(event, context):
                         _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                 else:
                     logging.info(f'The record with {request_id} and {srp} has already been processed')
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        return {
-            'statusCode': 500  # TODO  parece q es necesario en cualquier error: ver sam-cli
-        }
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
+
 
 def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
     try:
@@ -88,8 +96,9 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
         statement = database_cursor.mogrify(
             f'''
             select sp.id from {schema}.sra_project sp
-            join {schema}.geo_study gs on gs.id = sp.geo_study_id
-            where gs.request_id=%s and srp=%s
+            join {schema}.geo_study_sra_project_link gsspl on sp.id = gsspl.sra_project_id
+            join {schema}.geo_study gs on gsspl.geo_study_id = gs.id
+            where gs.request_id=%s and sp.srp=%s
             ''',
             (request_id, srp)
         )
@@ -124,11 +133,12 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         raise exception
 
 
-def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool:
+def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool: ## TODO hacen falta tests de estos
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
-        statement = database_cursor.mogrify(
+        # geo_study_id = _get_id_geo_study(schema, request_id)
+        statement = database_cursor.mogrify( ## TODO split in two methods?
             f'''
             select id from {schema}.sra_run where sra_project_id=%s
             union
@@ -140,3 +150,13 @@ def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> b
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+#
+#
+# def _get_id_geo_study(schema: str, request_id: str) -> int:
+#     try:
+#         database_connection, database_cursor = postgres_connection.get_database_holder()
+#         statement = database_cursor.mogrify(f'select id from {schema}.geo_study where request_id=%s', (request_id,))
+#         return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+#     except Exception as exception:
+#         logging.error(f'An exception has occurred: {str(exception)}')
+#         raise exception

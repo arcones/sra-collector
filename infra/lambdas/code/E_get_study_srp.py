@@ -21,11 +21,16 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
-    try:
-        output_sqs, schema = env_params.params_per_env(context.function_name)
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            for record in event['Records']:
+    output_sqs, schema = env_params.params_per_env(context.function_name)
+    if event:
+
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -59,9 +64,11 @@ def handler(event, context):
                     _store_missing_srp_in_db(schema, request_id, gse, PysradbError.KEY_ERROR, str(key_error))
                 # else:
                 #     logging.info(f'The record with {request_id} and {gse} has already been processed')
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        return {'statusCode': 500}
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def _store_srp_in_db(schema: str, request_id: str, gse: str, srp: str):
