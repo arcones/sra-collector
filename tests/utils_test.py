@@ -114,6 +114,7 @@ def _store_test_sra_project(database_holder, srp, geo_study_id):
     database_connection.commit()
     return inserted_sra_project_id
 
+## TODO mirar los DLQs a ver que les pasa, si es necesario simular con tests
 
 def _store_test_sra_run(database_holder, srr, sra_project_id):
     database_cursor, database_connection = database_holder

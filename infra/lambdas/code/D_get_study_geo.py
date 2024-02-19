@@ -2,6 +2,7 @@ import json
 import logging
 import random
 import time
+from enum import Enum
 
 import boto3
 import urllib3
@@ -9,11 +10,40 @@ from env_params import env_params
 from postgres_connection import postgres_connection
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
+urllib3_logger = logging.getLogger('urllib3')
+urllib3_logger.setLevel(logging.ERROR)
+logger = logging.getLogger(__name__)
+FORMAT = '%(funcName)s %(message)s'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
-http = urllib3.PoolManager()
+all_http_codes_but_200 = list(range(100, 200)) + list(range(300, 600))
+retries = urllib3.Retry(status_forcelist=all_http_codes_but_200, backoff_factor=0.5)
+http = urllib3.PoolManager(retries=retries)
+
+
+class GeoEntityType(Enum):
+    GSE = {'table': 'geo_study', 'short_name': 'gse'}
+    GSM = {'table': 'geo_experiment', 'short_name': 'gsm'}
+    GPL = {'table': 'geo_platform', 'short_name': 'gpl'}
+    GDS = {'table': 'geo_data_set', 'short_name': 'gds'}
+
+
+class GeoEntity:
+    def __init__(self, identifier: str):
+        self.identifier = identifier
+        self.geo_entity_type = self.set_type()
+
+    def set_type(self):
+        if self.identifier.startswith('gse'):
+            return GeoEntityType.GSE
+        elif self.identifier.startswith('gsm'):
+            return GeoEntityType.GSM
+        elif self.identifier.startswith('gpl'):
+            return GeoEntityType.GPL
+        elif self.identifier.startswith('gds'):
+            return GeoEntityType.GDS
 
 
 def handler(event, context):
@@ -28,49 +58,22 @@ def handler(event, context):
         batch_item_failures = []
         sqs_batch_response = {}
 
-        for record in event['Records']:
+        ordered_records = sorted(event['Records'], key=lambda r: json.loads(r['body'])['study_id'])
+
+        for record in ordered_records:
             try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
+
                 request_id = request_body['request_id']
                 study_id = request_body['study_id']
 
-                url = f'{base_url}&id={study_id}'
-                logging.debug(f'The URL is {url}')
-                response_status = 0
+                response = http.request('GET', f'{base_url}&id={study_id}')
 
-                base_delay = 1
-                attempts = 0
+                summary = json.loads(response.data)['result'][f'{study_id}']
+                _summary_process(schema, request_id, int(study_id), summary, output_sqs)
 
-                while response_status != 200:
-                    response = http.request('GET', url)
-                    response_status = response.status
-                    if response_status == 200:
-                        logging.debug(f'The response in attempt #{attempts} is {response.data}')
-                        summary = json.loads(response.data)['result'][f'{study_id}']
-
-                        # ################### TODO
-                        # messages = []
-                        #
-                        # for study_id in study_list:
-                        #     messages.append({
-                        #         'Id': str(time.time()).replace('.', ''),
-                        #         'MessageBody': json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query, 'study_id': study_id})
-                        #     })
-                        #
-                        # message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-                        #
-                        # for message_batch in message_batches:
-                        #     sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-                        #
-                        # ###################
-
-                        _summary_process(schema, request_id, int(study_id), summary, output_sqs)
-                    else:
-                        exponential_backoff = base_delay * (2 ** attempts) + random.uniform(0, 0.1)
-                        logging.debug(f'API Limit reached in attempt #{attempts}, retrying in {round(exponential_backoff, 2)} seconds')
-                        time.sleep(exponential_backoff)
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
@@ -83,18 +86,14 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
         logging.debug(f'Study summary from study {study_id} is {summary}')
         geo_entity = _extract_geo_entity_from_summaries(summary)
 
-        if _is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity):
-            if geo_entity.startswith('GSE'):
-                logging.info(f'Retrieved gse {geo_entity} for study {study_id}')
+        if _is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity) and geo_entity is not None:
+            logging.info(f'Retrieved geo {geo_entity.identifier} for study {study_id}')
+            _store_geo_entity_in_db(schema, request_id, study_id, geo_entity)
+
+            if geo_entity.geo_entity_type is GeoEntityType.GSE:
                 message = {'request_id': request_id, 'study_id': study_id, 'gse': geo_entity}
-                _store_gse_in_db(schema, request_id, study_id, geo_entity)
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
                 logging.info(f'Sent message {message} for study {study_id}')
-            elif geo_entity.startswith('GSM'):
-                logging.info(f'Retrieved gsm {geo_entity} for study {study_id}')
-                _store_gsm_in_db(schema, request_id, study_id, geo_entity)
-            else:
-                raise SystemError(f'Unable to fetch geo from {study_id}')
         else:
             logging.info(f'The record with request_id {request_id} and study_id {study_id} has already been processed')
     except Exception as exception:
@@ -103,12 +102,13 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
         raise exception
 
 
-def _extract_geo_entity_from_summaries(summary: str) -> str:
+def _extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
     try:
         logging.info(f'Extracting GEO from {summary}')
-        if summary['entrytype'] == 'GSE' or summary['entrytype'] == 'GSM':
-            geo_entity = summary['accession']
-            logging.info(f'Extracted GEO entity {geo_entity}')
+
+        if summary in [entity.value['short_name'].upper() for entity in GeoEntityType]:
+            geo_entity = GeoEntity(summary['accession'])
+            logging.info(f'Extracted GEO entity {geo_entity.identifier}')
             return geo_entity
         else:
             message = f'For summary {summary} there are none GEO entity'
@@ -119,12 +119,12 @@ def _extract_geo_entity_from_summaries(summary: str) -> str:
         raise exception
 
 
-def _store_gse_in_db(schema: str, request_id: str, study_id: int, gse: str):
+def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity):
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(
-            f'insert into {schema}.geo_study (ncbi_id, request_id, gse) values (%s, %s, %s);',
-            (study_id, request_id, gse)
+            f"insert into {schema}.{geo_entity.geo_entity_type.value['table']} (ncbi_id, request_id, {geo_entity.geo_entity_type.value['short_name']}) values (%s, %s, %s);",
+            (study_id, request_id, geo_entity.identifier)
         )
         postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
     except Exception as exception:
@@ -132,30 +132,13 @@ def _store_gse_in_db(schema: str, request_id: str, study_id: int, gse: str):
         raise exception
 
 
-def _store_gsm_in_db(schema: str, request_id: str, study_id: int, gsm: str):
+def _is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity) -> bool:
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'insert into {schema}.geo_experiment (ncbi_id, request_id, gsm) values (%s, %s, %s);',
-            (study_id, request_id, gsm)
-        )
-        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
 
-
-def _is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: str) -> bool:
-    try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'''
-            select id from {schema}.geo_study where request_id=%s and ncbi_id=%s and gse=%s
-            union
-            select id from {schema}.geo_experiment where request_id=%s and ncbi_id=%s and gsm=%s
-            ''',
-            (request_id, study_id, geo_entity, request_id, study_id, geo_entity)
-        )
+        statement = database_cursor.mogrify(f"""select id from {schema}.{geo_entity.geo_entity_type.value['table']}
+                                                where request_id=%s and ncbi_id=%s and {geo_entity.geo_entity_type.value['short_name']}=%s""",
+                                            (request_id, study_id, geo_entity.identifier))
         return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')

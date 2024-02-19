@@ -180,7 +180,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder):
+def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
     # GIVEN
     function_name = 'D_get_study_geo'
 
@@ -274,7 +274,7 @@ def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
     assert actual_messages == 0
 
 
-  # TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table)
+  # TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table) -> checking the link table, integrity constraint
 
 
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):

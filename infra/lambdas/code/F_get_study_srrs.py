@@ -39,7 +39,7 @@ def handler(event, context):
 
                 study_id = request_body['study_id']
 
-                if _is_srr_pending_to_be_processed(schema, request_id, srp):
+                if _is_srp_pending_to_be_processed(schema, request_id, srp):
 
                     try:
                         raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
@@ -133,12 +133,11 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         raise exception
 
 
-def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool: ## TODO hacen falta tests de estos
+def _is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool: ## TODO hacen falta tests de estos. Si ya está q no sea procesado. De este y todos sus homólogos
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
-        # geo_study_id = _get_id_geo_study(schema, request_id)
-        statement = database_cursor.mogrify( ## TODO split in two methods?
+        statement = database_cursor.mogrify(
             f'''
             select id from {schema}.sra_run where sra_project_id=%s
             union
@@ -150,13 +149,3 @@ def _is_srr_pending_to_be_processed(schema: str, request_id: str, srp: str) -> b
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-#
-#
-# def _get_id_geo_study(schema: str, request_id: str) -> int:
-#     try:
-#         database_connection, database_cursor = postgres_connection.get_database_holder()
-#         statement = database_cursor.mogrify(f'select id from {schema}.geo_study where request_id=%s', (request_id,))
-#         return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
-#     except Exception as exception:
-#         logging.error(f'An exception has occurred: {str(exception)}')
-#         raise exception

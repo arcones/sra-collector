@@ -25,7 +25,7 @@ def get_database_holder():
     return database_connection, database_cursor
 
 
-def execute_write_statement(database_connection, database_cursor, statement: str): ## todo mejor nombre
+def execute_write_statement(database_connection, database_cursor, statement: str):
     write_command_output = None
     try:
         logger.info(f'Executing: {statement}...')
@@ -34,14 +34,14 @@ def execute_write_statement(database_connection, database_cursor, statement: str
         database_connection.commit()
         return write_command_output
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')  # todo poner nombre del método en estos, con lib logging nativamente?
+        logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-    # finally:
-    #     database_cursor.close()
-    #     database_connection.close()  # todo poner estos finally en todos
+    finally:
+        database_cursor.close()
+        database_connection.close()
 
 
-def execute_write_statement_returning(database_connection, database_cursor, statement: str): ## todo mejor nombre
+def execute_write_statement_returning(database_connection, database_cursor, statement: str):
     write_command_output = None
     try:
         logger.info(f'Executing: {statement}...')
@@ -51,8 +51,11 @@ def execute_write_statement_returning(database_connection, database_cursor, stat
         database_connection.commit()
         return write_command_output
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')  # todo poner nombre del método en estos, con lib logging nativamente?
+        logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+    finally:
+        database_cursor.close()
+        database_connection.close()
 
 
 def execute_bulk_write_statement(database_connection, database_cursor, schema: str, destination_table: str, columns: [str], rows: [tuple]):
@@ -71,11 +74,12 @@ def execute_bulk_write_statement(database_connection, database_cursor, schema: s
         database_cursor.copy_expert(sql, file)
         logger.info(f'Executed bulk insert')
         database_connection.commit()
-        # database_cursor.close()
-        # database_connection.close()
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+    finally:
+        database_cursor.close()
+        database_connection.close()
 
 
 def execute_read_statement_for_primary_key(database_connection, database_cursor, statement: str) -> int:
@@ -87,16 +91,24 @@ def execute_read_statement_for_primary_key(database_connection, database_cursor,
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-    # finally:
-    #     database_cursor.close()
-    #     database_connection.close()
+    finally:
+        database_cursor.close()
+        database_connection.close()
 
 
 def is_row_present(database_connection, database_cursor, statement: str) -> bool:
-    logger.info(f'Executing: {statement}...')
-    database_cursor.execute(statement)
-    result = database_cursor.fetchone()
-    return result is not None
+    try:
+        logger.info(f'Executing: {statement}...')
+        database_cursor.execute(statement)
+        result = database_cursor.fetchone()
+        logger.info(f'Executed {statement}')
+        return result is not None
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+    finally:
+        database_cursor.close()
+        database_connection.close()
 
 
 def _get_connection():

@@ -13,10 +13,11 @@ data "archive_file" "code" {
 }
 
 resource "aws_lambda_function" "function" {
-  function_name = var.function_name
-  filename      = data.archive_file.code.output_path
-  handler       = "${var.function_name}.handler"
-  role          = aws_iam_role.lambda_role.arn
+  function_name                  = var.function_name
+  filename                       = data.archive_file.code.output_path
+  handler                        = "${var.function_name}.handler"
+  role                           = aws_iam_role.lambda_role.arn
+  reserved_concurrent_executions = var.reserved_concurrent_executions
   logging_config {
     log_format            = "JSON"
     application_log_level = "INFO"

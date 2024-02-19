@@ -47,9 +47,11 @@ function transform(payload) {
     var indexNameApp = 'cwl-sra-collector-app';
     var indexNameAccess = 'cwl-sra-collector-access';
 
+    var logOffset = 0
+
     payload.logEvents.forEach(function(logEvent) {
         var source = buildSource(logEvent.message, logEvent.extractedFields);
-        addLogGroup(payload, source)
+        addLogMetadata(payload, source, logOffset)
 
         if (source.message) {
             bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
@@ -68,16 +70,19 @@ function transform(payload) {
             console.error("logEvent:")
             console.error(logEvent)
         }
+
+        logOffset++
     });
 
     return bulkRequestBody;
 }
 
-function addLogGroup(payload, source) {
+function addLogMetadata(payload, source, logOffset) {
     var full_log_group = payload.logGroup
     var index_of_last_slash = full_log_group.lastIndexOf('/')
 
     source['log_group'] = full_log_group.substring(index_of_last_slash + 1);
+    source['log_offset'] = logOffset
 }
 
 function addMetaFieldsAndStringify(indexName, logEvent, source) {

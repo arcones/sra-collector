@@ -26,10 +26,11 @@ resource "aws_sqs_queue" "B_DLQ_query_pages_2_study_ids" {
 
 resource "aws_sqs_queue" "C_study_ids" {
   name                       = "C_study_ids"
-  visibility_timeout_seconds = 190
+  visibility_timeout_seconds = 600
+  delay_seconds              = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_geos.arn,
-    maxReceiveCount     = 3
+    maxReceiveCount     = 5
   })
 }
 
@@ -42,7 +43,7 @@ resource "aws_sqs_queue" "D_geos" {
   visibility_timeout_seconds = 160
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.D_DLQ_geos_2_srps.arn,
-    maxReceiveCount     = 2
+    maxReceiveCount     = 5
   })
 }
 
@@ -52,12 +53,10 @@ resource "aws_sqs_queue" "D_DLQ_geos_2_srps" {
 
 resource "aws_sqs_queue" "E_srps" {
   name                       = "E_srps"
-  visibility_timeout_seconds = 370
-  #    fifo_queue = true
-  #  content_based_deduplication = true
+  visibility_timeout_seconds = 600
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.E_DLQ_srps_2_srrs.arn,
-    maxReceiveCount     = 2
+    maxReceiveCount     = 5
   })
 }
 
