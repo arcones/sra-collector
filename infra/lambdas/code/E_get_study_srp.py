@@ -133,7 +133,7 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
-def _is_geo_pending_to_be_processed(schema: str, request_id: str, gse: str) -> bool:
+def _is_geo_pending_to_be_processed(schema: str, request_id: str, gse: str) -> bool: # TODO adapt this to link table!!!
     try:
         geo_study_id = _get_id_geo_study(schema, request_id, gse)
         database_connection, database_cursor = postgres_connection.get_database_holder()

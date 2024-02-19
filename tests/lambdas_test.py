@@ -104,8 +104,6 @@ def test_a_get_user_query(lambda_client, sqs_client):
 
 def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     # GIVEN
-    function_name = 'B_get_query_pages'
-
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -114,7 +112,7 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     ]
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='B_get_query_pages', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -150,8 +148,6 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
 
 def test_c_get_study_ids(lambda_client, sqs_client):
     # GIVEN
-    function_name = 'C_get_study_ids'
-
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -160,7 +156,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     ]
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='C_get_study_ids', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -182,8 +178,6 @@ def test_c_get_study_ids(lambda_client, sqs_client):
 
 def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
     # GIVEN
-    function_name = 'D_get_study_geo'
-
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -197,7 +191,7 @@ def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -233,8 +227,6 @@ def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO
 
 def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
     # GIVEN
-    function_name = 'D_get_study_geo'
-
     request_id = _provide_random_request_id()
     study_ids = [305668979, 305668862, 305668694]
     gsms = [str(study_id).replace('30', 'GSM', 3) for study_id in study_ids]
@@ -248,7 +240,7 @@ def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -279,8 +271,6 @@ def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
 
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     # GIVEN
-    function_name = 'E_get_study_srp'
-
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -302,7 +292,7 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -347,8 +337,6 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
 
 def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     # GIVEN
-    function_name = 'E_get_study_srp'
-
     request_id = _provide_random_request_id()
 
     study_ids = [200110021, 20037005, 200225606]
@@ -369,7 +357,7 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -402,8 +390,7 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
 
 
 def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
-    function_name = 'F_get_study_srrs'
-
+    # GIVEN
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200308347]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -434,7 +421,7 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -489,8 +476,7 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
 
 
 def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
-    function_name = 'F_get_study_srrs'
-
+    # GIVEN
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200118257]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -518,7 +504,7 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name)))
+    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -547,8 +533,6 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
 
 
 def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, database_holder):
-    function_name = 'F_get_study_srrs'
-
     request_id = _provide_random_request_id()
     study_id = 200126815
     gse = str(study_id).replace('200', 'GSE', 3)
@@ -563,7 +547,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
     _store_test_sra_run(database_holder, srr, sra_project_id)
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs([input_body], function_name, '_skip_already_processed_srp')))
+    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
 
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
@@ -585,7 +569,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
 
 #
 # def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
-#     function_name = 'F_get_study_srrs'
+#     # GIVEN
 #
 #     request_id = _provide_random_request_id()
 #     study_ids = [200177646, 200177191, 200176705, 200208520, 200177936, 200177125, 200176891, 200177518, 200176867, 200215537]
@@ -619,7 +603,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
 #         inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 #
 #     # WHEN
-#     response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(_get_customized_input_from_sqs(input_bodies, function_name, '_expensive_srp')))
+#     response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
 #
 #     # THEN REGARDING LAMBDA
 #     assert response['StatusCode'] == 200
