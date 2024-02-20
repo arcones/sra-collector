@@ -179,8 +179,8 @@ def test_c_get_study_ids(lambda_client, sqs_client):
 def test_d_get_study_geos(lambda_client, sqs_client, database_holder):  # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
     # GIVEN
     request_id = _provide_random_request_id()
-    study_ids = [200126815, 305668979, 100019750]
-    geos = ['GSE126815', 'GSM5668979', 'GPL19750']  # TODO missing GDS
+    study_ids = [200126815, 305668979, 100019750, 3268]
+    geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
     study_ids_and_geos = zip(study_ids, geos)
 
     input_bodies = [
