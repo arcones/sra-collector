@@ -176,12 +176,12 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
+def test_d_get_study_geos(lambda_client, sqs_client, database_holder):  # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
     # GIVEN
     request_id = _provide_random_request_id()
-    study_ids = [200126815, 200150644, 200167593]
-    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-    study_ids_and_gse = list(zip(study_ids, gses))
+    study_ids = [200126815, 305668979, 100019750]
+    geos = ['GSE126815', 'GSM5668979', 'GPL19750']  # TODO missing GDS
+    study_ids_and_geos = zip(study_ids, geos)
 
     input_bodies = [
         json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
@@ -198,75 +198,34 @@ def test_d_get_study_geo_gse(lambda_client, sqs_client, database_holder): # TODO
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
-    database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+    database_cursor.execute(f"""
+                            select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'
+                            """)
     actual_rows = database_cursor.fetchall()
     actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
 
-    expected_rows = [(study_id_and_gse[0], request_id, study_id_and_gse[1]) for study_id_and_gse in study_ids_and_gse]
+    expected_rows = [(study_id_and_geos[0], request_id, study_id_and_geos[1]) for study_id_and_geos in study_ids_and_geos]
     expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
 
     assert actual_rows == expected_rows
 
-    database_cursor.execute(f"select ncbi_id, request_id from sracollector_dev.geo_experiment where request_id='{request_id}'")
-    actual_rows = database_cursor.fetchall()
-    assert actual_rows == []
-
     # THEN REGARDING MESSAGES
-    expected_message_bodies = [
-        {'request_id': request_id, 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]}
-        for study_id_and_gse in study_ids_and_gse
-    ]
-    expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['study_id']))
+    expected_message_body = {'request_id': request_id, 'study_id': 200126815, 'gse': 'GSE126815'}
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=1)
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
-    actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['study_id']))
 
-    assert actual_message_bodies == expected_message_bodies
-
-
-def test_d_get_study_geo_gsm(lambda_client, sqs_client, database_holder):
-    # GIVEN
-    request_id = _provide_random_request_id()
-    study_ids = [305668979, 305668862, 305668694]
-    gsms = [str(study_id).replace('30', 'GSM', 3) for study_id in study_ids]
-    study_ids_and_gsms = list(zip(study_ids, gsms))
-
-    input_bodies = [
-        json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
-        for study_id in study_ids
-    ]
-
-    _store_test_request(database_holder, request_id, _S_QUERY['query'])
-
-    # WHEN
-    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
-
-    # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
-
-    # THEN REGARDING DATA
-    database_cursor, _ = database_holder
-    database_cursor.execute(f"select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'")
-    actual_rows = database_cursor.fetchall()
-    actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
-
-    expected_rows = [(study_id_and_gsm[0], request_id, study_id_and_gsm[1]) for study_id_and_gsm in study_ids_and_gsms]
-    expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
-
-    assert actual_rows == expected_rows
-
-    database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
-    actual_rows = database_cursor.fetchall()
-    assert actual_rows == []
-
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
+    assert len(actual_message_bodies) == 1
+    assert actual_message_bodies[0] == expected_message_body
 
 
-  # TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table) -> checking the link table, integrity constraint
+# TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table) -> checking the link table, integrity constraint
 
 
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
@@ -528,6 +487,7 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
 
     assert actual_messages == 0
+
 
 # TODO colapsar las fixtures, q no haya q crear un fichero nuevo por cada una... crearlas dinamicamente
 

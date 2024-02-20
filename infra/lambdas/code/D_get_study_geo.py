@@ -29,21 +29,22 @@ class GeoEntityType(Enum):
     GPL = {'table': 'geo_platform', 'short_name': 'gpl'}
     GDS = {'table': 'geo_data_set', 'short_name': 'gds'}
 
-
 class GeoEntity:
     def __init__(self, identifier: str):
-        self.identifier = identifier
+        self.identifier = identifier.upper()
         self.geo_entity_type = self.set_type()
 
     def set_type(self):
-        if self.identifier.startswith('gse'):
+        if self.identifier.startswith('GSE'):
             return GeoEntityType.GSE
-        elif self.identifier.startswith('gsm'):
+        elif self.identifier.startswith('GSM'):
             return GeoEntityType.GSM
-        elif self.identifier.startswith('gpl'):
+        elif self.identifier.startswith('GPL'):
             return GeoEntityType.GPL
-        elif self.identifier.startswith('gds'):
+        elif self.identifier.startswith('GDS'):
             return GeoEntityType.GDS
+        else:
+            raise ValueError(f'Unknown identifier prefix: {self.identifier}')
 
 
 def handler(event, context):
@@ -86,12 +87,12 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
         logging.debug(f'Study summary from study {study_id} is {summary}')
         geo_entity = _extract_geo_entity_from_summaries(summary)
 
-        if _is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity) and geo_entity is not None:
+        if geo_entity is not None and _is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity):
             logging.info(f'Retrieved geo {geo_entity.identifier} for study {study_id}')
             _store_geo_entity_in_db(schema, request_id, study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'request_id': request_id, 'study_id': study_id, 'gse': geo_entity}
+                message = {'request_id': request_id, 'study_id': study_id, 'gse': geo_entity.identifier}
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
                 logging.info(f'Sent message {message} for study {study_id}')
         else:
@@ -105,8 +106,7 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
 def _extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
     try:
         logging.info(f'Extracting GEO from {summary}')
-
-        if summary in [entity.value['short_name'].upper() for entity in GeoEntityType]:
+        if summary['entrytype'].upper() in [entity.value['short_name'].upper() for entity in GeoEntityType]:
             geo_entity = GeoEntity(summary['accession'])
             logging.info(f'Extracted GEO entity {geo_entity.identifier}')
             return geo_entity
@@ -135,7 +135,6 @@ def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_ent
 def _is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity) -> bool:
     try:
         database_connection, database_cursor = postgres_connection.get_database_holder()
-
         statement = database_cursor.mogrify(f"""select id from {schema}.{geo_entity.geo_entity_type.value['table']}
                                                 where request_id=%s and ncbi_id=%s and {geo_entity.geo_entity_type.value['short_name']}=%s""",
                                             (request_id, study_id, geo_entity.identifier))
