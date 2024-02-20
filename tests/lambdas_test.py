@@ -50,16 +50,19 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
+    database_connection.commit()
     database_cursor.execute("""
         TRUNCATE TABLE sracollector_dev.sra_run cascade;
         TRUNCATE TABLE sracollector_dev.sra_run_missing cascade;
-        TRUNCATE TABLE sracollector_dev.sra_project_missing cascade;
         TRUNCATE TABLE sracollector_dev.sra_project cascade;
+        TRUNCATE TABLE sracollector_dev.sra_project_missing cascade;
+        TRUNCATE TABLE sracollector_dev.geo_study_sra_project_link cascade;
         TRUNCATE TABLE sracollector_dev.geo_study cascade;
         TRUNCATE TABLE sracollector_dev.geo_experiment cascade;
+        TRUNCATE TABLE sracollector_dev.geo_platform cascade;
+        TRUNCATE TABLE sracollector_dev.geo_data_set cascade;
         TRUNCATE TABLE sracollector_dev.request cascade;
     """)
-    database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
     database_connection.close()
@@ -176,7 +179,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_d_get_study_geos(lambda_client, sqs_client, database_holder):  # TODO collapse all types of geo GSE, GSM, GPL, GDS in one method
+def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
     # GIVEN
     request_id = _provide_random_request_id()
     study_ids = [200126815, 305668979, 100019750, 3268]
@@ -489,9 +492,6 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     assert actual_messages == 0
 
 
-# TODO colapsar las fixtures, q no haya q crear un fichero nuevo por cada una... crearlas dinamicamente
-
-
 def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, database_holder):
     request_id = _provide_random_request_id()
     study_id = 200126815
@@ -527,79 +527,60 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
 
     assert actual_messages == 0
 
-#
-# def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
-#     # GIVEN
-#
-#     request_id = _provide_random_request_id()
-#     study_ids = [200177646, 200177191, 200176705, 200208520, 200177936, 200177125, 200176891, 200177518, 200176867, 200215537]
-#
-#     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-#     srp = 'SRP012412'
-#     srps = [srp] * 10
-#     study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
-#
-#     with open(f'tests/fixtures/SRRS_of_SRP012412.txt') as file_with_expected_srrs:
-#         srrs = file_with_expected_srrs.readlines()
-#
-#     input_bodies = [
-#         json.dumps({
-#             'request_id': request_id,
-#             'ncbi_query': _S_QUERY['query'],
-#             'study_id': study_id_and_gse_and_srp[0],
-#             'gse': study_id_and_gse_and_srp[1],
-#             'srp': study_id_and_gse_and_srp[2]
-#         }).replace('"', '\"')
-#         for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-#     ]
-#
-#     _store_test_request(database_holder, request_id, _S_QUERY['query'])
-#     inserted_geo_study_ids = []
-#     for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-#         inserted_geo_study_ids.append(_store_test_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
-#
-#     inserted_sra_project_ids = []
-#     for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-#         inserted_sra_project_ids.append(_store_test_srp(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
-#
-#     # WHEN
-#     response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
-#
-#     # THEN REGARDING LAMBDA
-#     assert response['StatusCode'] == 200
-#
-#     # THEN REGARDING DATA
-#     database_cursor, _ = database_holder
-#     inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
-#     database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-#     actual_ok_rows = database_cursor.fetchall()
-#     actual_ok_rows = actual_ok_rows.sort()
-#     expected_rows = [(srr,) for srr in (srrs)]
-#     expected_rows = expected_rows.sort()
-#     assert actual_ok_rows == expected_rows
-#
-#     database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-#     actual_ko_rows = database_cursor.fetchall()
-#     assert actual_ko_rows == []
-#
-#     # THEN REGARDING MESSAGES
-#     expected_message_bodies = [
-#         {
-#             'request_id': request_id,
-#             'ncbi_query': _S_QUERY['query'],
-#             'study_id': 200308347,
-#             'gse': 'GSE308347',
-#             'srp': 'SRP308347',
-#             'srr': srr,
-#         }
-#         for srr in srrs
-#     ]
-#
-#     expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))
-#     # TODO Comprobar el número de mensajes por count... o ver si hay algun error pa que tarde tanto pq esto es inviable
-#     actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
-#     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
-#     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))
-#
-#     assert len(actual_message_bodies) == len(expected_message_bodies)
-#     assert actual_message_bodies == expected_message_bodies
+@pytest.mark.skip()
+def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
+    # GIVEN
+
+    request_id = _provide_random_request_id()
+    study_ids = [200177646, 200177191, 200176705, 200208520, 200177936, 200177125, 200176891, 200177518, 200176867, 200215537]
+
+    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+    srp = 'SRP012412'
+    srps = [srp] * 10
+    study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
+
+    with open(f'tests/fixtures/SRRS_of_SRP012412.txt') as file_with_expected_srrs:
+        srrs = file_with_expected_srrs.readlines()
+
+    input_bodies = [
+        json.dumps({
+            'request_id': request_id,
+            'ncbi_query': _S_QUERY['query'],
+            'study_id': study_id_and_gse_and_srp[0],
+            'gse': study_id_and_gse_and_srp[1],
+            'srp': study_id_and_gse_and_srp[2]
+        }).replace('"', '\"')
+        for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
+    ]
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    inserted_geo_study_ids = []
+    for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
+
+    inserted_sra_project_ids = []
+    for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
+        inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
+    database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_ok_rows = database_cursor.fetchall()
+    actual_ok_rows = actual_ok_rows.sort()
+    expected_rows = [(srr,) for srr in (srrs)]
+    expected_rows = expected_rows.sort()
+    assert actual_ok_rows == expected_rows
+
+    database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == []
+
+    # THEN REGARDING MESSAGES
+    assert len(srrs) == sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])

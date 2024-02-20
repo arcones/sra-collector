@@ -134,13 +134,13 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         raise exception
 
 
-def _is_geo_pending_to_be_processed(schema: str, request_id: str, gse: str) -> bool: # TODO adapt this to link table!!!
+def _is_geo_pending_to_be_processed(schema: str, request_id: str, gse: str) -> bool:
     try:
         geo_study_id = _get_id_geo_study(schema, request_id, gse)
         database_connection, database_cursor = postgres_connection.get_database_holder()
         statement = database_cursor.mogrify(
             f'''
-            select id from {schema}.sra_project where geo_study_id=%s
+            select sra_project_id from {schema}.geo_study_sra_project_link where geo_study_id=%s
             union
             select id from {schema}.sra_project_missing where geo_study_id=%s
             ''',
