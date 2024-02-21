@@ -44,6 +44,7 @@ def handler(event, context):
                     try:
                         raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
                         srrs = list(raw_pysradb_data_frame['run_accession'])
+                        srrs = [srr for srr in srrs if srr.startswith('SRR')]
 
                         if srrs:
                             logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
@@ -80,11 +81,10 @@ def handler(event, context):
 
 def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
         srr_and_sra_id_tuples = [(srr, sra_project_id) for srr in srrs]
         logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
-        postgres_connection.execute_bulk_write_statement(database_connection, database_cursor, schema, 'sra_run', ['srr', 'sra_project_id'], srr_and_sra_id_tuples)
+        postgres_connection.execute_bulk_write_statement(schema, 'sra_run', ['srr', 'sra_project_id'], srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -92,17 +92,12 @@ def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
 
 def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'''
-            select sp.id from {schema}.sra_project sp
+        statement = f'''select sp.id from {schema}.sra_project sp
             join {schema}.geo_study_sra_project_link gsspl on sp.id = gsspl.sra_project_id
             join {schema}.geo_study gs on gsspl.geo_study_id = gs.id
-            where gs.request_id=%s and sp.srp=%s
-            ''',
-            (request_id, srp)
-        )
-        return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+            where gs.request_id=%s and sp.srp=%s;'''
+        parameters = (request_id, srp)
+        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -110,14 +105,11 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
 
 def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_error: PysradbError, details: str):
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
         pysradb_error_reference_id = _get_pysradb_error_reference(schema, pysradb_error)
-        statement = database_cursor.mogrify(
-            f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s);',
-            (sra_project_id, pysradb_error_reference_id, details)
-        )
-        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+        statement = f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s);'
+        parameters = (sra_project_id, pysradb_error_reference_id, details)
+        postgres_connection.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -125,9 +117,9 @@ def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_err
 
 def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(f"select id from {schema}.pysradb_error_reference where name=%s and operation='srp_to_srr'", (pysradb_error.value,))
-        return postgres_connection.execute_read_statement_for_primary_key(database_connection, database_cursor, statement)
+        statement = f"select id from {schema}.pysradb_error_reference where name=%s and operation='srp_to_srr';"
+        parameters = (pysradb_error.value,)
+        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -135,17 +127,12 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
 
 def _is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool: ## TODO hacen falta tests de estos. Si ya está q no sea procesado. De este y todos sus homólogos
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
-        statement = database_cursor.mogrify(
-            f'''
-            select id from {schema}.sra_run where sra_project_id=%s
-            union
-            select id from {schema}.sra_run_missing where sra_project_id=%s
-            ''',
-            (sra_project_id, sra_project_id)
-        )
-        return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
+        statement = f'''select id from {schema}.sra_run where sra_project_id=%s
+                        union
+                        select id from {schema}.sra_run_missing where sra_project_id=%s;'''
+        parameters = (sra_project_id, sra_project_id)
+        return not postgres_connection.is_row_present(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

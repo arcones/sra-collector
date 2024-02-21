@@ -6,9 +6,7 @@ from io import StringIO
 
 import boto3
 import psycopg2
-from psycopg2 import errors
 from psycopg2 import OperationalError
-from psycopg2.errorcodes import UNIQUE_VIOLATION
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
@@ -19,18 +17,14 @@ secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 logger = logging.getLogger(__name__)
 
 
-def get_database_holder():
+def execute_write_statement(statement: str, parameters: tuple):
+    write_command_output = None
     database_connection = _get_connection()
     database_cursor = database_connection.cursor()
-    return database_connection, database_cursor
-
-
-def execute_write_statement(database_connection, database_cursor, statement: str):
-    write_command_output = None
     try:
-        logger.info(f'Executing: {statement}...')
-        database_cursor.execute(statement)
-        logger.info(f'Executed {statement}')
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        database_cursor.execute(statement, parameters)
+        logger.info(f'Executed {statement} with parameters {parameters}')
         database_connection.commit()
         return write_command_output
     except Exception as exception:
@@ -41,13 +35,15 @@ def execute_write_statement(database_connection, database_cursor, statement: str
         database_connection.close()
 
 
-def execute_write_statement_returning(database_connection, database_cursor, statement: str):
+def execute_write_statement_returning(statement: str, parameters: tuple):
     write_command_output = None
+    database_connection = _get_connection()
+    database_cursor = database_connection.cursor()
     try:
-        logger.info(f'Executing: {statement}...')
-        database_cursor.execute(statement)
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        database_cursor.execute(statement, parameters)
         write_command_output = database_cursor.fetchone()[0]
-        logger.info(f'Executed {statement}')
+        logger.info(f'Executed {statement} with parameters {parameters}')
         database_connection.commit()
         return write_command_output
     except Exception as exception:
@@ -58,7 +54,9 @@ def execute_write_statement_returning(database_connection, database_cursor, stat
         database_connection.close()
 
 
-def execute_bulk_write_statement(database_connection, database_cursor, schema: str, destination_table: str, columns: [str], rows: [tuple]):
+def execute_bulk_write_statement(schema: str, destination_table: str, columns: [str], rows: [tuple]):
+    database_connection = _get_connection()
+    database_cursor = database_connection.cursor()
     tuple_length = max([len(row) for row in rows])
     assert tuple_length == len(columns), "The tuples provided don't have the same size as the columns"
 
@@ -82,11 +80,13 @@ def execute_bulk_write_statement(database_connection, database_cursor, schema: s
         database_connection.close()
 
 
-def execute_read_statement_for_primary_key(database_connection, database_cursor, statement: str) -> int:
+def execute_read_statement_for_primary_key(statement: str, parameters: tuple) -> int:
+    database_connection = _get_connection()
+    database_cursor = database_connection.cursor()
     try:
-        logger.info(f'Executing: {statement}...')
-        database_cursor.execute(statement)
-        logger.info(f'Executed {statement}')
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        database_cursor.execute(statement, parameters)
+        logger.info(f'Executed {statement} with parameters {parameters}')
         return database_cursor.fetchone()[0] if database_cursor.rowcount > 0 else None
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
@@ -96,12 +96,14 @@ def execute_read_statement_for_primary_key(database_connection, database_cursor,
         database_connection.close()
 
 
-def is_row_present(database_connection, database_cursor, statement: str) -> bool:
+def is_row_present(statement: str, parameters: tuple) -> bool:
+    database_connection = _get_connection()
+    database_cursor = database_connection.cursor()
     try:
-        logger.info(f'Executing: {statement}...')
-        database_cursor.execute(statement)
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        database_cursor.execute(statement, parameters)
         result = database_cursor.fetchone()
-        logger.info(f'Executed {statement}')
+        logger.info(f'Executed {statement} with parameters {parameters}')
         return result is not None
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
@@ -136,5 +138,4 @@ def _get_connection():
                 logger.warning(str(operationalError))
                 connection_attempts += 1
                 time.sleep(1)
-
     return database_connection

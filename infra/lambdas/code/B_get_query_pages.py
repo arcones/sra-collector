@@ -85,12 +85,9 @@ def _get_study_count(ncbi_query: str) -> int:
 
 def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);',
-            (request_id, ncbi_query, study_count)
-        )
-        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+        statement = f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);'
+        parameters = (request_id, ncbi_query, study_count)
+        postgres_connection.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -98,12 +95,9 @@ def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_co
 
 def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str, study_count: int) -> bool:
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'select id from {schema}.request where id=%s and query=%s and geo_count=%s',
-            (request_id, ncbi_query, study_count)
-        )
-        return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
+        statement = f'select id from {schema}.request where id=%s and query=%s and geo_count=%s;'
+        parameters = (request_id, ncbi_query, study_count)
+        return not postgres_connection.is_row_present(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

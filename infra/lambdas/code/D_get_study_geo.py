@@ -54,7 +54,7 @@ def handler(event, context):
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
+        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}' ## TODO batcher esto!
 
         batch_item_failures = []
         sqs_batch_response = {}
@@ -121,12 +121,11 @@ def _extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
 
 def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity):
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f"insert into {schema}.{geo_entity.geo_entity_type.value['table']} (ncbi_id, request_id, {geo_entity.geo_entity_type.value['short_name']}) values (%s, %s, %s);",
-            (study_id, request_id, geo_entity.identifier)
-        )
-        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+        statement = f"""insert into {schema}.{geo_entity.geo_entity_type.value['table']}
+                        (ncbi_id, request_id, {geo_entity.geo_entity_type.value['short_name']})
+                        values (%s, %s, %s);"""
+        parameters = (study_id, request_id, geo_entity.identifier)
+        postgres_connection.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -134,11 +133,10 @@ def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_ent
 
 def _is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity) -> bool:
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(f"""select id from {schema}.{geo_entity.geo_entity_type.value['table']}
-                                                where request_id=%s and ncbi_id=%s and {geo_entity.geo_entity_type.value['short_name']}=%s""",
-                                            (request_id, study_id, geo_entity.identifier))
-        return not postgres_connection.is_row_present(database_connection, database_cursor, statement)
+        statement = f"""select id from {schema}.{geo_entity.geo_entity_type.value['table']}
+                        where request_id=%s and ncbi_id=%s and {geo_entity.geo_entity_type.value['short_name']}=%s;"""
+        parameters = (request_id, study_id, geo_entity.identifier)
+        return not postgres_connection.is_row_present(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

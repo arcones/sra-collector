@@ -44,7 +44,7 @@ def handler(event, context):
                 for study_id in study_list:
                     messages.append({
                         'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query, 'study_id': study_id})
+                        'MessageBody': json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query, 'study_id': study_id}) ## TODO poner más study ids en cada mensaje.. de 200 en 200 dicen q es el máximo
                     })
 
                 message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]

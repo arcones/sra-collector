@@ -50,7 +50,6 @@ def sqs_client():
 def database_holder():
     database_connection = _get_db_connection()
     database_cursor = database_connection.cursor()
-    database_connection.commit()
     database_cursor.execute("""
         TRUNCATE TABLE sracollector_dev.sra_run cascade;
         TRUNCATE TABLE sracollector_dev.sra_run_missing cascade;
@@ -63,6 +62,7 @@ def database_holder():
         TRUNCATE TABLE sracollector_dev.geo_data_set cascade;
         TRUNCATE TABLE sracollector_dev.request cascade;
     """)
+    database_connection.commit()
     yield database_cursor, database_connection
     database_cursor.close()
     database_connection.close()
@@ -87,6 +87,7 @@ def test_a_get_user_query(lambda_client, sqs_client):
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
 
+    print(response['Payload'].read()) # TODO AQUIMEQUEDE, Q COÑO LES PASA A LOS TESTS
     actual_response = json.loads(response['Payload'].read())
 
     actual_response_inner_status = actual_response['statusCode']
@@ -527,6 +528,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
 
     assert actual_messages == 0
 
+
 @pytest.mark.skip()
 def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
     # GIVEN
@@ -584,3 +586,7 @@ def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_hold
 
     # THEN REGARDING MESSAGES
     assert len(srrs) == sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])
+#
+#
+#
+# def test_what_happens_with_certain_geos(lambda_client, sqs_client, database_holder):
