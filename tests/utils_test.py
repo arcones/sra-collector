@@ -115,7 +115,6 @@ def _store_test_sra_project(database_holder, srp, geo_study_id):
     return inserted_sra_project_id
 
 
-# TODO  simulación con test de los GSE q han fallado en tmp/test17feb/D_DLQ_geos_2_srps.json
 # TODO contestar a TAO
 
 def _store_test_sra_run(database_holder, srr, sra_project_id):

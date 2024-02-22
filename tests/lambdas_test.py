@@ -18,7 +18,7 @@ from utils_test import _wait_test_server_readiness
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 _S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8}
-_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1092}
+_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1094}
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -87,8 +87,8 @@ def test_a_get_user_query(lambda_client, sqs_client):
     # THEN REGARDING LAMBDA
     assert response['StatusCode'] == 200
 
-    print(response['Payload'].read()) # TODO AQUIMEQUEDE, Q COÑO LES PASA A LOS TESTS
-    actual_response = json.loads(response['Payload'].read())
+    content = response['Payload'].read()
+    actual_response = json.loads(content)
 
     actual_response_inner_status = actual_response['statusCode']
     actual_response_payload = actual_response['body']
@@ -352,6 +352,54 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     assert actual_messages == 0
 
 
+def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, database_holder):
+    # GIVEN
+    request_id = _provide_random_request_id()
+    study_ids = [20040034, 200252323, 20030614]
+    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+
+    study_ids_and_gses = list(zip(study_ids, gses))
+
+    input_bodies = [
+        json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]})
+        .replace('"', '\"')
+        for study_id_and_gse in study_ids_and_gses
+    ]
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+
+    inserted_geo_study_ids = []
+    for study_id_and_gse in study_ids_and_gses:
+        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    inserted_geo_study_ids_for_sql_in = ','.join(map(str, inserted_geo_study_ids))
+
+    database_cursor.execute(f'''select srp from sracollector_dev.sra_project
+                                join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+                                where geo_study_id in ({inserted_geo_study_ids_for_sql_in})
+                            ''')
+    actual_ok_rows = database_cursor.fetchall()
+    assert actual_ok_rows == []
+
+    database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == []
+
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
+
 def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
     # GIVEN
     request_id = _provide_random_request_id()
@@ -529,7 +577,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
     assert actual_messages == 0
 
 
-@pytest.mark.skip()
+@pytest.mark.skip('Just for testing proper timeouts for F lambda')
 def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
     # GIVEN
 
@@ -586,7 +634,3 @@ def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_hold
 
     # THEN REGARDING MESSAGES
     assert len(srrs) == sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])
-#
-#
-#
-# def test_what_happens_with_certain_geos(lambda_client, sqs_client, database_holder):

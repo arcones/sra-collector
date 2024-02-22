@@ -45,11 +45,14 @@ def handler(event, context):
                         srp = raw_pysradb_response['study_accession'][0]
 
                         if srp:
-                            logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb for study {study_id}, pushing message to study summaries queue')
-                            response = json.dumps({**request_body, 'srp': srp})
-                            _store_srp_in_db(schema, request_id, gse, srp)
-                            sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                            logging.info(f'Sent event to {output_sqs} with body {response}')
+                            if srp.startswith('SRP'):
+                                logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb for study {study_id}, pushing message to study summaries queue')
+                                response = json.dumps({**request_body, 'srp': srp})
+                                _store_srp_in_db(schema, request_id, gse, srp)
+                                sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
+                                logging.info(f'Sent event to {output_sqs} with body {response}')
+                            else:
+                                logging.info(f'For GSE {gse}, SRP {srp} is not compliant, skipping it.')
                         else:
                             logging.info(f'No SRP for {study_id} and {gse} found via pysradb')
                             _store_missing_srp_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRP found')
