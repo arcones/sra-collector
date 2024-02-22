@@ -102,6 +102,39 @@ def _store_test_geo_study(database_holder, request_id, study_id, gse):
     return inserted_geo_study_id
 
 
+def _store_test_geo_experiment(database_holder, request_id, study_id, gsm):
+    database_cursor, database_connection = database_holder
+
+    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_experiment (request_id, ncbi_id, gsm) values (%s, %s, %s) returning id',
+                                              (request_id, study_id, gsm))
+    database_cursor.execute(study_statement)
+    inserted_geo_experiment_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_geo_experiment_id
+
+
+def _store_test_geo_platform(database_holder, request_id, study_id, gpl):
+    database_cursor, database_connection = database_holder
+
+    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_platform (request_id, ncbi_id, gpl) values (%s, %s, %s) returning id',
+                                              (request_id, study_id, gpl))
+    database_cursor.execute(study_statement)
+    inserted_geo_platform_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_geo_platform_id
+
+
+def _store_test_geo_data_set(database_holder, request_id, study_id, gds):
+    database_cursor, database_connection = database_holder
+
+    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_data_set (request_id, ncbi_id, gds) values (%s, %s, %s) returning id',
+                                              (request_id, study_id, gds))
+    database_cursor.execute(study_statement)
+    inserted_geo_data_set = database_cursor.fetchone()[0]
+    database_connection.commit()
+    return inserted_geo_data_set
+
+
 def _store_test_sra_project(database_holder, srp, geo_study_id):
     database_cursor, database_connection = database_holder
 

@@ -9,6 +9,9 @@ from utils_test import _get_customized_input_from_sqs
 from utils_test import _get_db_connection
 from utils_test import _provide_random_ncbi_query
 from utils_test import _provide_random_request_id
+from utils_test import _store_test_geo_data_set
+from utils_test import _store_test_geo_experiment
+from utils_test import _store_test_geo_platform
 from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
@@ -150,6 +153,31 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies == expected_message_bodies
 
 
+def test_b_get_query_pages_skip_already_processed_study_id(lambda_client, sqs_client, database_holder):
+    # GIVEN
+    request_id = _provide_random_request_id()
+    input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName='B_get_query_pages', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    database_cursor.execute(f"select id from sracollector_dev.request where id='{request_id}'")
+    actual_rows = database_cursor.fetchall()
+    assert actual_rows == [(request_id,)]
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
+
 def test_c_get_study_ids(lambda_client, sqs_client):
     # GIVEN
     request_id_1 = _provide_random_request_id()
@@ -229,6 +257,56 @@ def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies[0] == expected_message_body
 
 
+def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_client, database_holder):
+    # GIVEN
+    request_id = _provide_random_request_id()
+    study_ids = [200126815, 305668979, 100019750, 3268]
+    geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
+    study_ids_and_geos = zip(study_ids, geos)
+
+    input_bodies = [
+        json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
+        for study_id in study_ids
+    ]
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+
+    _store_test_geo_study(database_holder, request_id, 200126815, 'GSE126815')
+    _store_test_geo_experiment(database_holder, request_id, 305668979, 'GSM5668979')
+    _store_test_geo_platform(database_holder, request_id, 100019750, 'GPL19750')
+    _store_test_geo_data_set(database_holder, request_id, 3268, 'GDS3268')
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    database_cursor.execute(f"""
+                            select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'
+                            union
+                            select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'
+                            """)
+    actual_rows = database_cursor.fetchall()
+    actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
+
+    expected_rows = [(study_id_and_geos[0], request_id, study_id_and_geos[1]) for study_id_and_geos in study_ids_and_geos]
+    expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
+
+    assert actual_rows == expected_rows
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
+
 # TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table) -> checking the link table, integrity constraint
 
 
@@ -240,18 +318,18 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
 
     srps = ['SRP185522', 'SRP261818', 'SRP308347']
 
-    study_ids_and_gses = list(zip(study_ids, gses))
+    study_ids_and_geos = list(zip(study_ids, gses))
 
     input_bodies = [
         json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]})
         .replace('"', '\"')
-        for study_id_and_gse in study_ids_and_gses
+        for study_id_and_gse in study_ids_and_geos
     ]
 
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     inserted_geo_study_ids = []
-    for study_id_and_gse in study_ids_and_gses:
+    for study_id_and_gse in study_ids_and_geos:
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
@@ -277,7 +355,7 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     assert actual_ko_rows == []
 
     # THEN REGARDING MESSAGES
-    study_ids_and_gses_and_srps = list(zip(study_ids_and_gses, srps))
+    study_ids_and_gses_and_srps = list(zip(study_ids_and_geos, srps))
 
     expected_message_bodies = [
         {
@@ -393,6 +471,39 @@ def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, data
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == []
 
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
+
+def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, database_holder):
+    request_id = _provide_random_request_id()
+    study_id = 200126815
+    gse = str(study_id).replace('200', 'GSE', 3)
+    srp = 'SRP185522'
+
+    input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id, 'gse': gse}).replace('"', '\"')
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)
+    inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id)
+
+    # WHEN
+    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select srp from sracollector_dev.sra_project where id={inserted_sra_project_id}')
+    actual_ok_rows = database_cursor.fetchall()
+    assert actual_ok_rows == [(srp,)]
+
+    database_cursor.execute(f'select pysradb_error_reference_id from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+    actual_ko_rows = database_cursor.fetchall()
+    assert actual_ko_rows == []
 
     # THEN REGARDING MESSAGES
     actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
