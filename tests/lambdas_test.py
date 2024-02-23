@@ -307,7 +307,46 @@ def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_cli
     assert actual_messages == 0
 
 
-# TODO add case where two input GSE give same SRP and check that the inserts make sense (it doesn't get duplicated in SRP table) -> checking the link table, integrity constraint
+def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, database_holder):
+    # GIVEN
+    request_id = _provide_random_request_id()
+    study_ids = [20094225, 20094169]
+    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+    srp = 'SRP094854'
+
+    _store_test_request(database_holder, request_id, _S_QUERY['query'])
+    inserted_geo_study_id_1 = _store_test_geo_study(database_holder, request_id, study_ids[0], gses[0])
+    _store_test_sra_project(database_holder, srp, inserted_geo_study_id_1)
+    inserted_geo_study_id_2 = _store_test_geo_study(database_holder, request_id, study_ids[1], gses[1])
+
+    database_cursor, _ = database_holder
+    database_cursor.execute(f'select count(*) from sracollector_dev.geo_study_sra_project_link')
+    link_rows_before = database_cursor.fetchone()[0]
+    assert link_rows_before == 1
+    database_cursor.execute(f'select count(*) from sracollector_dev.sra_project')
+    srp_rows_before = database_cursor.fetchone()[0]
+    assert srp_rows_before == 1
+
+    # WHEN
+    input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_ids[1], 'gse': gses[1]})
+    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+
+    # THEN REGARDING LAMBDA
+    assert response['StatusCode'] == 200
+
+    # THEN REGARDING DATA
+    database_cursor.execute(f'select count(*) from sracollector_dev.geo_study_sra_project_link')
+    link_rows_after = database_cursor.fetchone()[0]
+    assert link_rows_after == 2
+    database_cursor.execute(f'select count(*) from sracollector_dev.sra_project')
+    srp_rows_after = database_cursor.fetchone()[0]
+    assert srp_rows_after == 1
+
+    # THEN REGARDING MESSAGES
+    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
+
+    assert actual_messages == 0
+
 
 
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):

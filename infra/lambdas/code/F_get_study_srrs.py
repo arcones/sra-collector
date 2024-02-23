@@ -125,7 +125,7 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         raise exception
 
 
-def _is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool: ## TODO hacen falta tests de estos. Si ya está q no sea procesado. De este y todos sus homólogos
+def _is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool:
     try:
         sra_project_id = _get_id_sra_project(schema, request_id, srp)
         statement = f'''select id from {schema}.sra_run where sra_project_id=%s
