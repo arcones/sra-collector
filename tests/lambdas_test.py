@@ -348,13 +348,11 @@ def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, data
     assert actual_messages == 0
 
 
-
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     # GIVEN
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-
     srps = ['SRP185522', 'SRP261818', 'SRP308347']
 
     study_ids_and_geos = list(zip(study_ids, gses))

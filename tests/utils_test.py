@@ -148,8 +148,6 @@ def _store_test_sra_project(database_holder, srp, geo_study_id):
     return inserted_sra_project_id
 
 
-# TODO contestar a TAO
-
 def _store_test_sra_run(database_holder, srr, sra_project_id):
     database_cursor, database_connection = database_holder
 
