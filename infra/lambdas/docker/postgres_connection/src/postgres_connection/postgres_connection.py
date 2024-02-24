@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 import time
 from io import StringIO
 
@@ -15,6 +16,17 @@ MAX_TRIES = 5
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
 logger = logging.getLogger(__name__)
+
+
+def schema_for_env() -> str:
+    sqs_name = 'integration_test_queue'
+    db_schema = 'sracollector_dev'
+    if os.environ['ENV'] == 'prod':
+        db_schema = 'sracollector'
+
+    logger.debug(f'DB schema in use is {db_schema}')
+
+    return db_schema
 
 
 def execute_write_statement(statement: str, parameters: tuple):

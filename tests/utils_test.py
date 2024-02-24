@@ -11,42 +11,9 @@ http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
-
 class Context:
     def __init__(self, function_name):
         self.function_name = function_name
-
-
-def _ensure_queue_is_empty(sqs_client, queue):
-    messages_left = None
-    start_waiting = time.time()
-    while messages_left != 0:
-        response = sqs_client.get_queue_attributes(QueueUrl=queue, AttributeNames=['ApproximateNumberOfMessages'])
-        messages_left = int(response['Attributes']['ApproximateNumberOfMessages'])
-        if time.time() - start_waiting < 60:
-            print('SQS queue is still not empty...')
-            time.sleep(1)
-        else:
-            print('Timeout while waiting SQS queue to be purged :(')
-            raise Exception
-    print('SQS queue is purged :)')
-
-
-def _get_all_queue_messages(sqs_client, queue, messages_count):
-    messages = []
-
-    while len(messages) < messages_count:
-        sqs_messages = sqs_client.receive_message(QueueUrl=queue)
-        if 'Messages' in sqs_messages:
-            for message in sqs_messages['Messages']:
-                if message not in messages:
-                    messages.append(message)
-                    sqs_client.delete_message(QueueUrl=queue, ReceiptHandle=message['ReceiptHandle'])
-        else:
-            time.sleep(0.1)
-            continue
-
-    return messages
 
 
 def _get_db_connection():
@@ -144,6 +111,13 @@ def _store_test_sra_run(database_holder, srr, sra_project_id):
     inserted_sra_run_id = database_cursor.fetchone()[0]
     database_connection.commit()
     return inserted_sra_run_id
+
+
+def _get_needed_batches_of_ten_messages(messages_count):
+    batches, remainder = divmod(messages_count, 10)
+    if remainder > 0:
+        batches += 1
+    return batches
 
 
 def _get_customized_input_from_sqs(bodies: [str]) -> dict:

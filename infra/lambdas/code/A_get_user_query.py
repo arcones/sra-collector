@@ -2,18 +2,16 @@ import json
 import logging
 
 import boto3
-from env_params import env_params
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
+output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/A_user_query'
 
 
 def handler(event, context):
     try:
         logging.info(f'Received event {event}')
-
-        output_sqs, _ = env_params.params_per_env(context.function_name)
 
         request_body = json.loads(event['body'])
         ncbi_query = request_body['ncbi_query']

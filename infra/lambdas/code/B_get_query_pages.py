@@ -4,18 +4,19 @@ import time
 
 import boto3
 import urllib3
-from env_params import env_params
 from postgres_connection import postgres_connection
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
+output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/B_query_pages'
+
 http = urllib3.PoolManager()
 page_size = 500
 
 
 def handler(event, context):
-    output_sqs, schema = env_params.params_per_env(context.function_name)
+    schema = postgres_connection.schema_for_env()
 
     if event:
 

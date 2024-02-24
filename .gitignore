@@ -13,6 +13,7 @@ terraform.plan
 **/.pytest_cache
 **/__pycache__/
 **/dist/
+**/*.egg-info/
 
 # Tests
 infra/.aws-sam-iacs
