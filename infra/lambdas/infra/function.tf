@@ -13,10 +13,11 @@ data "archive_file" "code" {
 }
 
 resource "aws_lambda_function" "function" {
-  function_name = var.function_name
-  filename      = data.archive_file.code.output_path
-  handler       = "${var.function_name}.handler"
-  role          = aws_iam_role.lambda_role.arn
+  function_name                  = var.function_name
+  filename                       = data.archive_file.code.output_path
+  handler                        = "${var.function_name}.handler"
+  role                           = aws_iam_role.lambda_role.arn
+  reserved_concurrent_executions = var.reserved_concurrent_executions
   logging_config {
     log_format            = "JSON"
     application_log_level = "INFO"
@@ -29,7 +30,7 @@ resource "aws_lambda_function" "function" {
     }
   }
   runtime          = "python3.11"
-  memory_size      = 128
+  memory_size      = var.memory_size
   layers           = [var.common_libs_layer_arn]
   timeout          = var.timeout
   source_code_hash = data.archive_file.code.output_base64sha256
@@ -45,9 +46,10 @@ resource "aws_lambda_permission" "apigateway_trigger_lambda_permission" {
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  count            = var.queues.input_sqs_arn == null ? 0 : 1
-  event_source_arn = var.queues.input_sqs_arn
-  enabled          = true
-  function_name    = var.function_name
-  batch_size       = 10
+  count                   = var.queues.input_sqs_arn == null ? 0 : 1
+  event_source_arn        = var.queues.input_sqs_arn
+  enabled                 = true
+  function_name           = var.function_name
+  batch_size              = 10
+  function_response_types = ["ReportBatchItemFailures"]
 }

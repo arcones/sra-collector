@@ -46,3 +46,13 @@ variable "timeout" {
   default = 30
   type    = number
 }
+
+variable "memory_size" {
+  default = 128
+  type    = number
+}
+
+variable "reserved_concurrent_executions" {
+  default = null
+  type    = number
+}

@@ -15,12 +15,17 @@ page_size = 500
 
 
 def handler(event, context):
-    try:
-        output_sqs, schema = env_params.params_per_env(context.function_name)
+    output_sqs, schema = env_params.params_per_env(context.function_name)
 
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
-            for record in event['Records']:
+    if event:
+
+        logging.info(f'Received {len(event["Records"])} records event {event}')
+
+        batch_item_failures = []
+        sqs_batch_response = {}
+
+        for record in event['Records']:
+            try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
@@ -32,32 +37,37 @@ def handler(event, context):
 
                 study_count = _get_study_count(ncbi_query)
 
-                _store_request_in_db(schema, request_id, ncbi_query, study_count)
+                if _is_request_pending_to_be_processed(schema, request_id, ncbi_query):
+                    _store_request_in_db(schema, request_id, ncbi_query, study_count)
 
-                retstart = 0
-                messages = []
+                    retstart = 0
+                    messages = []
 
-                while retstart <= study_count:
-                    if retstart > study_count:
-                        retstart = study_count
-                        continue
+                    while retstart <= study_count:
+                        if retstart > study_count:
+                            retstart = study_count
+                            continue
 
-                    messages.append({
-                        'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
-                    })
+                        messages.append({
+                            'Id': str(time.time()).replace('.', ''),
+                            'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
+                        })
 
-                    retstart = retstart + page_size
+                        retstart = retstart + page_size
 
-                message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+                    message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
 
-                for message_batch in message_batches:
-                    sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
+                    for message_batch in message_batches:
+                        sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
-                logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
+                    logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                else:
+                    logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def _get_study_count(ncbi_query: str) -> int:
@@ -75,12 +85,19 @@ def _get_study_count(ncbi_query: str) -> int:
 
 def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
     try:
-        database_connection, database_cursor = postgres_connection.get_database_holder()
-        statement = database_cursor.mogrify(
-            f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s)',
-            (request_id, ncbi_query, study_count)
-        )
-        postgres_connection.execute_write_statement(database_connection, database_cursor, statement)
+        statement = f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);'
+        parameters = (request_id, ncbi_query, study_count)
+        postgres_connection.execute_write_statement(statement, parameters)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str) -> bool:
+    try:
+        statement = f'select id from {schema}.request where id=%s and query=%s;'
+        parameters = (request_id, ncbi_query)
+        return not postgres_connection.is_row_present(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

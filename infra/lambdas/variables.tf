@@ -22,12 +22,12 @@ variable "queues" {
       C_study_ids_sqs_arn                = string
       C_study_ids_sqs_visibility_timeout = number
     }),
-    C_DLQ_study_ids_2_gses_arn = string,
-    D_gses_sqs = object({
-      D_gses_sqs_arn                = string
-      D_gses_sqs_visibility_timeout = number
+    C_DLQ_study_ids_2_geos_arn = string,
+    D_geos_sqs = object({
+      D_geos_sqs_arn                = string
+      D_geos_sqs_visibility_timeout = number
     }),
-    D_DLQ_gses_2_srps_arn = string,
+    D_DLQ_geos_2_srps_arn = string,
     E_srps_sqs = object({
       E_srps_sqs_arn                = string
       E_srps_sqs_visibility_timeout = number
