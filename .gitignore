@@ -12,6 +12,7 @@ terraform.plan
 **/*.zip
 **/.pytest_cache
 **/__pycache__/
+**/dist/
 
 # Tests
 infra/.aws-sam-iacs

@@ -128,7 +128,7 @@ max-sra-collector-request:
 build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt && cd .. && \
 	cd infra/lambdas/docker/env_params && \
-	python -m build && pip install dist/env_params-0.0.1-py3-none-any.whl
+	python -m build && pip install dist/env_params-0.0.1-py3-none-any.whl && \
 	cd ../postgres_connection && \
 	python -m build && pip install dist/postgres_connection-0.0.2-py3-none-any.whl
 
