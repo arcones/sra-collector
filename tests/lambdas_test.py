@@ -19,12 +19,12 @@ from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
 from utils_test import Context
 
-sys.path.append('../infra/lambdas/code/A_get_user_query.py')
-sys.path.append('../infra/lambdas/code/B_get_query_pages.py')
-sys.path.append('../infra/lambdas/code/C_get_study_ids.py')
-sys.path.append('../infra/lambdas/code/D_get_study_geo.py')
-sys.path.append('../infra/lambdas/code/E_get_study_srp.py')
-sys.path.append('../infra/lambdas/code/F_get_study_srrs.py')
+sys.path.append('infra/lambdas/code/A_get_user_query.py')
+sys.path.append('infra/lambdas/code/B_get_query_pages.py')
+sys.path.append('infra/lambdas/code/C_get_study_ids.py')
+sys.path.append('infra/lambdas/code/D_get_study_geo.py')
+sys.path.append('infra/lambdas/code/E_get_study_srp.py')
+sys.path.append('infra/lambdas/code/F_get_study_srrs.py')
 
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'

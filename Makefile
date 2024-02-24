@@ -136,4 +136,5 @@ integration-tests-server: build-lambda-dependencies # TODO remove
 	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers LAZY --hook-name terraform --env-vars ../tests/environments.json
 
 integration-tests: build-integration-tests-dependencies
+	pwd
 	pytest -s
