@@ -45,10 +45,10 @@ def _ensure_queue_is_empty(sqs_client, queue):
     print('SQS queue is purged :)')
 
 
-def _get_all_queue_messages(sqs_client, queue, expected_messages):
+def _get_all_queue_messages(sqs_client, queue, messages_count):
     messages = []
 
-    while len(messages) < expected_messages:
+    while len(messages) < messages_count:
         sqs_messages = sqs_client.receive_message(QueueUrl=queue)
         if 'Messages' in sqs_messages:
             for message in sqs_messages['Messages']:

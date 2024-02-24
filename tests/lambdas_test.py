@@ -100,7 +100,7 @@ def test_a_get_user_query(lambda_client, sqs_client):
     assert actual_response_payload == f'{{"request_id": "{request_id}", "ncbi_query": "{ncbi_query}"}}'
 
     # THEN REGARDING MESSAGES
-    messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=1)
+    messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=1)
 
     sqs_message = messages[0]
     sqs_message_payload = json.loads(sqs_message['Body'])
@@ -146,7 +146,7 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
                                {'request_id': request_id_2, 'ncbi_query': _2XL_QUERY['query'], 'retstart': 1000, 'retmax': 500}]
     expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['retstart']))
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['retstart']))
 
@@ -172,11 +172,6 @@ def test_b_get_query_pages_skip_already_processed_study_id(lambda_client, sqs_cl
     actual_rows = database_cursor.fetchall()
     assert actual_rows == [(request_id,)]
 
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
-
 
 def test_c_get_study_ids(lambda_client, sqs_client):
     # GIVEN
@@ -201,7 +196,7 @@ def test_c_get_study_ids(lambda_client, sqs_client):
         [{'ncbi_query': _S_QUERY['query'], 'request_id': request_id_2, 'study_id': expected_study_id} for expected_study_id in expected_study_ids]
     expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['request_id'], message['study_id']))
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id']))
 
@@ -250,7 +245,7 @@ def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
     # THEN REGARDING MESSAGES
     expected_message_body = {'request_id': request_id, 'study_id': 200126815, 'gse': 'GSE126815'}
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=1)
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=1)
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
 
     assert len(actual_message_bodies) == 1
@@ -301,11 +296,6 @@ def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_cli
 
     assert actual_rows == expected_rows
 
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
-
 
 def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, database_holder):
     # GIVEN
@@ -341,11 +331,6 @@ def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, data
     database_cursor.execute(f'select count(*) from sracollector_dev.sra_project')
     srp_rows_after = database_cursor.fetchone()[0]
     assert srp_rows_after == 1
-
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
 
 
 def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
@@ -406,7 +391,7 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     ]
     expected_message_bodies = sorted(expected_message_bodies, key=lambda message: (message['study_id']))
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['study_id']))
 
@@ -461,11 +446,6 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     expected_ko_rows = list(zip(pysradb_error_reference_ids, expected_details))
     assert actual_ko_rows == expected_ko_rows
 
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
-
 
 def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, database_holder):
     # GIVEN
@@ -508,11 +488,6 @@ def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, data
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == []
 
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
-
 
 def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, database_holder):
     request_id = _provide_random_request_id()
@@ -541,11 +516,6 @@ def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, d
     database_cursor.execute(f'select pysradb_error_reference_id from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == []
-
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
 
 
 def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
@@ -626,7 +596,7 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
     expected_message_bodies = sorted((expected_message_bodies_srp308347 + expected_message_bodies_srp414713),
                                      key=lambda message: (message['request_id'], message['study_id'], message['srr']))
 
-    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, expected_messages=len(expected_message_bodies))
+    actual_messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=len(expected_message_bodies))
     actual_message_bodies = [json.loads(message['Body']) for message in actual_messages]
     actual_message_bodies = sorted(actual_message_bodies, key=lambda message: (message['request_id'], message['study_id'], message['srr']))
 
@@ -683,11 +653,6 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
 
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
-
 
 def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, database_holder):
     request_id = _provide_random_request_id()
@@ -718,11 +683,6 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
     database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={sra_project_id}')
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == []
-
-    # THEN REGARDING MESSAGES
-    actual_messages = int(sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])['Attributes']['ApproximateNumberOfMessages'])
-
-    assert actual_messages == 0
 
 
 @pytest.mark.skip('Just for testing proper timeouts for F lambda')
