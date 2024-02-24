@@ -42,6 +42,8 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
 ![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=maroon)
 
+######## TODO pysradb badge
+
 ## Style Patterns
 - Cloud Native
 - Infrastructure As Code

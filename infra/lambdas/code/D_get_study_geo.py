@@ -29,6 +29,7 @@ class GeoEntityType(Enum):
     GPL = {'table': 'geo_platform', 'short_name': 'gpl'}
     GDS = {'table': 'geo_data_set', 'short_name': 'gds'}
 
+
 class GeoEntity:
     def __init__(self, identifier: str):
         self.identifier = identifier.upper()

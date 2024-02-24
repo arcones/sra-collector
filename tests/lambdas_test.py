@@ -1,7 +1,8 @@
 import json
+import os
+import sys
 
 import boto3
-import botocore
 import pytest
 from utils_test import _ensure_queue_is_empty
 from utils_test import _get_all_queue_messages
@@ -16,25 +17,22 @@ from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
-from utils_test import _wait_test_server_readiness
+from utils_test import Context
+
+sys.path.append('../infra/lambdas/code/A_get_user_query.py')
+sys.path.append('../infra/lambdas/code/B_get_query_pages.py')
+sys.path.append('../infra/lambdas/code/C_get_study_ids.py')
+sys.path.append('../infra/lambdas/code/D_get_study_geo.py')
+sys.path.append('../infra/lambdas/code/E_get_study_srp.py')
+sys.path.append('../infra/lambdas/code/F_get_study_srrs.py')
+
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
+os.environ['ENV'] = 'test'
+
 _S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8}
 _2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1094}
-
-
-@pytest.fixture(scope='session', autouse=True)
-def init_tests():
-    _wait_test_server_readiness()
-
-
-@pytest.fixture(scope='session', autouse=True)
-def lambda_client():
-    botocore_client = botocore.client.Config(signature_version=botocore.UNSIGNED, read_timeout=360, retries={'max_attempts': 0})
-    lambda_client = boto3.client('lambda', region_name='eu-central-1', endpoint_url='http://localhost:3001', use_ssl=False, verify=False, config=botocore_client)
-    yield lambda_client
-    lambda_client.close()
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -71,9 +69,11 @@ def database_holder():
     database_connection.close()
 
 
-def test_a_get_user_query(lambda_client, sqs_client):
+def test_a_get_user_query(sqs_client):
     # GIVEN
     function_name = 'A_get_user_query'
+
+    from A_get_user_query import handler
 
     request_id = _provide_random_request_id()
     ncbi_query = _provide_random_ncbi_query()
@@ -85,19 +85,11 @@ def test_a_get_user_query(lambda_client, sqs_client):
         payload['body'] = input_body
 
     # WHEN
-    response = lambda_client.invoke(FunctionName=function_name, Payload=json.dumps(payload))
+    actual_result = handler(payload, Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
-
-    content = response['Payload'].read()
-    actual_response = json.loads(content)
-
-    actual_response_inner_status = actual_response['statusCode']
-    actual_response_payload = actual_response['body']
-
-    assert actual_response_inner_status == 201
-    assert actual_response_payload == f'{{"request_id": "{request_id}", "ncbi_query": "{ncbi_query}"}}'
+    assert actual_result['statusCode'] == 201
+    assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{ncbi_query}"}}'
 
     # THEN REGARDING MESSAGES
     messages = _get_all_queue_messages(sqs_client, SQS_TEST_QUEUE, messages_count=1)
@@ -109,8 +101,12 @@ def test_a_get_user_query(lambda_client, sqs_client):
     assert sqs_message_payload['ncbi_query'] == ncbi_query
 
 
-def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
+def test_b_get_query_pages(sqs_client, database_holder):
     # GIVEN
+    function_name = 'B_get_query_pages'
+
+    from B_get_query_pages import handler
+
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -119,10 +115,10 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     ]
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='B_get_query_pages', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -153,18 +149,22 @@ def test_b_get_query_pages(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_b_get_query_pages_skip_already_processed_study_id(lambda_client, sqs_client, database_holder):
+def test_b_get_query_pages_skip_already_processed_study_id(sqs_client, database_holder):
     # GIVEN
+    function_name = 'B_get_query_pages'
+
+    from B_get_query_pages import handler
+
     request_id = _provide_random_request_id()
     input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
 
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='B_get_query_pages', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -173,8 +173,12 @@ def test_b_get_query_pages_skip_already_processed_study_id(lambda_client, sqs_cl
     assert actual_rows == [(request_id,)]
 
 
-def test_c_get_study_ids(lambda_client, sqs_client):
+def test_c_get_study_ids(sqs_client):
     # GIVEN
+    function_name = 'C_get_study_ids'
+
+    from C_get_study_ids import handler
+
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -183,10 +187,10 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     ]
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='C_get_study_ids', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING MESSAGES
     expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
@@ -203,8 +207,12 @@ def test_c_get_study_ids(lambda_client, sqs_client):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
+def test_d_get_study_geos(sqs_client, database_holder):
     # GIVEN
+    function_name = 'D_get_study_geo'
+
+    from D_get_study_geo import handler
+
     request_id = _provide_random_request_id()
     study_ids = [200126815, 305668979, 100019750, 3268]
     geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
@@ -218,10 +226,10 @@ def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -252,8 +260,12 @@ def test_d_get_study_geos(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies[0] == expected_message_body
 
 
-def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_client, database_holder):
+def test_d_get_study_geos_skip_already_processed_study_id(sqs_client, database_holder):
     # GIVEN
+    function_name = 'D_get_study_geo'
+
+    from D_get_study_geo import handler
+
     request_id = _provide_random_request_id()
     study_ids = [200126815, 305668979, 100019750, 3268]
     geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
@@ -272,10 +284,10 @@ def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_cli
     _store_test_geo_data_set(database_holder, request_id, 3268, 'GDS3268')
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -297,8 +309,12 @@ def test_d_get_study_geos_skip_already_processed_study_id(lambda_client, sqs_cli
     assert actual_rows == expected_rows
 
 
-def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, database_holder):
+def test_e_get_study_srp_skip_already_linked_gse(sqs_client, database_holder):
     # GIVEN
+    function_name = 'E_get_study_srp'
+
+    from E_get_study_srp import handler
+
     request_id = _provide_random_request_id()
     study_ids = [20094225, 20094169]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -317,12 +333,13 @@ def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, data
     srp_rows_before = database_cursor.fetchone()[0]
     assert srp_rows_before == 1
 
-    # WHEN
     input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_ids[1], 'gse': gses[1]})
-    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+
+    # WHEN
+    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor.execute(f'select count(*) from sracollector_dev.geo_study_sra_project_link')
@@ -333,8 +350,12 @@ def test_e_get_study_srp_skip_already_linked_gse(lambda_client, sqs_client, data
     assert srp_rows_after == 1
 
 
-def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
+def test_e_get_study_srp_ok(sqs_client, database_holder):
     # GIVEN
+    function_name = 'E_get_study_srp'
+
+    from E_get_study_srp import handler
+
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200150644, 200167593]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -355,10 +376,10 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -398,8 +419,12 @@ def test_e_get_study_srp_ok(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
+def test_e_get_study_srp_ko(sqs_client, database_holder):
     # GIVEN
+    function_name = 'E_get_study_srp'
+
+    from E_get_study_srp import handler
+
     request_id = _provide_random_request_id()
 
     study_ids = [200110021, 20037005, 200225606]
@@ -420,10 +445,10 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -447,8 +472,12 @@ def test_e_get_study_srp_ko(lambda_client, sqs_client, database_holder):
     assert actual_ko_rows == expected_ko_rows
 
 
-def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, database_holder):
+def test_e_get_study_srp_skip_unexpected_results(sqs_client, database_holder):
     # GIVEN
+    function_name = 'E_get_study_srp'
+
+    from E_get_study_srp import handler
+
     request_id = _provide_random_request_id()
     study_ids = [20040034, 200252323, 20030614]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -468,10 +497,10 @@ def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, data
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -489,7 +518,12 @@ def test_e_get_study_srp_skip_unexpected_results(lambda_client, sqs_client, data
     assert actual_ko_rows == []
 
 
-def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, database_holder):
+def test_e_get_study_srp_skip_already_processed_geo(sqs_client, database_holder):
+    # GIVEN
+    function_name = 'E_get_study_srp'
+
+    from E_get_study_srp import handler
+
     request_id = _provide_random_request_id()
     study_id = 200126815
     gse = str(study_id).replace('200', 'GSE', 3)
@@ -502,10 +536,10 @@ def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, d
     inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id)
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -518,8 +552,12 @@ def test_e_get_study_srp_skip_already_processed_geo(lambda_client, sqs_client, d
     assert actual_ko_rows == []
 
 
-def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
+def test_f_get_study_srrs_ok(sqs_client, database_holder):
     # GIVEN
+    function_name = 'F_get_study_srrs'
+
+    from F_get_study_srrs import handler
+
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200308347]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -550,10 +588,10 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -604,8 +642,12 @@ def test_f_get_study_srrs_ok(lambda_client, sqs_client, database_holder):
     assert actual_message_bodies == expected_message_bodies
 
 
-def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
+def test_f_get_study_srrs_ko(sqs_client, database_holder):
     # GIVEN
+    function_name = 'F_get_study_srrs'
+
+    from F_get_study_srrs import handler
+
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200118257]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -633,10 +675,10 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
+    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -654,7 +696,12 @@ def test_f_get_study_srrs_ko(lambda_client, sqs_client, database_holder):
     assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
 
 
-def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, database_holder):
+def test_f_get_study_srrs_skip_already_processed_srp(sqs_client, database_holder):
+    # GIVEN
+    function_name = 'F_get_study_srrs'
+
+    from F_get_study_srrs import handler
+
     request_id = _provide_random_request_id()
     study_id = 200126815
     gse = str(study_id).replace('200', 'GSE', 3)
@@ -669,10 +716,10 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
     _store_test_sra_run(database_holder, srr, sra_project_id)
 
     # WHEN
-    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs([input_body])))
+    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
+    assert actual_result == {'batchItemFailures': []}
 
     # THEN REGARDING DATA
     database_cursor, _ = database_holder
@@ -683,62 +730,3 @@ def test_f_get_study_srrs_skip_already_processed_srp(lambda_client, sqs_client, 
     database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={sra_project_id}')
     actual_ko_rows = database_cursor.fetchall()
     assert actual_ko_rows == []
-
-
-@pytest.mark.skip('Just for testing proper timeouts for F lambda')
-def test_f_get_study_srrs_expensive_srp(lambda_client, sqs_client, database_holder):
-    # GIVEN
-
-    request_id = _provide_random_request_id()
-    study_ids = [200177646, 200177191, 200176705, 200208520, 200177936, 200177125, 200176891, 200177518, 200176867, 200215537]
-
-    gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-    srp = 'SRP012412'
-    srps = [srp] * 10
-    study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
-
-    with open(f'tests/fixtures/SRRS_of_SRP012412.txt') as file_with_expected_srrs:
-        srrs = file_with_expected_srrs.readlines()
-
-    input_bodies = [
-        json.dumps({
-            'request_id': request_id,
-            'ncbi_query': _S_QUERY['query'],
-            'study_id': study_id_and_gse_and_srp[0],
-            'gse': study_id_and_gse_and_srp[1],
-            'srp': study_id_and_gse_and_srp[2]
-        }).replace('"', '\"')
-        for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-    ]
-
-    _store_test_request(database_holder, request_id, _S_QUERY['query'])
-    inserted_geo_study_ids = []
-    for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-        inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
-
-    inserted_sra_project_ids = []
-    for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-        inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
-
-    # WHEN
-    response = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=json.dumps(_get_customized_input_from_sqs(input_bodies)))
-
-    # THEN REGARDING LAMBDA
-    assert response['StatusCode'] == 200
-
-    # THEN REGARDING DATA
-    database_cursor, _ = database_holder
-    inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
-    database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-    actual_ok_rows = database_cursor.fetchall()
-    actual_ok_rows = actual_ok_rows.sort()
-    expected_rows = [(srr,) for srr in (srrs)]
-    expected_rows = expected_rows.sort()
-    assert actual_ok_rows == expected_rows
-
-    database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-    actual_ko_rows = database_cursor.fetchall()
-    assert actual_ko_rows == []
-
-    # THEN REGARDING MESSAGES
-    assert len(srrs) == sqs_client.get_queue_attributes(QueueUrl=SQS_TEST_QUEUE, AttributeNames=['ApproximateNumberOfMessages'])
