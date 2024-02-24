@@ -19,13 +19,8 @@ from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
 from utils_test import Context
 
-sys.path.append('infra/lambdas/code/A_get_user_query.py')
-sys.path.append('infra/lambdas/code/B_get_query_pages.py')
-sys.path.append('infra/lambdas/code/C_get_study_ids.py')
-sys.path.append('infra/lambdas/code/D_get_study_geo.py')
-sys.path.append('infra/lambdas/code/E_get_study_srp.py')
-sys.path.append('infra/lambdas/code/F_get_study_srrs.py')
-
+sys.path.append('infra/lambdas/code')
+import A_get_user_query, B_get_query_pages, C_get_study_ids, D_get_study_geo, E_get_study_srp, F_get_study_srrs
 
 SQS_TEST_QUEUE = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
@@ -73,8 +68,6 @@ def test_a_get_user_query(sqs_client):
     # GIVEN
     function_name = 'A_get_user_query'
 
-    from A_get_user_query import handler
-
     request_id = _provide_random_request_id()
     ncbi_query = _provide_random_ncbi_query()
     input_body = json.dumps({'ncbi_query': ncbi_query}).replace('"', '\"')
@@ -85,7 +78,7 @@ def test_a_get_user_query(sqs_client):
         payload['body'] = input_body
 
     # WHEN
-    actual_result = handler(payload, Context(function_name))
+    actual_result = A_get_user_query.handler(payload, Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result['statusCode'] == 201
@@ -105,8 +98,6 @@ def test_b_get_query_pages(sqs_client, database_holder):
     # GIVEN
     function_name = 'B_get_query_pages'
 
-    from B_get_query_pages import handler
-
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -115,7 +106,7 @@ def test_b_get_query_pages(sqs_client, database_holder):
     ]
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -153,15 +144,13 @@ def test_b_get_query_pages_skip_already_processed_study_id(sqs_client, database_
     # GIVEN
     function_name = 'B_get_query_pages'
 
-    from B_get_query_pages import handler
-
     request_id = _provide_random_request_id()
     input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
 
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+    actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -177,8 +166,6 @@ def test_c_get_study_ids(sqs_client):
     # GIVEN
     function_name = 'C_get_study_ids'
 
-    from C_get_study_ids import handler
-
     request_id_1 = _provide_random_request_id()
     request_id_2 = _provide_random_request_id()
     input_bodies = [
@@ -187,7 +174,7 @@ def test_c_get_study_ids(sqs_client):
     ]
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -211,8 +198,6 @@ def test_d_get_study_geos(sqs_client, database_holder):
     # GIVEN
     function_name = 'D_get_study_geo'
 
-    from D_get_study_geo import handler
-
     request_id = _provide_random_request_id()
     study_ids = [200126815, 305668979, 100019750, 3268]
     geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
@@ -226,7 +211,7 @@ def test_d_get_study_geos(sqs_client, database_holder):
     _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -264,8 +249,6 @@ def test_d_get_study_geos_skip_already_processed_study_id(sqs_client, database_h
     # GIVEN
     function_name = 'D_get_study_geo'
 
-    from D_get_study_geo import handler
-
     request_id = _provide_random_request_id()
     study_ids = [200126815, 305668979, 100019750, 3268]
     geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
@@ -284,7 +267,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(sqs_client, database_h
     _store_test_geo_data_set(database_holder, request_id, 3268, 'GDS3268')
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -313,8 +296,6 @@ def test_e_get_study_srp_skip_already_linked_gse(sqs_client, database_holder):
     # GIVEN
     function_name = 'E_get_study_srp'
 
-    from E_get_study_srp import handler
-
     request_id = _provide_random_request_id()
     study_ids = [20094225, 20094169]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -336,7 +317,7 @@ def test_e_get_study_srp_skip_already_linked_gse(sqs_client, database_holder):
     input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_ids[1], 'gse': gses[1]})
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+    actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -353,8 +334,6 @@ def test_e_get_study_srp_skip_already_linked_gse(sqs_client, database_holder):
 def test_e_get_study_srp_ok(sqs_client, database_holder):
     # GIVEN
     function_name = 'E_get_study_srp'
-
-    from E_get_study_srp import handler
 
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200150644, 200167593]
@@ -376,7 +355,7 @@ def test_e_get_study_srp_ok(sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -423,8 +402,6 @@ def test_e_get_study_srp_ko(sqs_client, database_holder):
     # GIVEN
     function_name = 'E_get_study_srp'
 
-    from E_get_study_srp import handler
-
     request_id = _provide_random_request_id()
 
     study_ids = [200110021, 20037005, 200225606]
@@ -445,7 +422,7 @@ def test_e_get_study_srp_ko(sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -476,8 +453,6 @@ def test_e_get_study_srp_skip_unexpected_results(sqs_client, database_holder):
     # GIVEN
     function_name = 'E_get_study_srp'
 
-    from E_get_study_srp import handler
-
     request_id = _provide_random_request_id()
     study_ids = [20040034, 200252323, 20030614]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -497,7 +472,7 @@ def test_e_get_study_srp_skip_unexpected_results(sqs_client, database_holder):
         inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -522,8 +497,6 @@ def test_e_get_study_srp_skip_already_processed_geo(sqs_client, database_holder)
     # GIVEN
     function_name = 'E_get_study_srp'
 
-    from E_get_study_srp import handler
-
     request_id = _provide_random_request_id()
     study_id = 200126815
     gse = str(study_id).replace('200', 'GSE', 3)
@@ -536,7 +509,7 @@ def test_e_get_study_srp_skip_already_processed_geo(sqs_client, database_holder)
     inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id)
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+    actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -555,8 +528,6 @@ def test_e_get_study_srp_skip_already_processed_geo(sqs_client, database_holder)
 def test_f_get_study_srrs_ok(sqs_client, database_holder):
     # GIVEN
     function_name = 'F_get_study_srrs'
-
-    from F_get_study_srrs import handler
 
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200308347]
@@ -588,7 +559,7 @@ def test_f_get_study_srrs_ok(sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -646,8 +617,6 @@ def test_f_get_study_srrs_ko(sqs_client, database_holder):
     # GIVEN
     function_name = 'F_get_study_srrs'
 
-    from F_get_study_srrs import handler
-
     request_id = _provide_random_request_id()
     study_ids = [200126815, 200118257]
     gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -675,7 +644,7 @@ def test_f_get_study_srrs_ko(sqs_client, database_holder):
         inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+    actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}
@@ -700,8 +669,6 @@ def test_f_get_study_srrs_skip_already_processed_srp(sqs_client, database_holder
     # GIVEN
     function_name = 'F_get_study_srrs'
 
-    from F_get_study_srrs import handler
-
     request_id = _provide_random_request_id()
     study_id = 200126815
     gse = str(study_id).replace('200', 'GSE', 3)
@@ -716,7 +683,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(sqs_client, database_holder
     _store_test_sra_run(database_holder, srr, sra_project_id)
 
     # WHEN
-    actual_result = handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+    actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
 
     # THEN REGARDING LAMBDA
     assert actual_result == {'batchItemFailures': []}

@@ -131,10 +131,3 @@ build-integration-tests-dependencies:
 	python -m build && pip install dist/env_params-0.0.1-py3-none-any.whl && \
 	cd ../postgres_connection && \
 	python -m build && pip install dist/postgres_connection-0.0.2-py3-none-any.whl
-
-integration-tests-server: build-lambda-dependencies # TODO remove
-	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers LAZY --hook-name terraform --env-vars ../tests/environments.json
-
-integration-tests: build-integration-tests-dependencies
-	pwd
-	pytest -s
