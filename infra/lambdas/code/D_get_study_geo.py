@@ -1,12 +1,9 @@
 import json
 import logging
-import random
-import time
 from enum import Enum
 
 import boto3
 import urllib3
-from env_params import env_params
 from postgres_connection import postgres_connection
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
@@ -17,6 +14,7 @@ FORMAT = '%(funcName)s %(message)s'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
+output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/D_geos'
 
 all_http_codes_but_200 = list(range(100, 200)) + list(range(300, 600))
 retries = urllib3.Retry(status_forcelist=all_http_codes_but_200, backoff_factor=0.5)
@@ -28,6 +26,7 @@ class GeoEntityType(Enum):
     GSM = {'table': 'geo_experiment', 'short_name': 'gsm'}
     GPL = {'table': 'geo_platform', 'short_name': 'gpl'}
     GDS = {'table': 'geo_data_set', 'short_name': 'gds'}
+
 
 class GeoEntity:
     def __init__(self, identifier: str):
@@ -48,7 +47,7 @@ class GeoEntity:
 
 
 def handler(event, context):
-    output_sqs, schema = env_params.params_per_env(context.function_name)
+    schema = postgres_connection.schema_for_env()
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')

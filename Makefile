@@ -120,16 +120,6 @@ xl-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "rna seq" }'
 
-max-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "cancer" }'
-
 build-integration-tests-dependencies:
-	cd tests && pip install -r requirements.txt && cd ..
-
-integration-tests-server: build-lambda-dependencies
-	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers LAZY --hook-name terraform --env-vars ../tests/environments.json
-
-integration-tests: build-integration-tests-dependencies
-	pytest -s
+	cd tests && pip install -r requirements.txt
+	cd infra/lambdas/docker/postgres_connection && python -m build && pip install dist/postgres_connection-0.0.3-py3-none-any.whl

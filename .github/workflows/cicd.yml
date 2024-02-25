@@ -9,17 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/setup-sam@v2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - name: Launch SAM Test Server
-        run: |
-          make integration-tests-server &
-          sleep 120
       - name: Run Integration Tests
-        run: make integration-tests
+        run: make build-integration-tests-dependencies && pytest -s
   infra:
     needs:
       - tests

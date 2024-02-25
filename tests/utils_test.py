@@ -6,60 +6,19 @@ import time
 import boto3
 import psycopg2
 import urllib3
+from psycopg2 import sql
 
 http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
-
-def _wait_test_server_readiness():
-    is_test_still_initializing = True
-    start_waiting = time.time()
-    while is_test_still_initializing:
-        try:
-            response = http.urlopen('GET', 'http://localhost:3001')
-            if response.status == 404:
-                print('Test server is ready :)')
-                is_test_still_initializing = False
-        except Exception as connection_refused_error:
-            if time.time() - start_waiting < 60:
-                print('Tests are still initializing...')
-                time.sleep(1)
-            else:
-                print('Timeout while waiting test server to launch :(')
-                raise connection_refused_error
+class Context:
+    def __init__(self, function_name):
+        self.function_name = function_name
 
 
-def _ensure_queue_is_empty(sqs_client, queue):
-    messages_left = None
-    start_waiting = time.time()
-    while messages_left != 0:
-        response = sqs_client.get_queue_attributes(QueueUrl=queue, AttributeNames=['ApproximateNumberOfMessages'])
-        messages_left = int(response['Attributes']['ApproximateNumberOfMessages'])
-        if time.time() - start_waiting < 60:
-            print('SQS queue is still not empty...')
-            time.sleep(1)
-        else:
-            print('Timeout while waiting SQS queue to be purged :(')
-            raise Exception
-    print('SQS queue is purged :)')
-
-
-def _get_all_queue_messages(sqs_client, queue, messages_count):
-    messages = []
-
-    while len(messages) < messages_count:
-        sqs_messages = sqs_client.receive_message(QueueUrl=queue)
-        if 'Messages' in sqs_messages:
-            for message in sqs_messages['Messages']:
-                if message not in messages:
-                    messages.append(message)
-                    sqs_client.delete_message(QueueUrl=queue, ReceiptHandle=message['ReceiptHandle'])
-        else:
-            time.sleep(0.1)
-            continue
-
-    return messages
+def _provide_random_request_id():
+    return ''.join(random.choice(CHARACTERS) for char in range(20))
 
 
 def _get_db_connection():
@@ -71,16 +30,23 @@ def _get_db_connection():
     host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
 
     connection_string = f"host={host} dbname='sracollector' user='{username}' password='{password}'"
-    print('DB connection ready :)')
+    print('\nDB connection ready :)')
     return psycopg2.connect(connection_string)
 
 
-def _provide_random_request_id():
-    return ''.join(random.choice(CHARACTERS) for char in range(20))
-
-
-def _provide_random_ncbi_query():
-    return ''.join(random.choice(CHARACTERS) for char in range(50))
+def _truncate_db():
+    database_connection = _get_db_connection()
+    database_cursor = database_connection.cursor()
+    print('Truncating database...')
+    database_cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'sracollector_dev' and table_name != 'pysradb_error_reference'")
+    tables = database_cursor.fetchall()
+    for table in tables:
+        table_name = table[0]
+        truncate_query = sql.SQL('TRUNCATE TABLE sracollector_dev.{} RESTART IDENTITY CASCADE;').format(sql.Identifier(table_name))
+        database_cursor.execute(truncate_query)
+    database_connection.commit()
+    print('Database truncated')
+    return database_connection, database_cursor
 
 
 def _store_test_request(database_holder, request_id, ncbi_query):
@@ -157,6 +123,13 @@ def _store_test_sra_run(database_holder, srr, sra_project_id):
     inserted_sra_run_id = database_cursor.fetchone()[0]
     database_connection.commit()
     return inserted_sra_run_id
+
+
+def _get_needed_batches_of_ten_messages(messages_count):
+    batches, remainder = divmod(messages_count, 10)
+    if remainder > 0:
+        batches += 1
+    return batches
 
 
 def _get_customized_input_from_sqs(bodies: [str]) -> dict:
