@@ -34,6 +34,7 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/Swagger-brightgreen?logo=swagger&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/OpenAPI-dimgray?logo=openapiinitiative)
 ![Static Badge](https://img.shields.io/badge/SchemaSpy-cornflowerblue?logo=amazondocumentdb&logoColor=black)
+![Static Badge](https://img.shields.io/badge/pysradb-white?logo=scipy&logoColor=red)
 ![Static Badge](https://img.shields.io/badge/Flyway-red?logo=flyway)
 ![Static Badge](https://img.shields.io/badge/opensearch-blue?logo=opensearch)
 ![Static Badge](https://img.shields.io/badge/Precommit-white?logo=precommit)
@@ -42,15 +43,14 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
 ![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=maroon)
 
-######## TODO pysradb badge
-
-## Style Patterns
+## Style Patterns & Techniques
 - Cloud Native
 - Infrastructure As Code
 - Asynchronous Communication
 - Fail Fast
 - Immutable Infrastructure
 - Test Driven Development
+- Mocking
 - Convention Over Configuration
 - Encryption
 - Passwords Secure Storage
