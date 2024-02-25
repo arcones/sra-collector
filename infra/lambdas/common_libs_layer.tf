@@ -5,10 +5,7 @@ locals {
 
 resource "null_resource" "dependencies_watcher" {
   triggers = {
-    sha1 = format("%s%s",
-      filesha1("${path.module}/${local.deps_folder}/postgres_connection/src/postgres_connection/postgres_connection.py"),
-      filesha1("${path.module}/${local.deps_folder}/env_params/src/env_params/env_params.py")
-    )
+    sha1 = filesha1("${path.module}/${local.deps_folder}/postgres_connection/src/postgres_connection/postgres_connection.py")
   }
 }
 
