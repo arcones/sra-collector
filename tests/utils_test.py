@@ -6,6 +6,7 @@ import time
 import boto3
 import psycopg2
 import urllib3
+from psycopg2 import sql
 
 http = urllib3.PoolManager()
 
@@ -14,6 +15,10 @@ CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 class Context:
     def __init__(self, function_name):
         self.function_name = function_name
+
+
+def _provide_random_request_id():
+    return ''.join(random.choice(CHARACTERS) for char in range(20))
 
 
 def _get_db_connection():
@@ -25,16 +30,23 @@ def _get_db_connection():
     host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
 
     connection_string = f"host={host} dbname='sracollector' user='{username}' password='{password}'"
-    print('DB connection ready :)')
+    print('\nDB connection ready :)')
     return psycopg2.connect(connection_string)
 
 
-def _provide_random_request_id():
-    return ''.join(random.choice(CHARACTERS) for char in range(20))
-
-
-def _provide_random_ncbi_query():
-    return ''.join(random.choice(CHARACTERS) for char in range(50))
+def _truncate_db():
+    database_connection = _get_db_connection()
+    database_cursor = database_connection.cursor()
+    print('Truncating database...')
+    database_cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'sracollector_dev' and table_name != 'pysradb_error_reference'")
+    tables = database_cursor.fetchall()
+    for table in tables:
+        table_name = table[0]
+        truncate_query = sql.SQL('TRUNCATE TABLE sracollector_dev.{} RESTART IDENTITY CASCADE;').format(sql.Identifier(table_name))
+        database_cursor.execute(truncate_query)
+    database_connection.commit()
+    print('Database truncated')
+    return database_connection, database_cursor
 
 
 def _store_test_request(database_holder, request_id, ncbi_query):

@@ -33,11 +33,10 @@ def handler(event, context):
 
                 logging.info(f'Processing record {request_body}')
 
-                srp = request_body['srp']
-                gse = request_body['gse']
                 request_id = request_body['request_id']
-
                 study_id = request_body['study_id']
+                gse = request_body['gse']
+                srp = request_body['srp']
 
                 if _is_srp_pending_to_be_processed(schema, request_id, srp):
 

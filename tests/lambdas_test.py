@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 from utils_test import _get_customized_input_from_sqs
-from utils_test import _get_db_connection
 from utils_test import _get_needed_batches_of_ten_messages
 from utils_test import _provide_random_request_id
 from utils_test import _store_test_geo_data_set
@@ -17,6 +16,7 @@ from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
+from utils_test import _truncate_db
 from utils_test import Context
 
 sys.path.append('infra/lambdas/code')
@@ -28,23 +28,9 @@ _S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8
 _2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1094}
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(autouse=True)
 def database_holder():
-    database_connection = _get_db_connection()
-    database_cursor = database_connection.cursor()
-    database_cursor.execute("""
-        TRUNCATE TABLE sracollector_dev.sra_run cascade;
-        TRUNCATE TABLE sracollector_dev.sra_run_missing cascade;
-        TRUNCATE TABLE sracollector_dev.sra_project cascade;
-        TRUNCATE TABLE sracollector_dev.sra_project_missing cascade;
-        TRUNCATE TABLE sracollector_dev.geo_study_sra_project_link cascade;
-        TRUNCATE TABLE sracollector_dev.geo_study cascade;
-        TRUNCATE TABLE sracollector_dev.geo_experiment cascade;
-        TRUNCATE TABLE sracollector_dev.geo_platform cascade;
-        TRUNCATE TABLE sracollector_dev.geo_data_set cascade;
-        TRUNCATE TABLE sracollector_dev.request cascade;
-    """)
-    database_connection.commit()
+    database_connection, database_cursor = _truncate_db()
     yield database_cursor, database_connection
     database_cursor.close()
     database_connection.close()
