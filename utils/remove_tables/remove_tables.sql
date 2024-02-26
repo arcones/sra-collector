@@ -1,12 +1,13 @@
-DROP TABLE sracollector.geo_data_set CASCADE;
-DROP TABLE sracollector.geo_experiment CASCADE;
-DROP TABLE sracollector.geo_platform CASCADE;
-DROP TABLE sracollector.geo_study CASCADE;
-DROP TABLE sracollector.geo_study_sra_project_link CASCADE;
-DROP TABLE sracollector.pysradb_error_reference CASCADE;
-DROP TABLE sracollector.request CASCADE;
-DROP TABLE sracollector.sra_project CASCADE;
-DROP TABLE sracollector.sra_project_missing CASCADE;
-DROP TABLE sracollector.sra_run CASCADE;
-DROP TABLE sracollector.sra_run_missing CASCADE;
+DO $$
+DECLARE
+    table_to_drop text;
+    schema_name text;
+BEGIN
+    schema_name := 'sracollector';
+    FOR table_to_drop IN (SELECT table_name FROM information_schema.tables WHERE table_schema = schema_name AND table_name != 'flyway_schema_history')
+    LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || schema_name || '.' || table_to_drop || ' CASCADE';
+    END LOOP;
+END $$;
+
 DELETE FROM flyway_schema_history;
