@@ -34,6 +34,7 @@ def handler(event, context):
                 logging.info(f'Processing record {request_body}')
 
                 request_id = request_body['request_id']
+                srp = request_body['srp']
 
                 if _is_srp_pending_to_be_processed(schema, request_id, srp):
 
@@ -43,7 +44,7 @@ def handler(event, context):
                         srrs = [srr for srr in srrs if srr.startswith('SRR')]
 
                         if srrs:
-                            logging.info(f'For study {study_id} with {gse} and {srp}, SRRs are {srrs}')
+                            logging.info(f'For {srp}, SRRs are {srrs}')
 
                             messages = []
 

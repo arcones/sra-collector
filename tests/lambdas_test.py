@@ -159,8 +159,8 @@ def test_c_get_study_ids():
         # THEN REGARDING MESSAGES
         expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
         expected_calls = \
-            [f'{{"request_id": "{request_id_1}", "ncbi_query": "{_S_QUERY["query"]}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
-            [f'{{"request_id": "{request_id_2}", "ncbi_query": "{_S_QUERY["query"]}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
+            [f'{{"request_id": "{request_id_1}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
+            [f'{{"request_id": "{request_id_2}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
 
         assert mock_sqs_send_message.send_message_batch.call_count == 2
 
@@ -182,7 +182,7 @@ def test_d_get_study_geos(database_holder):
         study_ids_and_geos = zip(study_ids, geos)
 
         input_bodies = [
-            json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
+            json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
             for study_id in study_ids
         ]
 
@@ -190,9 +190,6 @@ def test_d_get_study_geos(database_holder):
 
         # WHEN
         actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
-
-        # THEN REGARDING LAMBDA
-        assert actual_result == {'batchItemFailures': []}
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
@@ -217,7 +214,7 @@ def test_d_get_study_geos(database_holder):
         assert mock_sqs_send_message.send_message.call_count == 1
         mock_sqs_send_message.send_message.assert_called_with(
             QueueUrl=D_get_study_geo.output_sqs,
-            MessageBody=json.dumps({'request_id': request_id, 'study_id': 200126815, 'gse': 'GSE126815'})
+            MessageBody=json.dumps({'request_id': request_id, 'gse': 'GSE126815'})
         )
 
 
@@ -233,7 +230,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
         study_ids_and_geos = zip(study_ids, geos)
 
         input_bodies = [
-            json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id}).replace('"', '\"')
+            json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
             for study_id in study_ids
         ]
 
@@ -246,9 +243,6 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
 
         # WHEN
         actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
-
-        # THEN REGARDING LAMBDA
-        assert actual_result == {'batchItemFailures': []}
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
@@ -287,7 +281,7 @@ def test_e_get_study_srp_ok(database_holder):
         study_ids_and_geos = list(zip(study_ids, gses))
 
         input_bodies = [
-            json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]})
+            json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
             .replace('"', '\"')
             for study_id_and_gse in study_ids_and_geos
         ]
@@ -328,9 +322,6 @@ def test_e_get_study_srp_ok(database_holder):
         expected_calls = [
             call(QueueUrl=E_get_study_srp.output_sqs, MessageBody=json.dumps({
                 'request_id': request_id,
-                'ncbi_query': _S_QUERY['query'],
-                'study_id': study_id_and_gse_and_srp[0][0],
-                'gse': study_id_and_gse_and_srp[0][1],
                 'srp': study_id_and_gse_and_srp[1]
             }))
             for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
@@ -355,7 +346,7 @@ def test_e_get_study_srp_ko(database_holder):
         study_ids_and_gses = list(zip(study_ids, gses))
 
         input_bodies = [
-            json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]})
+            json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
             .replace('"', '\"')
             for study_id_and_gse in study_ids_and_gses
         ]
@@ -421,7 +412,7 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         srp_rows_before = database_cursor.fetchone()[0]
         assert srp_rows_before == 1
 
-        input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_ids[1], 'gse': gses[1]})
+        input_body = json.dumps({'request_id': request_id, 'gse': gses[1]})
 
         # WHEN
         actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
@@ -441,7 +432,7 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         assert mock_sqs_send_message.send_message.call_count == 1
         mock_sqs_send_message.send_message.assert_called_with(
             QueueUrl=E_get_study_srp.output_sqs,
-            MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_ids[1], 'gse': gses[1], 'srp': srp})
+            MessageBody=json.dumps({'request_id': request_id, 'srp': srp})
         )
 
 
@@ -456,7 +447,7 @@ def test_e_get_study_srp_skip_already_processed_geo(database_holder):
         gse = str(study_id).replace('200', 'GSE', 3)
         srp = 'SRP185522'
 
-        input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id, 'gse': gse}).replace('"', '\"')
+        input_body = json.dumps({'request_id': request_id, 'gse': gse}).replace('"', '\"')
 
         _store_test_request(database_holder, request_id, _S_QUERY['query'])
         inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)
@@ -495,7 +486,7 @@ def test_e_get_study_srp_skip_unexpected_results(database_holder):
         study_ids_and_gses = list(zip(study_ids, gses))
 
         input_bodies = [
-            json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id_and_gse[0], 'gse': study_id_and_gse[1]})
+            json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
             .replace('"', '\"')
             for study_id_and_gse in study_ids_and_gses
         ]
@@ -549,9 +540,6 @@ def test_f_get_study_srrs_ok(database_holder):
         input_bodies = [
             json.dumps({
                 'request_id': request_id,
-                'ncbi_query': _S_QUERY['query'],
-                'study_id': study_id_and_gse_and_srp[0],
-                'gse': study_id_and_gse_and_srp[1],
                 'srp': study_id_and_gse_and_srp[2]
             }).replace('"', '\"')
             for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
@@ -588,10 +576,10 @@ def test_f_get_study_srrs_ok(database_holder):
 
         # THEN REGARDING MESSAGES
         expected_calls = [
-            f'{{"request_id": "{request_id}", "ncbi_query": "{_S_QUERY["query"]}", "study_id": 200308347, "gse": "GSE308347", "srp": "SRP308347", "srr": "{srr}"}}'
+            f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
             for srr in srrs_for_srp308347
         ] + [
-            f'{{"request_id": "{request_id}", "ncbi_query": "{_S_QUERY["query"]}", "study_id": 200126815, "gse": "GSE126815", "srp": "SRP414713", "srr": "{srr}"}}'
+            f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
             for srr in srrs_for_srp414713
         ]
 
@@ -618,9 +606,6 @@ def test_f_get_study_srrs_ko(database_holder):
         input_bodies = [
             json.dumps({
                 'request_id': request_id,
-                'ncbi_query': _S_QUERY['query'],
-                'study_id': study_id_and_gse_and_srp[0],
-                'gse': study_id_and_gse_and_srp[1],
                 'srp': study_id_and_gse_and_srp[2]
             }).replace('"', '\"')
             for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
@@ -672,7 +657,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
         srp = 'SRP185522'
         srr = 'SRR787899'
 
-        input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query'], 'study_id': study_id, 'gse': gse, 'srp': srp})
+        input_body = json.dumps({'request_id': request_id, 'srp': srp})
 
         _store_test_request(database_holder, request_id, _S_QUERY['query'])
         geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)

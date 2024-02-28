@@ -71,6 +71,8 @@ module "D_get_study_geo_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout - 10
   memory_size                           = 128
+  batch_size                            = 100
+  batch_size_window                     = 1
 }
 
 module "E_get_study_srp_lambda" {

@@ -45,7 +45,7 @@ def handler(event, context):
                         if srp:
                             if srp.startswith('SRP'):
                                 logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb, pushing message to study summaries queue')
-                                response = json.dumps({'request_id':request_id, 'srp': srp})
+                                response = json.dumps({'request_id': request_id, 'srp': srp})
                                 _store_srp_in_db(schema, request_id, gse, srp)
                                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                                 logging.info(f'Sent event to {output_sqs} with body {response}')

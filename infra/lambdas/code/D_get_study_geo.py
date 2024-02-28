@@ -53,12 +53,9 @@ def handler(event, context):
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
-
-        batch_item_failures = []
-        sqs_batch_response = {}
-
         ordered_records = sorted(event['Records'], key=lambda r: json.loads(r['body'])['study_id'])
+
+        request_id_2_study_id_list = []
 
         for record in ordered_records:
             try:
@@ -68,17 +65,19 @@ def handler(event, context):
 
                 request_id = request_body['request_id']
                 study_id = request_body['study_id']
-
-                response = http.request('GET', f'{base_url}&id={study_id}')
-
-                summary = json.loads(response.data)['result'][f'{study_id}']
-                _summary_process(schema, request_id, int(study_id), summary, output_sqs)
-
+                request_id_2_study_id_list.append({'request_id': request_id, 'study_id': str(study_id)})
             except Exception as exception:
-                batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
-        sqs_batch_response['batchItemFailures'] = batch_item_failures
-        return sqs_batch_response
+                raise exception
+
+        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
+        response = http.request('GET', f'{base_url}&id={",".join(request_id_2_study_id["study_id"] for request_id_2_study_id in request_id_2_study_id_list)}')
+        parsed_response = json.loads(response.data)['result']
+
+        for study_id_in_response in parsed_response:
+            request_id_2_study_id = [request_id_2_study_id for request_id_2_study_id in request_id_2_study_id_list if request_id_2_study_id['study_id'] == study_id_in_response]
+            if len(request_id_2_study_id) == 1 and study_id_in_response == request_id_2_study_id[0]['study_id']:
+                _summary_process(schema, request_id_2_study_id[0]['request_id'], int(study_id_in_response), parsed_response[study_id_in_response])
 
 
 def _summary_process(schema: str, request_id: str, study_id: int, summary: str):
