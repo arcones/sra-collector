@@ -81,7 +81,7 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def _summary_process(schema: str, request_id: str, study_id: int, summary: str, output_sqs: str):
+def _summary_process(schema: str, request_id: str, study_id: int, summary: str):
     try:
         logging.debug(f'Study summary from study {study_id} is {summary}')
         geo_entity = _extract_geo_entity_from_summaries(summary)
@@ -91,7 +91,7 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
             _store_geo_entity_in_db(schema, request_id, study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'request_id': request_id, 'study_id': study_id, 'gse': geo_entity.identifier}
+                message = {'request_id': request_id, 'gse': geo_entity.identifier}
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
                 logging.info(f'Sent message {message} for study {study_id}')
         else:

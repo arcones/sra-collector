@@ -34,7 +34,6 @@ def handler(event, context):
 
                 logging.info(f'Processing record {request_body}')
 
-                study_id = request_body['study_id']
                 request_id = request_body['request_id']
                 gse = request_body['gse']
 
@@ -45,24 +44,24 @@ def handler(event, context):
 
                         if srp:
                             if srp.startswith('SRP'):
-                                logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb for study {study_id}, pushing message to study summaries queue')
-                                response = json.dumps({**request_body, 'srp': srp})
+                                logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb, pushing message to study summaries queue')
+                                response = json.dumps({'request_id':request_id, 'srp': srp})
                                 _store_srp_in_db(schema, request_id, gse, srp)
                                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                                 logging.info(f'Sent event to {output_sqs} with body {response}')
                             else:
                                 logging.info(f'For GSE {gse}, SRP {srp} is not compliant, skipping it.')
                         else:
-                            logging.info(f'No SRP for {study_id} and {gse} found via pysradb')
+                            logging.info(f'No SRP for {gse} found via pysradb')
                             _store_missing_srp_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRP found')
                     except AttributeError as attribute_error:
-                        logging.info(f'For study {study_id} with {gse}, pysradb produced attribute error with name {attribute_error.name}')
+                        logging.info(f'For {gse}, pysradb produced attribute error with name {attribute_error.name}')
                         _store_missing_srp_in_db(schema, request_id, gse, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                     except ValueError as value_error:
-                        logging.info(f'For study {study_id} with {gse}, pysradb produced value error: {value_error}')
+                        logging.info(f'For {gse}, pysradb produced value error: {value_error}')
                         _store_missing_srp_in_db(schema, request_id, gse, PysradbError.VALUE_ERROR, str(value_error))
                     except KeyError as key_error:
-                        logging.info(f'For study {study_id} with {gse}, pysradb produced key error: {key_error}')
+                        logging.info(f'For {gse}, pysradb produced key error: {key_error}')
                         _store_missing_srp_in_db(schema, request_id, gse, PysradbError.KEY_ERROR, str(key_error))
                 else:
                     logging.info(f'The record with {request_id} and {gse} has already been processed')

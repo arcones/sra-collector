@@ -34,9 +34,6 @@ def handler(event, context):
                 logging.info(f'Processing record {request_body}')
 
                 request_id = request_body['request_id']
-                study_id = request_body['study_id']
-                gse = request_body['gse']
-                srp = request_body['srp']
 
                 if _is_srp_pending_to_be_processed(schema, request_id, srp):
 
@@ -64,13 +61,13 @@ def handler(event, context):
 
                             logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                         else:
-                            logging.info(f'No SRR for study {study_id}, {gse} and {srp} found via pysradb')
+                            logging.info(f'No SRR for {srp} found via pysradb')
                             _store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
                     except AttributeError as attribute_error:
-                        logging.info(f'For study {study_id} with {gse} and srp {srp}, pysradb produced attribute error with name {attribute_error.name}')
+                        logging.info(f'For {srp}, pysradb produced attribute error with name {attribute_error.name}')
                         _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                 else:
-                    logging.info(f'The record with {request_id} and {srp} has already been processed')
+                    logging.info(f'The record {srp} has already been processed')
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
