@@ -71,15 +71,16 @@ module "D_get_study_geo_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout - 10
   memory_size                           = 128
-  batch_size                            = 100
-  batch_size_window                     = 1
+  batch_size                            = 180
+  batch_size_window                     = 3
 }
 
 module "E_get_study_srp_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "E_get_study_srp"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "E_get_study_srp"
+  reserved_concurrent_executions = 450
   queues = {
     input_sqs_arn  = var.queues.D_geos_sqs.D_geos_sqs_arn
     output_sqs_arn = var.queues.E_srps_sqs.E_srps_sqs_arn
@@ -90,13 +91,16 @@ module "E_get_study_srp_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout - 10
   memory_size                           = 320
+  batch_size                            = 90
+  batch_size_window                     = 1
 }
 
 module "F_get_study_srrs_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "F_get_study_srrs"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "F_get_study_srrs"
+  reserved_concurrent_executions = 450
   queues = {
     input_sqs_arn  = var.queues.E_srps_sqs.E_srps_sqs_arn
     output_sqs_arn = var.queues.F_srrs_sqs.F_srrs_sqs_arn
@@ -107,6 +111,8 @@ module "F_get_study_srrs_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 1024
+  batch_size                            = 100
+  batch_size_window                     = 1
 }
 
 module "G_get_srr_metadata_lambda" {
@@ -124,4 +130,6 @@ module "G_get_srr_metadata_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.F_srrs_sqs.F_srrs_sqs_visibility_timeout - 10
   memory_size                           = 128
+  batch_size                            = 100
+  batch_size_window                     = 1
 }
