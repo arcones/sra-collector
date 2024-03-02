@@ -160,34 +160,38 @@ def test_b_get_query_pages_skip_already_processed_study_id(database_holder):
 
 def test_c_get_study_ids():
     with patch.object(C_get_study_ids, 'sqs') as mock_sqs:
-        # GIVEN
-        mock_sqs.send_message_batch = Mock()
+        with patch.object(C_get_study_ids.http, 'request') as mock_http_request:
+            # GIVEN
+            mock_sqs.send_message_batch = Mock()
 
-        request_id_1 = _provide_random_request_id()
-        request_id_2 = _provide_random_request_id()
-        input_bodies = [
-            json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
-            json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
-        ]
+            request_id_1 = _provide_random_request_id()
+            request_id_2 = _provide_random_request_id()
+            input_bodies = [
+                json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
+                json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
+            ]  # TODO hace falta q los test procesen varios mensajes? podria simplificarlo con una sola entrada
 
-        # WHEN
-        actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            with open('tests/fixtures/C_get_study_ids_mocked_esearch_s_query_0.json') as response:
+                mock_http_request.return_value.data = response.read()
 
-        # THEN REGARDING LAMBDA
-        assert actual_result == {'batchItemFailures': []}
+            # WHEN
+            actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
-        # THEN REGARDING MESSAGES
-        expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
-        expected_calls = \
-            [f'{{"request_id": "{request_id_1}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
-            [f'{{"request_id": "{request_id_2}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
+            # THEN REGARDING LAMBDA
+            assert actual_result == {'batchItemFailures': []}
 
-        assert mock_sqs.send_message_batch.call_count == 2
+            # THEN REGARDING MESSAGES
+            expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
+            expected_calls = \
+                [f'{{"request_id": "{request_id_1}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
+                [f'{{"request_id": "{request_id_2}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
 
-        actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
-        actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+            assert mock_sqs.send_message_batch.call_count == 2
 
-        assert expected_calls.sort() == actual_calls_message_bodies.sort()
+            actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
+            actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+
+            assert expected_calls.sort() == actual_calls_message_bodies.sort()
 
 
 def test_d_get_study_geos(database_holder):
