@@ -36,7 +36,7 @@ def handler(event, context):
                 request_id = request_body['request_id']
                 srp = request_body['srp']
 
-                if _is_srp_pending_to_be_processed(schema, request_id, srp):
+                if is_srp_pending_to_be_processed(schema, request_id, srp):
 
                     try:
                         raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
@@ -54,7 +54,7 @@ def handler(event, context):
                                     'MessageBody': json.dumps({**request_body, 'srr': srr})
                                 })
 
-                            _store_srrs_in_db(schema, srrs, request_id, srp)
+                            store_srrs_in_db(schema, srrs, request_id, srp)
 
                             message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
                             for message_batch in message_batches:
@@ -63,10 +63,10 @@ def handler(event, context):
                             logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                         else:
                             logging.info(f'No SRR for {srp} found via pysradb')
-                            _store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
+                            store_missing_srr_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRR found')
                     except AttributeError as attribute_error:
                         logging.info(f'For {srp}, pysradb produced attribute error with name {attribute_error.name}')
-                        _store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                        store_missing_srr_in_db(schema, request_id, srp, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                 else:
                     logging.info(f'The record {srp} has already been processed')
             except Exception as exception:
@@ -76,9 +76,9 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
+def store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
     try:
-        sra_project_id = _get_id_sra_project(schema, request_id, srp)
+        sra_project_id = get_id_sra_project(schema, request_id, srp)
         srr_and_sra_id_tuples = [(srr, sra_project_id) for srr in srrs]
         logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
         postgres_connection.execute_bulk_write_statement(schema, 'sra_run', ['srr', 'sra_project_id'], srr_and_sra_id_tuples)
@@ -87,7 +87,7 @@ def _store_srrs_in_db(schema: str, srrs: [str], request_id: str, srp: str):
         raise exception
 
 
-def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
+def get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
     try:
         statement = f'''select sp.id from {schema}.sra_project sp
             join {schema}.geo_study_sra_project_link gsspl on sp.id = gsspl.sra_project_id
@@ -100,10 +100,10 @@ def _get_id_sra_project(schema: str, request_id: str, srp: str) -> int:
         raise exception
 
 
-def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_error: PysradbError, details: str):
+def store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_error: PysradbError, details: str):
     try:
-        sra_project_id = _get_id_sra_project(schema, request_id, srp)
-        pysradb_error_reference_id = _get_pysradb_error_reference(schema, pysradb_error)
+        sra_project_id = get_id_sra_project(schema, request_id, srp)
+        pysradb_error_reference_id = get_pysradb_error_reference(schema, pysradb_error)
         statement = f'insert into {schema}.sra_run_missing (sra_project_id, pysradb_error_reference_id, details) values (%s, %s, %s);'
         parameters = (sra_project_id, pysradb_error_reference_id, details)
         postgres_connection.execute_write_statement(statement, parameters)
@@ -112,7 +112,7 @@ def _store_missing_srr_in_db(schema: str, request_id: str, srp: str, pysradb_err
         raise exception
 
 
-def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
+def get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
     try:
         statement = f"select id from {schema}.pysradb_error_reference where name=%s and operation='srp_to_srr';"
         parameters = (pysradb_error.value,)
@@ -122,9 +122,9 @@ def _get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> in
         raise exception
 
 
-def _is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool:
+def is_srp_pending_to_be_processed(schema: str, request_id: str, srp: str) -> bool:
     try:
-        sra_project_id = _get_id_sra_project(schema, request_id, srp)
+        sra_project_id = get_id_sra_project(schema, request_id, srp)
         statement = f'''select id from {schema}.sra_run where sra_project_id=%s
                         union
                         select id from {schema}.sra_run_missing where sra_project_id=%s;'''

@@ -36,10 +36,10 @@ def handler(event, context):
 
                 request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
-                study_count = _get_study_count(ncbi_query)
+                study_count = get_study_count(ncbi_query)
 
-                if _is_request_pending_to_be_processed(schema, request_id, ncbi_query):
-                    _store_request_in_db(schema, request_id, ncbi_query, study_count)
+                if is_request_pending_to_be_processed(schema, request_id, ncbi_query):
+                    store_request_in_db(schema, request_id, ncbi_query, study_count)
 
                     retstart = 0
                     messages = []
@@ -71,7 +71,7 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def _get_study_count(ncbi_query: str) -> int:
+def get_study_count(ncbi_query: str) -> int:
     try:
         logging.debug(f'Getting study count for keyword {ncbi_query}...')
         url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={ncbi_query}&retmax=1'
@@ -84,7 +84,7 @@ def _get_study_count(ncbi_query: str) -> int:
         raise exception
 
 
-def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
+def store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
     try:
         statement = f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);'
         parameters = (request_id, ncbi_query, study_count)
@@ -94,7 +94,7 @@ def _store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_co
         raise exception
 
 
-def _is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str) -> bool:
+def is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str) -> bool:
     try:
         statement = f'select id from {schema}.request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
