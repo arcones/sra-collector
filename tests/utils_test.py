@@ -12,7 +12,7 @@ http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
-class Context:
+class Context: ## TODO se sigue usando?
     def __init__(self, function_name):
         self.function_name = function_name
 
