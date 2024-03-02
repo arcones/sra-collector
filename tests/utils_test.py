@@ -12,10 +12,6 @@ http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
-class Context: ## TODO se sigue usando?
-    def __init__(self, function_name):
-        self.function_name = function_name
-
 
 def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))

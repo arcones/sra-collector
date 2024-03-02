@@ -2,7 +2,6 @@ import json
 import os
 import sys
 from unittest.mock import call
-from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -18,10 +17,14 @@ from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
 from utils_test import _truncate_db
-from utils_test import Context
 
 sys.path.append('infra/lambdas/code')
-import A_get_user_query, B_get_query_pages, C_get_study_ids, D_get_study_geo, E_get_study_srp, F_get_study_srrs
+import A_get_user_query
+import B_get_query_pages
+import C_get_study_ids
+import D_get_study_geo
+import E_get_study_srp
+import F_get_study_srrs
 
 os.environ['ENV'] = 'test'
 
@@ -53,7 +56,7 @@ def test_a_get_user_query():
             payload['body'] = input_body
 
         # WHEN
-        actual_result = A_get_user_query.handler(payload, Context(function_name))
+        actual_result = A_get_user_query.handler(payload, 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result['statusCode'] == 201
@@ -78,7 +81,7 @@ def test_b_get_query_pages(database_holder):
         ]
 
         # WHEN
-        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
@@ -123,7 +126,7 @@ def test_b_get_query_pages_skip_already_processed_study_id(database_holder):
         _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
         # WHEN
-        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
@@ -152,7 +155,7 @@ def test_c_get_study_ids():
         ]
 
         # WHEN
-        actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+        actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
@@ -190,7 +193,7 @@ def test_d_get_study_geos(database_holder):
         _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
         # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
@@ -243,7 +246,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
         _store_test_geo_data_set(database_holder, request_id, 3268, 'GDS3268')
 
         # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
@@ -269,7 +272,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
 
 
 def test_e_get_study_srp_ok(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs: #TODO cambiar todas estas
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:  # TODO cambiar todas estas
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
             mock_sqs.send_message = Mock()
@@ -303,7 +306,7 @@ def test_e_get_study_srp_ok(database_holder):
                 inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
@@ -377,7 +380,7 @@ def test_e_get_study_srp_ko(database_holder):
                 inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
@@ -398,7 +401,8 @@ def test_e_get_study_srp_ko(database_holder):
             pysradb_error_reference_ids = [pysradb_error_reference_row[0] for pysradb_error_reference_row in database_cursor.fetchall()]
             expected_details = ['here will go', 'an explanation', "'of the issue'"]
 
-            database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
+            database_cursor.execute(
+                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
             actual_ko_rows = database_cursor.fetchall()
             expected_ko_rows = list(zip(pysradb_error_reference_ids, expected_details))
             assert actual_ko_rows == expected_ko_rows
@@ -437,7 +441,7 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         input_body = json.dumps({'request_id': request_id, 'gse': gses[1]})
 
         # WHEN
-        actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+        actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
@@ -478,7 +482,7 @@ def test_e_get_study_srp_skip_already_processed_geo(database_holder):
         inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id)
 
         # WHEN
-        actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+        actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
@@ -530,7 +534,7 @@ def test_e_get_study_srp_skip_unexpected_results(database_holder):
                 inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
@@ -567,7 +571,8 @@ def test_f_get_study_srrs_ok(database_holder):
             srps = ['SRP414713', 'SRP308347']
             study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
             srrs_for_srp414713 = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
-            srrs_for_srp308347 = ['SRR13790583', 'SRR13790584', 'SRR13790585', 'SRR13790586', 'SRR13790587', 'SRR13790588', 'SRR13790589', 'SRR13790590', 'SRR13790591', 'SRR13790592',
+            srrs_for_srp308347 = ['SRR13790583', 'SRR13790584', 'SRR13790585', 'SRR13790586', 'SRR13790587', 'SRR13790588', 'SRR13790589', 'SRR13790590', 'SRR13790591',
+                                  'SRR13790592',
                                   'SRR13790593', 'SRR13790594']
 
             def multiple_return_values(parameter):
@@ -596,7 +601,7 @@ def test_f_get_study_srrs_ok(database_holder):
                 inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
             # WHEN
-            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
@@ -617,14 +622,14 @@ def test_f_get_study_srrs_ok(database_holder):
 
             # THEN REGARDING MESSAGES
             expected_calls = [
-                f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
-                for srr in srrs_for_srp308347
-            ] + [
-                f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
-                for srr in srrs_for_srp414713
-            ]
+                                 f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
+                                 for srr in srrs_for_srp308347
+                             ] + [
+                                 f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
+                                 for srr in srrs_for_srp414713
+                             ]
 
-            assert mock_sqs_send_message.send_message_batch.call_count == _get_needed_batches_of_ten_messages(len(srrs_for_srp414713)+len(srrs_for_srp308347))
+            assert mock_sqs_send_message.send_message_batch.call_count == _get_needed_batches_of_ten_messages(len(srrs_for_srp414713) + len(srrs_for_srp308347))
 
             actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send_message.send_message_batch.call_args_list]
             actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
@@ -671,7 +676,7 @@ def test_f_get_study_srrs_ko(database_holder):
                 inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
 
             # WHEN
-            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), Context(function_name))
+            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
@@ -687,7 +692,8 @@ def test_f_get_study_srrs_ko(database_holder):
             pysradb_error_reference_id = database_cursor.fetchone()[0]
             expected_detail = "'NoneType' object has no attribute 'columns'"
 
-            database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+            database_cursor.execute(
+                f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
 
@@ -715,7 +721,7 @@ def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
         _store_test_sra_run(database_holder, srr, sra_project_id)
 
         # WHEN
-        actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), Context(function_name))
+        actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result == {'batchItemFailures': []}
