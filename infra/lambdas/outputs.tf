@@ -49,11 +49,3 @@ output "get_study_srrs_function_name" {
 output "get_study_srrs_log_group_arn" {
   value = module.F_get_study_srrs_lambda.cloudwatch_log_group_arn
 }
-
-output "get_srr_metadata_function_name" {
-  value = module.G_get_srr_metadata_lambda.function.function_name
-}
-
-output "get_srr_metadata_log_group_arn" {
-  value = module.G_get_srr_metadata_lambda.cloudwatch_log_group_arn
-}

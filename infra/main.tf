@@ -31,8 +31,7 @@ module "lambdas" {
     F_srrs_sqs = {
       F_srrs_sqs_arn                = aws_sqs_queue.F_srrs.arn,
       F_srrs_sqs_visibility_timeout = aws_sqs_queue.F_srrs.visibility_timeout_seconds
-    },
-    F_DLQ_srrs_2_metadata = aws_sqs_queue.F_DLQ_srrs_2_metadata.arn
+    }
   }
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                       = aws_kms_key.db_kms_key.arn
@@ -48,7 +47,6 @@ module "opensearch" {
     "get_study_ids"     = module.lambdas.get_study_ids_log_group_arn,
     "get_study_geo"     = module.lambdas.get_study_geo_log_group_arn,
     "get_study_srp"     = module.lambdas.get_study_srp_log_group_arn,
-    "get_study_srr"     = module.lambdas.get_study_srrs_log_group_arn,
-    "get_srr_metadata"  = module.lambdas.get_srr_metadata_log_group_arn
+    "get_study_srr"     = module.lambdas.get_study_srrs_log_group_arn
   }
 }

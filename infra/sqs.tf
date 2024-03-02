@@ -65,14 +65,5 @@ resource "aws_sqs_queue" "E_DLQ_srps_2_srrs" {
 }
 
 resource "aws_sqs_queue" "F_srrs" {
-  name                       = "F_srrs"
-  visibility_timeout_seconds = 910
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.F_DLQ_srrs_2_metadata.arn,
-    maxReceiveCount     = 2
-  })
-}
-
-resource "aws_sqs_queue" "F_DLQ_srrs_2_metadata" {
-  name = "F_DLQ_srrs_2_metadata"
+  name = "F_srrs"
 }
