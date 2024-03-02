@@ -7,17 +7,12 @@ from unittest.mock import patch
 
 import pytest
 from utils_test import _get_customized_input_from_sqs
-from utils_test import _get_needed_batches_of_ten_messages
 from utils_test import _provide_random_request_id
-from utils_test import _store_test_geo_data_set
-from utils_test import _store_test_geo_experiment
-from utils_test import _store_test_geo_platform
 from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
 from utils_test import _truncate_db
-from utils_test import MockRequestData
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -29,9 +24,6 @@ import F_get_study_srrs
 
 os.environ['ENV'] = 'test'
 
-_S_QUERY = {'query': 'stroke AND single cell rna seq AND musculus', 'results': 8}
-_2XL_QUERY = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096}
-
 
 @pytest.fixture(scope='session')
 def database_holder():
@@ -41,14 +33,19 @@ def database_holder():
     database_connection.close()
 
 
+FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'default_study_id': 200126815, 'default_gse': 'GSE126815', 'default_srp': 'SRP185522'}
+
+
 def test_a_get_user_query():
     with patch.object(A_get_user_query, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs.send_message = Mock()
-
         request_id = _provide_random_request_id()
-        ncbi_query = _S_QUERY['query']
+
+        ncbi_query = FIXTURE['query']
+
         input_body = json.dumps({'ncbi_query': ncbi_query}).replace('"', '\"')
+
+        mock_sqs.send_message = Mock()
 
         with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
             payload = json.load(json_data)
@@ -71,57 +68,33 @@ def test_b_get_query_pages(database_holder):
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
         with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
             # GIVEN
+            request_id = _provide_random_request_id()
+
+            input_body = json.dumps({'request_id': request_id, 'ncbi_query': FIXTURE['query']}).replace('"', '\"')
+
             mock_sqs_send.send_message_batch = Mock()
-
-            request_id_1 = _provide_random_request_id()
-            request_id_2 = _provide_random_request_id()
-            input_bodies = [
-                json.dumps({'request_id': request_id_1, 'ncbi_query': _2XL_QUERY['query']}).replace('"', '\"'),
-                json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"'),
-            ]
-
-            def multiple_return_values(method, parameter):
-                json_results = []
-                filenames = [file for file in os.listdir('tests/fixtures') if file.startswith('B_')]
-                for filename in filenames:
-                    with open(f'tests/fixtures/{filename}') as response:
-                        json_results.append(response.read())
-                query_to_result_mapping = {
-                    f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={_2XL_QUERY['query']}&retmax=1": MockRequestData(json_results[0]),
-                    f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={_S_QUERY['query']}&retmax=1": MockRequestData(json_results[1]),
-                }
-                return query_to_result_mapping.get(parameter, 'default_return_value')
-
-            mock_http_request.side_effect = multiple_return_values
+            with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
+                mock_http_request.return_value.data = response.read()
 
             # WHEN
-            actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-
-            database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id in ('{request_id_1}', '{request_id_2}')")
+            database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{request_id}'")
             actual_rows = database_cursor.fetchall()
-            actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
-
-            expected_rows = [
-                (request_id_1, _2XL_QUERY['query'], _2XL_QUERY['results']),
-                (request_id_2, _S_QUERY['query'], _S_QUERY['results'])
-            ]
-            expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
-
-            assert actual_rows == expected_rows
+            expected_row = [(request_id, FIXTURE['query'], FIXTURE['results'])]
+            assert actual_rows == expected_row
 
             # THEN REGARDING MESSAGES
-            expected_calls = [f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 0, "retmax": 500}}',
-                              f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 500, "retmax": 500}}',
-                              f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 1000, "retmax": 500}}',
-                              f'{{"request_id": "{request_id_2}", "ncbi_query": "{_S_QUERY["query"]}", "retstart": 0, "retmax": 500}}']
+            expected_calls = [f'{{"request_id": "{request_id}", "ncbi_query": "{FIXTURE["query"]}", "retstart": 0, "retmax": 500}}',
+                              f'{{"request_id": "{request_id}", "ncbi_query": "{FIXTURE["query"]}", "retstart": 500, "retmax": 500}}',
+                              f'{{"request_id": "{request_id}", "ncbi_query": "{FIXTURE["query"]}", "retstart": 1000, "retmax": 500}}']
 
-            assert mock_sqs_send.send_message_batch.call_count == 2
+            assert mock_sqs_send.send_message_batch.call_count == 1
 
             actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send.send_message_batch.call_args_list]
             actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
@@ -132,15 +105,16 @@ def test_b_get_query_pages_skip_already_processed_study_id(database_holder):
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
         with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
             # GIVEN
+            request_id = _provide_random_request_id()
+
+            input_body = json.dumps({'request_id': request_id, 'ncbi_query': FIXTURE['query']}).replace('"', '\"')
+
             mock_sqs.send_message_batch = Mock()
 
-            with open('tests/fixtures/B_get_query_pages_mock_esearch_s_query.json') as response:
+            with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
                 mock_http_request.return_value.data = response.read()
 
-            request_id = _provide_random_request_id()
-            input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
-
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
 
             # WHEN
             actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
@@ -162,126 +136,158 @@ def test_c_get_study_ids():
     with patch.object(C_get_study_ids, 'sqs') as mock_sqs:
         with patch.object(C_get_study_ids.http, 'request') as mock_http_request:
             # GIVEN
+            request_id = _provide_random_request_id()
+
+            input_body = json.dumps({'request_id': request_id, 'ncbi_query': FIXTURE['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"')
+
             mock_sqs.send_message_batch = Mock()
-
-            request_id_1 = _provide_random_request_id()
-            request_id_2 = _provide_random_request_id()
-            input_bodies = [
-                json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
-                json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"'),
-            ]  # TODO hace falta q los test procesen varios mensajes? podria simplificarlo con una sola entrada
-
-            with open('tests/fixtures/C_get_study_ids_mocked_esearch_s_query_0.json') as response:
+            with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
                 mock_http_request.return_value.data = response.read()
 
             # WHEN
-            actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING MESSAGES
             expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
-            expected_calls = \
-                [f'{{"request_id": "{request_id_1}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
-                [f'{{"request_id": "{request_id_2}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
+            expected_call = [f'{{"request_id": "{request_id}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
 
-            assert mock_sqs.send_message_batch.call_count == 2
+            assert mock_sqs.send_message_batch.call_count == 1
 
             actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
             actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
 
-            assert expected_calls.sort() == actual_calls_message_bodies.sort()
+            assert expected_call.sort() == actual_calls_message_bodies.sort()
 
 
-def test_d_get_study_geos(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs: # TODO mock in this one the NCBI calls
+def test_d_get_study_geos_gse(database_holder):
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
         # GIVEN
+        request_id = _provide_random_request_id()
+
         mock_sqs.send_message = Mock()
 
-        request_id = _provide_random_request_id()
-        study_ids = [200126815, 305668979, 100019750, 3268]
-        geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
-        study_ids_and_geos = zip(study_ids, geos)
+        input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
 
-        input_bodies = [
-            json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
-            for study_id in study_ids
-        ]
-
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
 
         # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
-        database_cursor.execute(f"""
-                                select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'
-                                """)
-        actual_rows = database_cursor.fetchall()
-        actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
-
-        expected_rows = [(study_id_and_geos[0], request_id, study_id_and_geos[1]) for study_id_and_geos in study_ids_and_geos]
-        expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
-
-        assert actual_rows == expected_rows
+        database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+        actual_row = database_cursor.fetchall()
+        assert actual_row == [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
 
         # THEN REGARDING MESSAGES
         assert mock_sqs.send_message.call_count == 1
         mock_sqs.send_message.assert_called_with(
             QueueUrl=D_get_study_geo.output_sqs,
-            MessageBody=json.dumps({'request_id': request_id, 'gse': 'GSE126815'})
+            MessageBody=json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']})
         )
+
+
+def test_d_get_study_geos_gsm(database_holder):
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
+        # GIVEN
+        request_id = _provide_random_request_id()
+        study_id = 305668979
+        gsm = 'GSM5668979'
+
+        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
+
+        mock_sqs.send_message = Mock()
+
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+
+        # WHEN
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+        # THEN REGARDING DATA
+        database_cursor, _ = database_holder
+        database_cursor.execute(f"select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'")
+        actual_row = database_cursor.fetchall()
+        assert actual_row == [(study_id, request_id, gsm)]
+
+        # THEN REGARDING MESSAGES
+        assert mock_sqs.send_message.call_count == 0
+
+
+def test_d_get_study_geos_gpl(database_holder):
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
+        # GIVEN
+        request_id = _provide_random_request_id()
+        study_id = 100019750
+        gpl = 'GPL19750'
+
+        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
+
+        mock_sqs.send_message = Mock()
+
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+
+        # WHEN
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+        # THEN REGARDING DATA
+        database_cursor, _ = database_holder
+        database_cursor.execute(f"select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'")
+        actual_row = database_cursor.fetchall()
+        assert actual_row == [(study_id, request_id, gpl)]
+
+        # THEN REGARDING MESSAGES
+        assert mock_sqs.send_message.call_count == 0
+
+
+def test_d_get_study_geos_gds(database_holder):
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
+        # GIVEN
+        request_id = _provide_random_request_id()
+        study_id = 3268
+        gds = 'GDS3268'
+
+        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
+
+        mock_sqs.send_message = Mock()
+
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+
+        # WHEN
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+        # THEN REGARDING DATA
+        database_cursor, _ = database_holder
+        database_cursor.execute(f"select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'")
+        actual_row = database_cursor.fetchall()
+        assert actual_row == [(study_id, request_id, gds)]
+
+        # THEN REGARDING MESSAGES
+        assert mock_sqs.send_message.call_count == 0
 
 
 def test_d_get_study_geos_skip_already_processed_study_id(database_holder):  # TODO mock in this one the NCBI calls
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         # GIVEN
+        request_id = _provide_random_request_id()
+
+        input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
+
         mock_sqs.send_message = Mock()
 
-        request_id = _provide_random_request_id()
-        study_ids = [200126815, 305668979, 100019750, 3268]
-        geos = ['GSE126815', 'GSM5668979', 'GPL19750', 'GDS3268']
-        study_ids_and_geos = zip(study_ids, geos)
-
-        input_bodies = [
-            json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
-            for study_id in study_ids
-        ]
-
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
-
-        _store_test_geo_study(database_holder, request_id, 200126815, 'GSE126815')
-        _store_test_geo_experiment(database_holder, request_id, 305668979, 'GSM5668979')
-        _store_test_geo_platform(database_holder, request_id, 100019750, 'GPL19750')
-        _store_test_geo_data_set(database_holder, request_id, 3268, 'GDS3268')
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+        _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
 
         # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
-        database_cursor.execute(f"""
-                                select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'
-                                union
-                                select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'
-                                """)
+        database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
         actual_rows = database_cursor.fetchall()
-        actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
-
-        expected_rows = [(study_id_and_geos[0], request_id, study_id_and_geos[1]) for study_id_and_geos in study_ids_and_geos]
-        expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
+        expected_rows = [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
 
         assert actual_rows == expected_rows
 
@@ -293,134 +299,158 @@ def test_e_get_study_srp_ok(database_holder):
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
-            mock_sqs.send_message = Mock()
-
             request_id = _provide_random_request_id()
-            study_ids = [200126815, 200150644, 200167593]
-            gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-            srps = ['SRP185522', 'SRP261818', 'SRP308347']
 
-            def multiple_return_values(parameter):
-                srp_results = [{'study_accession': [srp]} for srp in srps]
-                gse_to_srp_mapping = dict(zip(gses, srp_results))
-                return gse_to_srp_mapping.get(parameter, 'default_return_value')
+            input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']})
 
-            mock_sra_web_gse_to_srp.side_effect = multiple_return_values
+            mock_sqs.send_message = Mock()
+            mock_sra_web_gse_to_srp.return_value = {'study_accession': [FIXTURE['default_srp']]}
 
-            study_ids_and_geos = list(zip(study_ids, gses))
-
-            input_bodies = [
-                json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
-                .replace('"', '\"')
-                for study_id_and_gse in study_ids_and_geos
-            ]
-
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
-
-            inserted_geo_study_ids = []
-            for study_id_and_gse in study_ids_and_geos:
-                inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            inserted_geo_study_ids_for_sql_in = ','.join(map(str, inserted_geo_study_ids))
-
             database_cursor.execute(f'''select srp from sracollector_dev.sra_project
                                         join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
-                                        where geo_study_id in ({inserted_geo_study_ids_for_sql_in})
-                                    ''')
+                                        where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
-            expected_ok_rows = [(srp,) for srp in srps]
+            expected_ok_rows = [(FIXTURE['default_srp'],)]
             assert actual_ok_rows == expected_ok_rows
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
+            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
             # THEN REGARDING MESSAGES
-            assert mock_sqs.send_message.call_count == len(srps)
+            assert mock_sqs.send_message.call_count == 1
 
-            study_ids_and_gses_and_srps = list(zip(study_ids_and_geos, srps))
-
-            expected_calls = [
-                call(QueueUrl=E_get_study_srp.output_sqs, MessageBody=json.dumps({
-                    'request_id': request_id,
-                    'srp': study_id_and_gse_and_srp[1]
-                }))
-                for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-            ]
+            expected_calls = [call(QueueUrl=E_get_study_srp.output_sqs, MessageBody=json.dumps({'request_id': request_id, 'srp': FIXTURE['default_srp']}))]
 
             actual_calls = mock_sqs.send_message.call_args_list
 
             assert expected_calls == actual_calls
 
 
-def test_e_get_study_srp_ko(database_holder):
+def test_e_get_study_srp_attribute_error(database_holder):
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
-            mock_sqs.send_message = Mock()
-
-            study_ids = [200110021, 20037005, 200225606]
-            gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-
-            def multiple_error_raised(parameter):
-                pysradb_errors = [AttributeError('here will go'), ValueError('an explanation'), KeyError('of the issue')]
-                gse_to_srp_mapping = dict(zip(gses, pysradb_errors))
-                error = gse_to_srp_mapping.get(parameter)
-                raise error
-
-            mock_sra_web_gse_to_srp.side_effect = multiple_error_raised
-
             request_id = _provide_random_request_id()
 
-            study_ids_and_gses = list(zip(study_ids, gses))
+            input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']}).replace('"', '\"')
 
-            input_bodies = [
-                json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
-                .replace('"', '\"')
-                for study_id_and_gse in study_ids_and_gses
-            ]
+            mock_sqs.send_message = Mock()
+            mock_sra_web_gse_to_srp.side_effect = AttributeError('jander')
 
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
-
-            inserted_geo_study_ids = []
-            for study_id_and_gse in study_ids_and_gses:
-                inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            inserted_geo_study_ids_for_sql_in = ','.join(map(str, inserted_geo_study_ids))
-
             database_cursor.execute(f'''select srp from sracollector_dev.sra_project
                                         join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
-                                        where geo_study_id in ({inserted_geo_study_ids_for_sql_in})
-                                    ''')
+                                        where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
-            pysradb_errors_for_sql_in = ','.join(["'ATTRIBUTE_ERROR'", "'VALUE_ERROR'", "'KEY_ERROR'"])
-            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name in ({pysradb_errors_for_sql_in})")
-            pysradb_error_reference_ids = [pysradb_error_reference_row[0] for pysradb_error_reference_row in database_cursor.fetchall()]
-            expected_details = ['here will go', 'an explanation', "'of the issue'"]
+            database_cursor.execute(
+                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+            actual_ko_rows = database_cursor.fetchall()[0]
+            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='ATTRIBUTE_ERROR'")
+            pysradb_error_reference_id = database_cursor.fetchone()[0]
+            assert actual_ko_rows == (pysradb_error_reference_id, 'jander')
+
+            # THEN REGARDING MESSAGES
+            assert mock_sqs.send_message.call_count == 0
+
+
+def test_e_get_study_srp_value_error(database_holder):
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
+            # GIVEN
+            request_id = _provide_random_request_id()
+            # gse = 'GSE110021'
+
+            input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']}).replace('"', '\"')
+
+            mock_sqs.send_message = Mock()
+            mock_sra_web_gse_to_srp.side_effect = ValueError('clander')
+
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+
+            # WHEN
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+            # THEN REGARDING LAMBDA
+            assert actual_result == {'batchItemFailures': []}
+
+            # THEN REGARDING DATA
+            database_cursor, _ = database_holder
+            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
+                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+                                        where geo_study_id={inserted_geo_study_id}''')
+            actual_ok_rows = database_cursor.fetchall()
+            assert actual_ok_rows == []
 
             database_cursor.execute(
-                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
-            actual_ko_rows = database_cursor.fetchall()
-            expected_ko_rows = list(zip(pysradb_error_reference_ids, expected_details))
-            assert actual_ko_rows == expected_ko_rows
+                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+            actual_ko_rows = database_cursor.fetchall()[0]
+            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='VALUE_ERROR'")
+            pysradb_error_reference_id = database_cursor.fetchone()[0]
+            assert actual_ko_rows == (pysradb_error_reference_id, 'clander')
+
+            # THEN REGARDING MESSAGES
+            assert mock_sqs.send_message.call_count == 0
+
+
+def test_e_get_study_srp_key_error(database_holder):
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
+            # GIVEN
+            request_id = _provide_random_request_id()
+
+            input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']}).replace('"', '\"')
+
+            mock_sqs.send_message = Mock()
+            mock_sra_web_gse_to_srp.side_effect = KeyError('crispin')
+
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+
+            # WHEN
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+            # THEN REGARDING LAMBDA
+            assert actual_result == {'batchItemFailures': []}
+
+            # THEN REGARDING DATA
+            database_cursor, _ = database_holder
+            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
+                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+                                        where geo_study_id={inserted_geo_study_id}''')
+            actual_ok_rows = database_cursor.fetchall()
+            assert actual_ok_rows == []
+
+            database_cursor.execute(
+                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+            actual_ko_rows = database_cursor.fetchall()[0]
+            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='KEY_ERROR'")
+            pysradb_error_reference_id = database_cursor.fetchone()[0]
+            assert actual_ko_rows == (pysradb_error_reference_id, "'crispin'")
 
             # THEN REGARDING MESSAGES
             assert mock_sqs.send_message.call_count == 0
@@ -436,7 +466,7 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
         srp = 'SRP094854'
 
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
         inserted_geo_study_id_1 = _store_test_geo_study(database_holder, request_id, study_ids[0], gses[0])
         inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id_1)
         _store_test_geo_study(database_holder, request_id, study_ids[1], gses[1])
@@ -481,18 +511,15 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
 def test_e_get_study_srp_skip_already_processed_geo(database_holder):
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         # GIVEN
+        request_id = _provide_random_request_id()
+
+        input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']}).replace('"', '\"')
+
         mock_sqs.send_message = Mock()
 
-        request_id = _provide_random_request_id()
-        study_id = 200126815
-        gse = str(study_id).replace('200', 'GSE', 3)
-        srp = 'SRP185522'
-
-        input_body = json.dumps({'request_id': request_id, 'gse': gse}).replace('"', '\"')
-
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
-        inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)
-        inserted_sra_project_id = _store_test_sra_project(database_holder, srp, inserted_geo_study_id)
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+        inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+        inserted_sra_project_id = _store_test_sra_project(database_holder, FIXTURE['default_srp'], inserted_geo_study_id)
 
         # WHEN
         actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
@@ -504,7 +531,7 @@ def test_e_get_study_srp_skip_already_processed_geo(database_holder):
         database_cursor, _ = database_holder
         database_cursor.execute(f'select srp from sracollector_dev.sra_project where id={inserted_sra_project_id}')
         actual_ok_rows = database_cursor.fetchall()
-        assert actual_ok_rows == [(srp,)]
+        assert actual_ok_rows == [(FIXTURE['default_srp'],)]
 
         database_cursor.execute(f'select pysradb_error_reference_id from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
         actual_ko_rows = database_cursor.fetchall()
@@ -518,51 +545,32 @@ def test_e_get_study_srp_skip_unexpected_results(database_holder):
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
-            mock_sqs.send_message = Mock()
-
             request_id = _provide_random_request_id()
-            study_ids = [20040034, 200252323, 20030614]
-            gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
+            unexpected_srp = 'DRP010911'
 
-            def multiple_return_values(parameter):
-                unexpected_results = [{'study_accession': [srp]} for srp in ['SRX029072', 'DRP010911', 'ERP000531']]
-                gse_to_srp_mapping = dict(zip(gses, unexpected_results))
-                return gse_to_srp_mapping.get(parameter, 'default_return_value')
+            input_body = json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']}).replace('"', '\"')
 
-            mock_sra_web_gse_to_srp.side_effect = multiple_return_values
+            mock_sqs.send_message = Mock()
+            mock_sra_web_gse_to_srp.return_value = {'study_accession': [unexpected_srp]}
 
-            study_ids_and_gses = list(zip(study_ids, gses))
-
-            input_bodies = [
-                json.dumps({'request_id': request_id, 'gse': study_id_and_gse[1]})
-                .replace('"', '\"')
-                for study_id_and_gse in study_ids_and_gses
-            ]
-
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
-
-            inserted_geo_study_ids = []
-            for study_id_and_gse in study_ids_and_gses:
-                inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse[0], study_id_and_gse[1]))
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
 
             # WHEN
-            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            inserted_geo_study_ids_for_sql_in = ','.join(map(str, inserted_geo_study_ids))
-
             database_cursor.execute(f'''select srp from sracollector_dev.sra_project
                                         join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
-                                        where geo_study_id in ({inserted_geo_study_ids_for_sql_in})
-                                    ''')
+                                        where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id in ({inserted_geo_study_ids_for_sql_in})')
+            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
@@ -574,73 +582,41 @@ def test_f_get_study_srrs_ok(database_holder):
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             # GIVEN
-            mock_sqs.send_message_batch = Mock()
-
             request_id = _provide_random_request_id()
-            study_ids = [200126815, 200308347]
-            gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-            srps = ['SRP414713', 'SRP308347']
-            study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
-            srrs_for_srp414713 = ['SRR22873806', 'SRR22873807', 'SRR22873808', 'SRR22873809', 'SRR22873810', 'SRR22873811', 'SRR22873812', 'SRR22873813', 'SRR22873814']
-            srrs_for_srp308347 = ['SRR13790583', 'SRR13790584', 'SRR13790585', 'SRR13790586', 'SRR13790587', 'SRR13790588', 'SRR13790589', 'SRR13790590', 'SRR13790591',
-                                  'SRR13790592',
-                                  'SRR13790593', 'SRR13790594']
+            srrs = ['SRR22873806', 'SRR22873807']
 
-            def multiple_return_values(parameter):
-                srr_results = [{'run_accession': srrs_for_srp414713},
-                               {'run_accession': srrs_for_srp308347}]
-                gse_to_srp_mapping = dict(zip(srps, srr_results))
-                return gse_to_srp_mapping.get(parameter, 'default_return_value')
+            mock_sqs.send_message_batch = Mock()
+            mock_sra_web_srp_to_srr.return_value = {'run_accession': srrs}
 
-            mock_sra_web_srp_to_srr.side_effect = multiple_return_values
+            input_body = json.dumps({'request_id': request_id, 'srp': FIXTURE['default_srp']}).replace('"', '\"')
 
-            input_bodies = [
-                json.dumps({
-                    'request_id': request_id,
-                    'srp': study_id_and_gse_and_srp[2]
-                }).replace('"', '\"')
-                for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-            ]
-
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
-            inserted_geo_study_ids = []
-            for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-                inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
-
-            inserted_sra_project_ids = []
-            for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-                inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+            inserted_sra_project_id = _store_test_sra_project(database_holder, FIXTURE['default_srp'], inserted_geo_study_id)
 
             # WHEN
-            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
-            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={inserted_sra_project_id}')
             actual_ok_rows = database_cursor.fetchall()
             actual_ok_rows = actual_ok_rows.sort()
-            expected_rows = [(srr,) for srr in (srrs_for_srp414713, srrs_for_srp308347)]
+            expected_rows = [(srr,) for srr in srrs]
             expected_rows = expected_rows.sort()
             assert actual_ok_rows == expected_rows
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+            database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id={inserted_sra_project_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
             # THEN REGARDING MESSAGES
-            expected_calls = [
-                                 f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
-                                 for srr in srrs_for_srp308347
-                             ] + [
-                                 f'{{"request_id": "{request_id}", "srr": "{srr}"}}'
-                                 for srr in srrs_for_srp414713
-                             ]
+            expected_calls = [f'{{"request_id": "{request_id}", "srr": "{srr}"}}' for srr in srrs]
 
-            assert mock_sqs.send_message_batch.call_count == _get_needed_batches_of_ten_messages(len(srrs_for_srp414713) + len(srrs_for_srp308347))
+            assert mock_sqs.send_message_batch.call_count == 1
 
             actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
             actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
@@ -652,60 +628,34 @@ def test_f_get_study_srrs_ko(database_holder):
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             # GIVEN
-            mock_sqs.send_message_batch = Mock()
-
             request_id = _provide_random_request_id()
-            study_ids = [200126815, 200118257]
-            gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
-            srps = ['SRP185522', 'SRP178139']
-            study_ids_and_gses_and_srps = list(zip(study_ids, gses, srps))
 
-            def multiple_error_raised(parameter):
-                pysradb_errors = [AttributeError("'NoneType' object has no attribute 'columns'"), AttributeError("'NoneType' object has no attribute 'columns'")]
-                srp_to_srr_mapping = dict(zip(srps, pysradb_errors))
-                error = srp_to_srr_mapping.get(parameter)
-                raise error
+            input_body = json.dumps({'request_id': request_id, 'srp': FIXTURE['default_srp']}).replace('"', '\"')
 
-            mock_sra_web_srp_to_srr.side_effect = multiple_error_raised
+            mock_sqs.send_message_batch = Mock()
+            mock_sra_web_srp_to_srr.side_effect = AttributeError("'NoneType' object has no attribute 'columns'")
 
-            input_bodies = [
-                json.dumps({
-                    'request_id': request_id,
-                    'srp': study_id_and_gse_and_srp[2]
-                }).replace('"', '\"')
-                for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
-            ]
-
-            _store_test_request(database_holder, request_id, _S_QUERY['query'])
-            inserted_geo_study_ids = []
-            for study_id_and_gse_and_srp in study_ids_and_gses_and_srps:
-                inserted_geo_study_ids.append(_store_test_geo_study(database_holder, request_id, study_id_and_gse_and_srp[0], study_id_and_gse_and_srp[1]))
-
-            inserted_sra_project_ids = []
-            for index, study_id_and_gse_and_srp in enumerate(study_ids_and_gses_and_srps):
-                inserted_sra_project_ids.append(_store_test_sra_project(database_holder, study_id_and_gse_and_srp[2], inserted_geo_study_ids[index]))
+            _store_test_request(database_holder, request_id, FIXTURE['query'])
+            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+            inserted_sra_project_id = _store_test_sra_project(database_holder, FIXTURE['default_srp'], inserted_geo_study_id)
 
             # WHEN
-            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
             # THEN REGARDING LAMBDA
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            inserted_sra_project_id_for_sql_in = ','.join(map(str, inserted_sra_project_ids))
-            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
+            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={inserted_sra_project_id}')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
+            database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={inserted_sra_project_id}')
+            actual_ko_rows = database_cursor.fetchall()
             database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='srp_to_srr' and name='ATTRIBUTE_ERROR'")
             pysradb_error_reference_id = database_cursor.fetchone()[0]
-            expected_detail = "'NoneType' object has no attribute 'columns'"
-
-            database_cursor.execute(
-                f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id in ({inserted_sra_project_id_for_sql_in})')
-            actual_ko_rows = database_cursor.fetchall()
-            assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
+            assert actual_ko_rows == [(pysradb_error_reference_id, "'NoneType' object has no attribute 'columns'")]
 
             # THEN REGARDING MESSAGES
             assert mock_sqs.send_message_batch.call_count == 0
@@ -714,19 +664,16 @@ def test_f_get_study_srrs_ko(database_holder):
 def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs.send_message_batch = Mock()
-
         request_id = _provide_random_request_id()
-        study_id = 200126815
-        gse = str(study_id).replace('200', 'GSE', 3)
-        srp = 'SRP185522'
         srr = 'SRR787899'
 
-        input_body = json.dumps({'request_id': request_id, 'srp': srp})
+        input_body = json.dumps({'request_id': request_id, 'srp': FIXTURE['default_srp']})
 
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
-        geo_study_id = _store_test_geo_study(database_holder, request_id, study_id, gse)
-        sra_project_id = _store_test_sra_project(database_holder, srp, geo_study_id)
+        mock_sqs.send_message_batch = Mock()
+
+        _store_test_request(database_holder, request_id, FIXTURE['query'])
+        geo_study_id = _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+        sra_project_id = _store_test_sra_project(database_holder, FIXTURE['default_srp'], geo_study_id)
         _store_test_sra_run(database_holder, srr, sra_project_id)
 
         # WHEN
