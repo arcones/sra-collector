@@ -163,136 +163,161 @@ def test_c_get_study_ids():
 
 
 def test_d_get_study_geos_gse(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
-        # GIVEN
-        request_id = _provide_random_request_id()
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
+        with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
+            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+                # GIVEN
+                request_id = _provide_random_request_id()
 
-        mock_sqs.send_message = Mock()
+                mock_sqs.send_message = Mock()
+                mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
+                with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
+                    mock_http_request.return_value.data = response.read()
 
-        input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
+                input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
 
-        _store_test_request(database_holder, request_id, FIXTURE['query'])
+                _store_test_request(database_holder, request_id, FIXTURE['query'])
 
-        # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                # WHEN
+                actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
-        actual_row = database_cursor.fetchall()
-        assert actual_row == [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
+                # THEN REGARDING DATA
+                database_cursor, _ = database_holder
+                database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+                actual_row = database_cursor.fetchall()
+                assert actual_row == [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 1
-        mock_sqs.send_message.assert_called_with(
-            QueueUrl=D_get_study_geo.output_sqs,
-            MessageBody=json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']})
-        )
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(
+                    QueueUrl=D_get_study_geo.output_sqs,
+                    MessageBody=json.dumps({'request_id': request_id, 'gse': FIXTURE['default_gse']})
+                )
 
 
 def test_d_get_study_geos_gsm(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
-        # GIVEN
-        request_id = _provide_random_request_id()
-        study_id = 305668979
-        gsm = 'GSM5668979'
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
+        with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
+            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+                # GIVEN
+                request_id = _provide_random_request_id()
+                study_id = 305668979
+                gsm = 'GSM5668979'
 
-        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
+                input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
 
-        mock_sqs.send_message = Mock()
+                mock_sqs.send_message = Mock()
+                mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
+                with open('tests/fixtures/D_get_study_geo_mocked_esummary_gsm.json') as response:
+                    mock_http_request.return_value.data = response.read()
 
-        _store_test_request(database_holder, request_id, FIXTURE['query'])
+                _store_test_request(database_holder, request_id, FIXTURE['query'])
 
-        # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                # WHEN
+                actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'")
-        actual_row = database_cursor.fetchall()
-        assert actual_row == [(study_id, request_id, gsm)]
+                # THEN REGARDING DATA
+                database_cursor, _ = database_holder
+                database_cursor.execute(f"select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'")
+                actual_row = database_cursor.fetchall()
+                assert actual_row == [(study_id, request_id, gsm)]
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 0
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 0
 
 
 def test_d_get_study_geos_gpl(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
-        # GIVEN
-        request_id = _provide_random_request_id()
-        study_id = 100019750
-        gpl = 'GPL19750'
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
+        with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
+            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+                # GIVEN
+                request_id = _provide_random_request_id()
+                study_id = 100019750
+                gpl = 'GPL19750'
 
-        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
+                input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
 
-        mock_sqs.send_message = Mock()
+                mock_sqs.send_message = Mock()
+                mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
+                with open('tests/fixtures/D_get_study_geo_mocked_esummary_gpl.json') as response:
+                    mock_http_request.return_value.data = response.read()
 
-        _store_test_request(database_holder, request_id, FIXTURE['query'])
+                _store_test_request(database_holder, request_id, FIXTURE['query'])
 
-        # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                # WHEN
+                actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'")
-        actual_row = database_cursor.fetchall()
-        assert actual_row == [(study_id, request_id, gpl)]
+                # THEN REGARDING DATA
+                database_cursor, _ = database_holder
+                database_cursor.execute(f"select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'")
+                actual_row = database_cursor.fetchall()
+                assert actual_row == [(study_id, request_id, gpl)]
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 0
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 0
 
 
 def test_d_get_study_geos_gds(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:  # TODO mock in this one the NCBI calls
-        # GIVEN
-        request_id = _provide_random_request_id()
-        study_id = 3268
-        gds = 'GDS3268'
-
-        input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
-
-        mock_sqs.send_message = Mock()
-
-        _store_test_request(database_holder, request_id, FIXTURE['query'])
-
-        # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
-
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'")
-        actual_row = database_cursor.fetchall()
-        assert actual_row == [(study_id, request_id, gds)]
-
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 0
-
-
-def test_d_get_study_geos_skip_already_processed_study_id(database_holder):  # TODO mock in this one the NCBI calls
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
-        # GIVEN
-        request_id = _provide_random_request_id()
+        with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
+            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+                # GIVEN
+                request_id = _provide_random_request_id()
+                study_id = 3268
+                gds = 'GDS3268'
 
-        input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
+                input_body = json.dumps({'request_id': request_id, 'study_id': study_id}).replace('"', '\"')
 
-        mock_sqs.send_message = Mock()
+                mock_sqs.send_message = Mock()
+                mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
+                with open('tests/fixtures/D_get_study_geo_mocked_esummary_gds.json') as response:
+                    mock_http_request.return_value.data = response.read()
 
-        _store_test_request(database_holder, request_id, FIXTURE['query'])
-        _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+                _store_test_request(database_holder, request_id, FIXTURE['query'])
 
-        # WHEN
-        actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                # WHEN
+                actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
-        actual_rows = database_cursor.fetchall()
-        expected_rows = [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
+                # THEN REGARDING DATA
+                database_cursor, _ = database_holder
+                database_cursor.execute(f"select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'")
+                actual_row = database_cursor.fetchall()
+                assert actual_row == [(study_id, request_id, gds)]
 
-        assert actual_rows == expected_rows
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 0
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 0
+
+def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
+        with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
+            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+                # GIVEN
+                request_id = _provide_random_request_id()
+
+                input_body = json.dumps({'request_id': request_id, 'study_id': FIXTURE['default_study_id']}).replace('"', '\"')
+
+                mock_sqs.send_message = Mock()
+                mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
+                with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
+                    mock_http_request.return_value.data = response.read()
+
+                _store_test_request(database_holder, request_id, FIXTURE['query'])
+                _store_test_geo_study(database_holder, request_id, FIXTURE['default_study_id'], FIXTURE['default_gse'])
+
+                # WHEN
+                actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+
+                # THEN REGARDING DATA
+                database_cursor, _ = database_holder
+                database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+                actual_rows = database_cursor.fetchall()
+                expected_rows = [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
+
+                assert actual_rows == expected_rows
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 0
 
 
 def test_e_get_study_srp_ok(database_holder):

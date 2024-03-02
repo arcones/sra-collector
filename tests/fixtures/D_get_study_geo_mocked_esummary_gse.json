@@ -1,0 +1,52 @@
+{
+    "header": {
+        "type": "esummary",
+        "version": "0.3"
+    },
+    "result": {
+        "uids": ["200126815"],
+        "200126815": {
+            "uid": "200126815",
+            "accession": "GSE126815",
+            "gds": "",
+            "title": "Antibody-neutralizable major early driver of Alzheimer’s disease and vascular dementia",
+            "summary": "Alzheimer’s disease (AD) and vascular dementia (VaD) are the two most common forms of dementia, neither of which can be effectively treated. There is growing evidence on vascular contributions to cognitive impairment and dementia such as AD, but their pathogenic molecular links are not defined yet. Notably, neurofibrillary tangles made of hyperphosphorylated tau (P-tau) are a hallmark lesion of AD, but are not found in VaD. Although brain ischemia induces some tau changes and tau knockout reduces stroke-induced acute brain damage, little is known about the role of tau in mediating progression from vascular insufficiency to later development of VaD. Cis P-tau is a pre-tangle pathology in AD and an early driver of neurodegeneration resulting from brain injury, but its role in AD treatment or in VaD is unknown. Here we identify cis P-tau as an antibody-neutralizable major common early driver of AD and VaD. We show that cis P-tau elimination using cis antibody not only prevents but also treats AD-like neurodegeneration and memory loss in a hTau mouse model of AD. Purified cis P-tau causes and spreads neurodegeneration with behavioral changes when injected into wild-type mouse brains, but is prevented by cis antibody. Surprisingly, we also find robust cis P-tau with no evidence of tau tangles in human VaD brains and a mouse model of chronic cerebral hypoperfusion that mimics key aspects of clinical VaD. Cis mAb treatment of hypoperfusive mice for 1 or 6 months blocks VaD-like neuropathological and functional outcomes. Single-cell transcriptomic profiling reveals that cerebral hypoperfusion induces numerous global changes in diverse brain cells, including those of human AD brains. Remarkably, ~90% of these global changes are fully recovered with cis antibody, correlating with tau expression in cells. Thus, cis P-tau is a major common early driver of AD and VaD, and cis antibody has a potential role in the early detection, prevention, and treatment of these devastating diseases.",
+            "gpl": "24247",
+            "gse": "126815",
+            "taxon": "Mus musculus",
+            "entrytype": "GSE",
+            "gdstype": "Expression profiling by high throughput sequencing",
+            "ptechtype": "",
+            "valtype": "",
+            "ssinfo": "",
+            "subsetinfo": "",
+            "pdat": "2021/02/10",
+            "suppfile": "TSV, TXT",
+            "samples": [
+                {"accession": "GSM3613870", "title": "Sham-R1"},
+                {"accession": "GSM3613876", "title": "BCAS-Cis Ptau mAb-R1"},
+                {"accession": "GSM3613873", "title": "BCAS-IgG-R1"},
+                {"accession": "GSM3613875", "title": "BCAS-IgG-R3"},
+                {"accession": "GSM3613878", "title": "BCAS-Cis Ptau mAb-R3"},
+                {"accession": "GSM3613872", "title": "Sham-R3"},
+                {"accession": "GSM3613877", "title": "BCAS-Cis Ptau mAb-R2"},
+                {"accession": "GSM3613874", "title": "BCAS-IgG-R2"},
+                {"accession": "GSM3613871", "title": "Sham-R2"}
+            ],
+            "relations": [],
+            "extrelations": [
+                {"relationtype": "SRA", "targetobject": "SRP185522", "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP185/SRP185522/"}
+            ],
+            "n_samples": 9,
+            "seriestitle": "",
+            "platformtitle": "",
+            "platformtaxa": "",
+            "samplestaxa": "",
+            "pubmedids": [],
+            "projects": [],
+            "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE126nnn/GSE126815/",
+            "geo2r": "no",
+            "bioproject": "PRJNA521781"
+        }
+    }
+}
