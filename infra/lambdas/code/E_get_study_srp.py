@@ -19,6 +19,7 @@ class PysradbError(Enum):
 sqs = boto3.client('sqs', region_name='eu-central-1')
 output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
 
+
 def handler(event, context):
     schema = postgres_connection.schema_for_env()
     if event:

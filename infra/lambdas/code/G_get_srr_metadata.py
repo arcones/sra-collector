@@ -1,5 +1,6 @@
 import logging
 
+from pysradb import SRAweb
 
 def handler(event, context):
     if event:
@@ -11,3 +12,5 @@ def handler(event, context):
 
         for record in event['Records']:
             logging.info(f'Processing record {record}')
+            srr = 'SRR13790594'
+            raw_pysradb_data_frame = SRAweb().sra_metadata(srp=srr, detailed=True)

@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from unittest.mock import call
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -268,15 +269,28 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
 
 
 def test_e_get_study_srp_ok(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs_send_message:
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
+        mock_sqs.send_message = Mock()
+        E_get_study_srp.SRAweb.gse_to_srp = Mock(name='gse_to_srp')
+
+        parameter_to_srp_mapping = {
+            'GSE126815': 'SRP185522',
+            'GSE150644': 'SRP261818',
+        }
+
+        def side_effect(parameter):
+            return parameter_to_srp_mapping.get(parameter, 'default_return_value')
+
+        E_get_study_srp.SRAweb.gse_to_srp.side_effect = side_effect
+
         function_name = 'E_get_study_srp'
 
         request_id = _provide_random_request_id()
         study_ids = [200126815, 200150644, 200167593]
         gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
         srps = ['SRP185522', 'SRP261818', 'SRP308347']
+
 
         study_ids_and_geos = list(zip(study_ids, gses))
 
@@ -315,7 +329,7 @@ def test_e_get_study_srp_ok(database_holder):
         assert actual_ko_rows == []
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == len(srps)
+        assert mock_sqs.send_message.call_count == len(srps)
 
         study_ids_and_gses_and_srps = list(zip(study_ids_and_geos, srps))
 
@@ -327,7 +341,7 @@ def test_e_get_study_srp_ok(database_holder):
             for study_id_and_gse_and_srp in study_ids_and_gses_and_srps
         ]
 
-        actual_calls = mock_sqs_send_message.send_message.call_args_list
+        actual_calls = mock_sqs.send_message.call_args_list
 
         assert expected_calls == actual_calls
 
