@@ -13,6 +13,11 @@ http = urllib3.PoolManager()
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
 
+class MockRequestData:
+    def __init__(self, data):
+        self.data = data
+
+
 def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))
 

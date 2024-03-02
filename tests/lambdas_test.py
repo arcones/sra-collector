@@ -17,6 +17,7 @@ from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
 from utils_test import _truncate_db
+from utils_test import MockRequestData
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -41,16 +42,15 @@ def database_holder():
 
 
 def test_a_get_user_query():
-    with patch.object(A_get_user_query, 'sqs') as mock_sqs_send_message:
+    with patch.object(A_get_user_query, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
-        function_name = 'A_get_user_query'
+        mock_sqs.send_message = Mock()
 
         request_id = _provide_random_request_id()
         ncbi_query = _S_QUERY['query']
         input_body = json.dumps({'ncbi_query': ncbi_query}).replace('"', '\"')
 
-        with open(f'tests/fixtures/{function_name}_input.json') as json_data:
+        with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
             payload = json.load(json_data)
             payload['requestContext']['requestId'] = request_id
             payload['body'] = input_body
@@ -63,89 +63,105 @@ def test_a_get_user_query():
         assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{ncbi_query}"}}'
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 1
-        mock_sqs_send_message.send_message.assert_called_with(QueueUrl=A_get_user_query.output_sqs, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query}))
+        assert mock_sqs.send_message.call_count == 1
+        mock_sqs.send_message.assert_called_with(QueueUrl=A_get_user_query.output_sqs, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query}))
 
 
 def test_b_get_query_pages(database_holder):
-    with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send_message:
-        # GIVEN
-        mock_sqs_send_message.send_message_batch = Mock()
-        function_name = 'B_get_query_pages'
+    with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
+        with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
+            # GIVEN
+            mock_sqs_send.send_message_batch = Mock()
 
-        request_id_1 = _provide_random_request_id()
-        request_id_2 = _provide_random_request_id()
-        input_bodies = [
-            json.dumps({'request_id': request_id_1, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"'),
-            json.dumps({'request_id': request_id_2, 'ncbi_query': _2XL_QUERY['query']}).replace('"', '\"'),
-        ]
+            request_id_1 = _provide_random_request_id()
+            request_id_2 = _provide_random_request_id()
+            input_bodies = [
+                json.dumps({'request_id': request_id_1, 'ncbi_query': _2XL_QUERY['query']}).replace('"', '\"'),
+                json.dumps({'request_id': request_id_2, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"'),
+            ]
 
-        # WHEN
-        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
+            def multiple_return_values(method, parameter):
+                json_results = []
+                filenames = [file for file in os.listdir('tests/fixtures') if file.startswith('B_')]
+                for filename in filenames:
+                    with open(f'tests/fixtures/{filename}') as response:
+                        json_results.append(response.read())
+                query_to_result_mapping = {
+                    f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={_2XL_QUERY['query']}&retmax=1": MockRequestData(json_results[0]),
+                    f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={_S_QUERY['query']}&retmax=1": MockRequestData(json_results[1]),
+                }
+                return query_to_result_mapping.get(parameter, 'default_return_value')
 
-        # THEN REGARDING LAMBDA
-        assert actual_result == {'batchItemFailures': []}
+            mock_http_request.side_effect = multiple_return_values
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
+            # WHEN
+            actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs(input_bodies), 'a context')
 
-        database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id in ('{request_id_1}', '{request_id_2}')")
-        actual_rows = database_cursor.fetchall()
-        actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
+            # THEN REGARDING LAMBDA
+            assert actual_result == {'batchItemFailures': []}
 
-        expected_rows = [
-            (request_id_1, _S_QUERY['query'], _S_QUERY['results']),
-            (request_id_2, _2XL_QUERY['query'], _2XL_QUERY['results'])
-        ]
-        expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
+            # THEN REGARDING DATA
+            database_cursor, _ = database_holder
 
-        assert actual_rows == expected_rows
+            database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id in ('{request_id_1}', '{request_id_2}')")
+            actual_rows = database_cursor.fetchall()
+            actual_rows = sorted(actual_rows, key=lambda row: (row[0]))
 
-        # THEN REGARDING MESSAGES
-        expected_calls = [f'{{"request_id": "{request_id_1}", "ncbi_query": "{_S_QUERY["query"]}", "retstart": 0, "retmax": 500}}',
-                          f'{{"request_id": "{request_id_2}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 0, "retmax": 500}}',
-                          f'{{"request_id": "{request_id_2}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 500, "retmax": 500}}',
-                          f'{{"request_id": "{request_id_2}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 1000, "retmax": 500}}']
+            expected_rows = [
+                (request_id_1, _2XL_QUERY['query'], _2XL_QUERY['results']),
+                (request_id_2, _S_QUERY['query'], _S_QUERY['results'])
+            ]
+            expected_rows = sorted(expected_rows, key=lambda row: (row[0]))
 
-        assert mock_sqs_send_message.send_message_batch.call_count == 2
+            assert actual_rows == expected_rows
 
-        actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send_message.send_message_batch.call_args_list]
-        actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
-        assert expected_calls == actual_calls_message_bodies
+            # THEN REGARDING MESSAGES
+            expected_calls = [f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 0, "retmax": 500}}',
+                              f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 500, "retmax": 500}}',
+                              f'{{"request_id": "{request_id_1}", "ncbi_query": "{_2XL_QUERY["query"]}", "retstart": 1000, "retmax": 500}}',
+                              f'{{"request_id": "{request_id_2}", "ncbi_query": "{_S_QUERY["query"]}", "retstart": 0, "retmax": 500}}']
+
+            assert mock_sqs_send.send_message_batch.call_count == 2
+
+            actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send.send_message_batch.call_args_list]
+            actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+            assert expected_calls == actual_calls_message_bodies
 
 
 def test_b_get_query_pages_skip_already_processed_study_id(database_holder):
-    with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send_message:
-        # GIVEN
-        mock_sqs_send_message.send_message_batch = Mock()
-        function_name = 'B_get_query_pages'
+    with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
+        with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
+            # GIVEN
+            mock_sqs.send_message_batch = Mock()
 
-        request_id = _provide_random_request_id()
-        input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
+            with open('tests/fixtures/B_get_query_pages_mock_esearch_s_query.json') as response:
+                mock_http_request.return_value.data = response.read()
 
-        _store_test_request(database_holder, request_id, _S_QUERY['query'])
+            request_id = _provide_random_request_id()
+            input_body = json.dumps({'request_id': request_id, 'ncbi_query': _S_QUERY['query']}).replace('"', '\"')
 
-        # WHEN
-        actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+            _store_test_request(database_holder, request_id, _S_QUERY['query'])
 
-        # THEN REGARDING LAMBDA
-        assert actual_result == {'batchItemFailures': []}
+            # WHEN
+            actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-        # THEN REGARDING DATA
-        database_cursor, _ = database_holder
-        database_cursor.execute(f"select id from sracollector_dev.request where id='{request_id}'")
-        actual_rows = database_cursor.fetchall()
-        assert actual_rows == [(request_id,)]
+            # THEN REGARDING LAMBDA
+            assert actual_result == {'batchItemFailures': []}
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 0
+            # THEN REGARDING DATA
+            database_cursor, _ = database_holder
+            database_cursor.execute(f"select id from sracollector_dev.request where id='{request_id}'")
+            actual_rows = database_cursor.fetchall()
+            assert actual_rows == [(request_id,)]
+
+            # THEN REGARDING MESSAGES
+            assert mock_sqs.send_message.call_count == 0
 
 
 def test_c_get_study_ids():
-    with patch.object(C_get_study_ids, 'sqs') as mock_sqs_send_message:
+    with patch.object(C_get_study_ids, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message_batch = Mock()
-        function_name = 'C_get_study_ids'
+        mock_sqs.send_message_batch = Mock()
 
         request_id_1 = _provide_random_request_id()
         request_id_2 = _provide_random_request_id()
@@ -166,19 +182,18 @@ def test_c_get_study_ids():
             [f'{{"request_id": "{request_id_1}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids] + \
             [f'{{"request_id": "{request_id_2}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
 
-        assert mock_sqs_send_message.send_message_batch.call_count == 2
+        assert mock_sqs.send_message_batch.call_count == 2
 
-        actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send_message.send_message_batch.call_args_list]
+        actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
         actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
 
         assert expected_calls.sort() == actual_calls_message_bodies.sort()
 
 
 def test_d_get_study_geos(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs_send_message:
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
-        function_name = 'D_get_study_geo'
+        mock_sqs.send_message = Mock()
 
         request_id = _provide_random_request_id()
         study_ids = [200126815, 305668979, 100019750, 3268]
@@ -215,18 +230,17 @@ def test_d_get_study_geos(database_holder):
         assert actual_rows == expected_rows
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 1
-        mock_sqs_send_message.send_message.assert_called_with(
+        assert mock_sqs.send_message.call_count == 1
+        mock_sqs.send_message.assert_called_with(
             QueueUrl=D_get_study_geo.output_sqs,
             MessageBody=json.dumps({'request_id': request_id, 'gse': 'GSE126815'})
         )
 
 
 def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs_send_message:
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
-        function_name = 'D_get_study_geo'
+        mock_sqs.send_message = Mock()
 
         request_id = _provide_random_request_id()
         study_ids = [200126815, 305668979, 100019750, 3268]
@@ -268,7 +282,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
         assert actual_rows == expected_rows
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 0
+        assert mock_sqs.send_message.call_count == 0
 
 
 def test_e_get_study_srp_ok(database_holder):
@@ -288,8 +302,6 @@ def test_e_get_study_srp_ok(database_holder):
                 return gse_to_srp_mapping.get(parameter, 'default_return_value')
 
             mock_sra_web_gse_to_srp.side_effect = multiple_return_values
-
-            function_name = 'E_get_study_srp'
 
             study_ids_and_geos = list(zip(study_ids, gses))
 
@@ -346,11 +358,10 @@ def test_e_get_study_srp_ok(database_holder):
 
 
 def test_e_get_study_srp_ko(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs_send_message:
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
-            mock_sqs_send_message.send_message = Mock()
-            function_name = 'E_get_study_srp'
+            mock_sqs.send_message = Mock()
 
             study_ids = [200110021, 20037005, 200225606]
             gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
@@ -408,14 +419,13 @@ def test_e_get_study_srp_ko(database_holder):
             assert actual_ko_rows == expected_ko_rows
 
             # THEN REGARDING MESSAGES
-            assert mock_sqs_send_message.send_message.call_count == 0
+            assert mock_sqs.send_message.call_count == 0
 
 
 def test_e_get_study_srp_skip_already_linked_gse(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs_send_message:
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
-        function_name = 'E_get_study_srp'
+        mock_sqs.send_message = Mock()
 
         request_id = _provide_random_request_id()
         study_ids = [20094225, 20094169]
@@ -457,18 +467,17 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         assert srp_rows_after == 1
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 1
-        mock_sqs_send_message.send_message.assert_called_with(
+        assert mock_sqs.send_message.call_count == 1
+        mock_sqs.send_message.assert_called_with(
             QueueUrl=E_get_study_srp.output_sqs,
             MessageBody=json.dumps({'request_id': request_id, 'srp': srp})
         )  # TODO todos los que se salta la BBDD, aseverar q el mensaje sí se envia
 
 
 def test_e_get_study_srp_skip_already_processed_geo(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs_send_message:
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message = Mock()
-        function_name = 'E_get_study_srp'
+        mock_sqs.send_message = Mock()
 
         request_id = _provide_random_request_id()
         study_id = 200126815
@@ -498,15 +507,14 @@ def test_e_get_study_srp_skip_already_processed_geo(database_holder):
         assert actual_ko_rows == []
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message.call_count == 0
+        assert mock_sqs.send_message.call_count == 0
 
 
 def test_e_get_study_srp_skip_unexpected_results(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs_send_message:
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
-            mock_sqs_send_message.send_message = Mock()
-            function_name = 'E_get_study_srp'
+            mock_sqs.send_message = Mock()
 
             request_id = _provide_random_request_id()
             study_ids = [20040034, 200252323, 20030614]
@@ -555,15 +563,14 @@ def test_e_get_study_srp_skip_unexpected_results(database_holder):
             assert actual_ko_rows == []
 
             # THEN REGARDING MESSAGES
-            assert mock_sqs_send_message.send_message.call_count == 0
+            assert mock_sqs.send_message.call_count == 0
 
 
 def test_f_get_study_srrs_ok(database_holder):
-    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs_send_message:
+    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             # GIVEN
-            mock_sqs_send_message.send_message_batch = Mock()
-            function_name = 'F_get_study_srrs'
+            mock_sqs.send_message_batch = Mock()
 
             request_id = _provide_random_request_id()
             study_ids = [200126815, 200308347]
@@ -629,20 +636,19 @@ def test_f_get_study_srrs_ok(database_holder):
                                  for srr in srrs_for_srp414713
                              ]
 
-            assert mock_sqs_send_message.send_message_batch.call_count == _get_needed_batches_of_ten_messages(len(srrs_for_srp414713) + len(srrs_for_srp308347))
+            assert mock_sqs.send_message_batch.call_count == _get_needed_batches_of_ten_messages(len(srrs_for_srp414713) + len(srrs_for_srp308347))
 
-            actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send_message.send_message_batch.call_args_list]
+            actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
             actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
 
             assert expected_calls.sort() == actual_calls_message_bodies.sort()
 
 
 def test_f_get_study_srrs_ko(database_holder):
-    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs_send_message:
+    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             # GIVEN
-            mock_sqs_send_message.send_message_batch = Mock()
-            function_name = 'F_get_study_srrs'
+            mock_sqs.send_message_batch = Mock()
 
             request_id = _provide_random_request_id()
             study_ids = [200126815, 200118257]
@@ -698,14 +704,13 @@ def test_f_get_study_srrs_ko(database_holder):
             assert actual_ko_rows == [(pysradb_error_reference_id, expected_detail), (pysradb_error_reference_id, expected_detail)]
 
             # THEN REGARDING MESSAGES
-            assert mock_sqs_send_message.send_message_batch.call_count == 0
+            assert mock_sqs.send_message_batch.call_count == 0
 
 
 def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
-    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs_send_message:
+    with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         # GIVEN
-        mock_sqs_send_message.send_message_batch = Mock()
-        function_name = 'F_get_study_srrs'
+        mock_sqs.send_message_batch = Mock()
 
         request_id = _provide_random_request_id()
         study_id = 200126815
@@ -737,4 +742,4 @@ def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
         assert actual_ko_rows == []
 
         # THEN REGARDING MESSAGES
-        assert mock_sqs_send_message.send_message_batch.call_count == 0
+        assert mock_sqs.send_message_batch.call_count == 0
