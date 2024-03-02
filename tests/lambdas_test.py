@@ -274,23 +274,19 @@ def test_e_get_study_srp_ok(database_holder):
         mock_sqs.send_message = Mock()
         E_get_study_srp.SRAweb.gse_to_srp = Mock(name='gse_to_srp')
 
-        parameter_to_srp_mapping = {
-            'GSE126815': 'SRP185522',
-            'GSE150644': 'SRP261818',
-        }
-
-        def side_effect(parameter):
-            return parameter_to_srp_mapping.get(parameter, 'default_return_value')
-
-        E_get_study_srp.SRAweb.gse_to_srp.side_effect = side_effect
-
-        function_name = 'E_get_study_srp'
-
         request_id = _provide_random_request_id()
         study_ids = [200126815, 200150644, 200167593]
         gses = [str(study_id).replace('200', 'GSE', 3) for study_id in study_ids]
         srps = ['SRP185522', 'SRP261818', 'SRP308347']
 
+        def multiple_return_values(parameter):
+            srp_results = [{'study_accession': [srp]} for srp in srps]
+            gse_to_srp_mapping = dict(zip(gses, srp_results))
+            return gse_to_srp_mapping.get(parameter, 'default_return_value')
+
+        E_get_study_srp.SRAweb.gse_to_srp.side_effect = multiple_return_values
+
+        function_name = 'E_get_study_srp'
 
         study_ids_and_geos = list(zip(study_ids, gses))
 
