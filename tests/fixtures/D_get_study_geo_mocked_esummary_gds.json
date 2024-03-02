@@ -1,0 +1,853 @@
+{
+  "header": {
+    "type": "esummary",
+    "version": "0.3"
+  },
+  "result": {
+    "uids": [
+      "3268"
+    ],
+    "3268": {
+      "uid": "3268",
+      "accession": "GDS3268",
+      "gds": "3268",
+      "title": "Colon epithelial biopsies of ulcerative colitis patients",
+      "summary": "Analysis of inflamed and un-inflamed colon epithelial biopsies of 67 ulcerative colitis (UC) patients from different anatomical locations of the gastrointestinal (GI) tract. Results provide insight into the regional variation of gene expression in UC patients and the pathogenesis of UC. ",
+      "gpl": "1708",
+      "gse": "11223",
+      "taxon": "Homo sapiens",
+      "entrytype": "GDS",
+      "gdstype": "Expression profiling by array",
+      "ptechtype": "",
+      "valtype": "log2 ratio",
+      "ssinfo": "disease state;disease state;other;other;tissue;tissue;tissue;tissue",
+      "subsetinfo": "2 disease state, 2 other, 4 tissue",
+      "pdat": "2008/06/17",
+      "suppfile": "TXT",
+      "samples": [
+        {
+          "accession": "GSM282855",
+          "title": "5192 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282856",
+          "title": "5193 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282857",
+          "title": "5194 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282858",
+          "title": "5195 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282859",
+          "title": "5196 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282860",
+          "title": "5197 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282861",
+          "title": "5198 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282862",
+          "title": "5199 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282863",
+          "title": "5200 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282864",
+          "title": "5201 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282865",
+          "title": "5202 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282866",
+          "title": "5203 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282867",
+          "title": "5204 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282868",
+          "title": "5205 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282869",
+          "title": "5206 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282870",
+          "title": "5207 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282871",
+          "title": "5208 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282872",
+          "title": "5209 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282904",
+          "title": "11389 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282910",
+          "title": "11395 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282913",
+          "title": "11398 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282915",
+          "title": "11400 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282921",
+          "title": "11406 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282927",
+          "title": "12462 Normal Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282873",
+          "title": "5210 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282874",
+          "title": "5211 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282875",
+          "title": "10609 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282905",
+          "title": "11390 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282914",
+          "title": "11399 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282918",
+          "title": "11403 Normal Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282876",
+          "title": "11081 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282877",
+          "title": "11082 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282878",
+          "title": "11083 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282879",
+          "title": "11084 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282880",
+          "title": "11085 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282881",
+          "title": "11086 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282882",
+          "title": "11087 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282883",
+          "title": "11088 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282884",
+          "title": "11089 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282885",
+          "title": "11090 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282886",
+          "title": "11091 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282887",
+          "title": "11092 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282888",
+          "title": "11093 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282889",
+          "title": "11094 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282890",
+          "title": "11095 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282902",
+          "title": "11387 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282903",
+          "title": "11388 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282907",
+          "title": "11392 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282909",
+          "title": "11394 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282912",
+          "title": "11397 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282920",
+          "title": "11405 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282924",
+          "title": "12459 Normal Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282891",
+          "title": "11376 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282892",
+          "title": "11377 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282893",
+          "title": "11378 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282894",
+          "title": "11379 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282895",
+          "title": "11380 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282896",
+          "title": "11381 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282897",
+          "title": "11382 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282898",
+          "title": "11383 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282899",
+          "title": "11384 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282900",
+          "title": "11385 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282901",
+          "title": "11386 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282906",
+          "title": "11391 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282908",
+          "title": "11393 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282911",
+          "title": "11396 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282916",
+          "title": "11401 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282919",
+          "title": "11404 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282923",
+          "title": "12458 Normal Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282917",
+          "title": "11402 Normal Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282922",
+          "title": "12457 Normal Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282926",
+          "title": "12461 Normal Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282925",
+          "title": "12460 Normal Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282935",
+          "title": "5221 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282938",
+          "title": "5224 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282940",
+          "title": "5238 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282941",
+          "title": "5239 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282943",
+          "title": "5241 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282944",
+          "title": "5242 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282946",
+          "title": "5244 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282947",
+          "title": "5245 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282948",
+          "title": "5246 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282949",
+          "title": "5247 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282950",
+          "title": "5248 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282951",
+          "title": "5249 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282952",
+          "title": "5250 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282953",
+          "title": "5251 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282955",
+          "title": "5253 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282956",
+          "title": "5254 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282959",
+          "title": "5257 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282966",
+          "title": "5264 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282968",
+          "title": "5266 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282974",
+          "title": "5272 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283016",
+          "title": "11432 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283021",
+          "title": "11440 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283024",
+          "title": "11443 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283041",
+          "title": "12479 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283043",
+          "title": "12481 UC Uninflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282957",
+          "title": "5255 UC Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282958",
+          "title": "5256 UC Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282960",
+          "title": "5258 UC Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282971",
+          "title": "5269 UC Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM283015",
+          "title": "11431 UC Uninflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282962",
+          "title": "5260 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282963",
+          "title": "5261 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282977",
+          "title": "5275 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282978",
+          "title": "5276 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282987",
+          "title": "11098 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282988",
+          "title": "11099 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282989",
+          "title": "11100 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282990",
+          "title": "11101 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282991",
+          "title": "11102 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282992",
+          "title": "11103 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282993",
+          "title": "11104 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282994",
+          "title": "11105 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282995",
+          "title": "11106 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM283020",
+          "title": "11439 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM283023",
+          "title": "11442 UC Uninflamed descending colon"
+        },
+        {
+          "accession": "GSM282931",
+          "title": "5215 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282939",
+          "title": "5237 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282981",
+          "title": "5280 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282983",
+          "title": "5282 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282985",
+          "title": "5284 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283000",
+          "title": "11413 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283001",
+          "title": "11415 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283002",
+          "title": "11417 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283003",
+          "title": "11418 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283004",
+          "title": "11419 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283005",
+          "title": "11420 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283006",
+          "title": "11421 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283007",
+          "title": "11422 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283008",
+          "title": "11423 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283009",
+          "title": "11424 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283010",
+          "title": "11425 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283011",
+          "title": "11426 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283022",
+          "title": "11441 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283034",
+          "title": "12472 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283049",
+          "title": "12487 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM283051",
+          "title": "12489 UC Uninflamed ascending colon"
+        },
+        {
+          "accession": "GSM282929",
+          "title": "5213 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282933",
+          "title": "5217 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282936",
+          "title": "5222 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282937",
+          "title": "5223 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282942",
+          "title": "5240 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282945",
+          "title": "5243 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282954",
+          "title": "5252 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282961",
+          "title": "5259 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282964",
+          "title": "5262 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282965",
+          "title": "5263 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282967",
+          "title": "5265 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282969",
+          "title": "5267 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282970",
+          "title": "5268 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282972",
+          "title": "5270 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282973",
+          "title": "5271 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282975",
+          "title": "5273 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282996",
+          "title": "11408 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282999",
+          "title": "11411 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283014",
+          "title": "11430 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283019",
+          "title": "11437 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283026",
+          "title": "12464 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283029",
+          "title": "12467 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283030",
+          "title": "12468 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283033",
+          "title": "12471 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283035",
+          "title": "12473 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283036",
+          "title": "12474 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283038",
+          "title": "12476 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283046",
+          "title": "12484 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283050",
+          "title": "12488 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283053",
+          "title": "12491 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283055",
+          "title": "12493 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM283056",
+          "title": "12494 UC Inflamed sigmoid colon"
+        },
+        {
+          "accession": "GSM282928",
+          "title": "5212 UC Inflamed terminal ileum"
+        },
+        {
+          "accession": "GSM282930",
+          "title": "5214 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282932",
+          "title": "5216 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282934",
+          "title": "5218 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282976",
+          "title": "5274 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282979",
+          "title": "5278 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282998",
+          "title": "11410 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283013",
+          "title": "11429 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283017",
+          "title": "11434 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283018",
+          "title": "11436 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283025",
+          "title": "12463 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283028",
+          "title": "12466 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283032",
+          "title": "12470 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283037",
+          "title": "12475 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283040",
+          "title": "12478 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283042",
+          "title": "12480 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283045",
+          "title": "12483 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283048",
+          "title": "12486 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283052",
+          "title": "12490 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM283054",
+          "title": "12492 UC Inflamed descending colon"
+        },
+        {
+          "accession": "GSM282980",
+          "title": "5279 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM282982",
+          "title": "5281 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM282984",
+          "title": "5283 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM282986",
+          "title": "5285 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM282997",
+          "title": "11409 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283012",
+          "title": "11428 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283027",
+          "title": "12465 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283031",
+          "title": "12469 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283039",
+          "title": "12477 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283044",
+          "title": "12482 UC Inflamed ascending colon"
+        },
+        {
+          "accession": "GSM283047",
+          "title": "12485 UC Inflamed ascending colon"
+        }
+      ],
+      "relations": [],
+      "extrelations": [],
+      "n_samples": 202,
+      "seriestitle": "Colon biopsies from UC patients and healthy controls",
+      "platformtitle": "Agilent-012391 Whole Human Genome Oligo Microarray G4112A (Feature Number version)",
+      "platformtaxa": "Homo sapiens",
+      "samplestaxa": "Homo sapiens",
+      "pubmedids": [
+        "18523026"
+      ],
+      "projects": [],
+      "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/datasets/GDS3nnn/GDS3268/",
+      "geo2r": "",
+      "bioproject": "PRJNA106831"
+    }
+  }
+}

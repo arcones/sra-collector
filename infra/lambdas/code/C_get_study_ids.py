@@ -34,7 +34,7 @@ def handler(event, context):
 
                 logging.debug(f'Query received for keyword {ncbi_query} with retstart {retstart} and retmax {retmax}')
 
-                study_list = _esearch_entities_list(ncbi_query, retstart, retmax)
+                study_list = esearch_entities_list(ncbi_query, retstart, retmax)
 
                 logging.debug(f"Study list contains: {','.join(map(str, sorted(study_list)))}")
 
@@ -43,7 +43,7 @@ def handler(event, context):
                 for study_id in study_list:
                     messages.append({
                         'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query, 'study_id': study_id})
+                        'MessageBody': json.dumps({'request_id': request_id, 'study_id': study_id})
                     })
 
                 message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
@@ -59,7 +59,7 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def _esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
+def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
     try:
         url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term={ncbi_query}&retmax={retmax}&retstart={retstart}&usehistory=y'
         logging.info(f'Get entity list for keyword {ncbi_query}...')

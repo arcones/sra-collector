@@ -53,12 +53,9 @@ def handler(event, context):
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
-
-        batch_item_failures = []
-        sqs_batch_response = {}
-
         ordered_records = sorted(event['Records'], key=lambda r: json.loads(r['body'])['study_id'])
+
+        request_id_2_study_id_list = []
 
         for record in ordered_records:
             try:
@@ -68,30 +65,32 @@ def handler(event, context):
 
                 request_id = request_body['request_id']
                 study_id = request_body['study_id']
-
-                response = http.request('GET', f'{base_url}&id={study_id}')
-
-                summary = json.loads(response.data)['result'][f'{study_id}']
-                _summary_process(schema, request_id, int(study_id), summary, output_sqs)
-
+                request_id_2_study_id_list.append({'request_id': request_id, 'study_id': str(study_id)})
             except Exception as exception:
-                batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
-        sqs_batch_response['batchItemFailures'] = batch_item_failures
-        return sqs_batch_response
+                raise exception
+
+        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
+        response = http.request('GET', f'{base_url}&id={",".join(request_id_2_study_id["study_id"] for request_id_2_study_id in request_id_2_study_id_list)}')
+        parsed_response = json.loads(response.data)['result']
+
+        for study_id_in_response in parsed_response:
+            request_id_2_study_id = [request_id_2_study_id for request_id_2_study_id in request_id_2_study_id_list if request_id_2_study_id['study_id'] == study_id_in_response]
+            if len(request_id_2_study_id) == 1 and study_id_in_response == request_id_2_study_id[0]['study_id']:
+                summary_process(schema, request_id_2_study_id[0]['request_id'], int(study_id_in_response), parsed_response[study_id_in_response])
 
 
-def _summary_process(schema: str, request_id: str, study_id: int, summary: str, output_sqs: str):
+def summary_process(schema: str, request_id: str, study_id: int, summary: str):
     try:
         logging.debug(f'Study summary from study {study_id} is {summary}')
-        geo_entity = _extract_geo_entity_from_summaries(summary)
+        geo_entity = extract_geo_entity_from_summaries(summary)
 
-        if geo_entity is not None and _is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity):
+        if geo_entity is not None and is_study_pending_to_be_processed(schema, request_id, study_id, geo_entity):
             logging.info(f'Retrieved geo {geo_entity.identifier} for study {study_id}')
-            _store_geo_entity_in_db(schema, request_id, study_id, geo_entity)
+            store_geo_entity_in_db(schema, request_id, study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'request_id': request_id, 'study_id': study_id, 'gse': geo_entity.identifier}
+                message = {'request_id': request_id, 'gse': geo_entity.identifier}
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
                 logging.info(f'Sent message {message} for study {study_id}')
         else:
@@ -102,7 +101,7 @@ def _summary_process(schema: str, request_id: str, study_id: int, summary: str, 
         raise exception
 
 
-def _extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
+def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
     try:
         logging.info(f'Extracting GEO from {summary}')
         if summary['entrytype'].upper() in [entity.value['short_name'].upper() for entity in GeoEntityType]:
@@ -118,7 +117,7 @@ def _extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
         raise exception
 
 
-def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity):
+def store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity):
     try:
         statement = f"""insert into {schema}.{geo_entity.geo_entity_type.value['table']}
                         (ncbi_id, request_id, {geo_entity.geo_entity_type.value['short_name']})
@@ -130,7 +129,7 @@ def _store_geo_entity_in_db(schema: str, request_id: str, study_id: int, geo_ent
         raise exception
 
 
-def _is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity) -> bool:
+def is_study_pending_to_be_processed(schema: str, request_id: str, study_id: int, geo_entity: GeoEntity) -> bool:
     try:
         statement = f"""select id from {schema}.{geo_entity.geo_entity_type.value['table']}
                         where request_id=%s and ncbi_id=%s and {geo_entity.geo_entity_type.value['short_name']}=%s;"""

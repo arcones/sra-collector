@@ -1,0 +1,89 @@
+{
+  "header": {
+    "type": "esearch",
+    "version": "0.3"
+  },
+  "esearchresult": {
+    "count": "1096",
+    "retmax": "1",
+    "retstart": "0",
+    "idlist": [
+      "200221906"
+    ],
+    "translationset": [
+      {
+        "from": "homo sapiens",
+        "to": "\"humans\"[MeSH Terms] OR \"Homo sapiens\"[Organism] OR homo sapiens[All Fields]"
+      },
+      {
+        "from": "leukemia",
+        "to": "\"leukemia\"[MeSH Terms] OR leukemia[All Fields]"
+      },
+      {
+        "from": "rna seq",
+        "to": "rna seq[All Fields]"
+      }
+    ],
+    "translationstack": [
+      {
+        "term": "rna seq[All Fields]",
+        "field": "All Fields",
+        "count": "256121",
+        "explode": "N"
+      },
+      {
+        "term": "\"humans\"[MeSH Terms]",
+        "field": "MeSH Terms",
+        "count": "1028632",
+        "explode": "Y"
+      },
+      {
+        "term": "\"Homo sapiens\"[Organism]",
+        "field": "Organism",
+        "count": "3845572",
+        "explode": "Y"
+      },
+      "OR",
+      {
+        "term": "homo sapiens[All Fields]",
+        "field": "All Fields",
+        "count": "94745",
+        "explode": "N"
+      },
+      "OR",
+      "GROUP",
+      "AND",
+      {
+        "term": "myeloid[All Fields]",
+        "field": "All Fields",
+        "count": "44772",
+        "explode": "N"
+      },
+      "AND",
+      {
+        "term": "\"leukemia\"[MeSH Terms]",
+        "field": "MeSH Terms",
+        "count": "147671",
+        "explode": "Y"
+      },
+      {
+        "term": "leukemia[All Fields]",
+        "field": "All Fields",
+        "count": "141435",
+        "explode": "N"
+      },
+      "OR",
+      "GROUP",
+      "AND",
+      "GROUP"
+    ],
+    "querytranslation": "rna seq[All Fields] AND (\"humans\"[MeSH Terms] OR \"Homo sapiens\"[Organism] OR homo sapiens[All Fields]) AND myeloid[All Fields] AND (\"leukemia\"[MeSH Terms] OR leukemia[All Fields])",
+    "warninglist": {
+      "phrasesignored": [
+        "and"
+      ],
+      "quotedphrasesnotfound": [],
+      "outputmessages": []
+    }
+  }
+}

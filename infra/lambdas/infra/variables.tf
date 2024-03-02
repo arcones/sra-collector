@@ -56,3 +56,13 @@ variable "reserved_concurrent_executions" {
   default = null
   type    = number
 }
+
+variable "batch_size" {
+  default = 10
+  type    = number
+}
+
+variable "batch_size_window" {
+  default = 0
+  type    = number
+}
