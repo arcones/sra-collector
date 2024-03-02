@@ -195,7 +195,7 @@ def test_c_get_study_ids():
 
 
 def test_d_get_study_geos(database_holder):
-    with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
+    with patch.object(D_get_study_geo, 'sqs') as mock_sqs: # TODO mock in this one the NCBI calls
         # GIVEN
         mock_sqs.send_message = Mock()
 
@@ -241,7 +241,7 @@ def test_d_get_study_geos(database_holder):
         )
 
 
-def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
+def test_d_get_study_geos_skip_already_processed_study_id(database_holder):  # TODO mock in this one the NCBI calls
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         # GIVEN
         mock_sqs.send_message = Mock()
@@ -290,7 +290,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
 
 
 def test_e_get_study_srp_ok(database_holder):
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:  # TODO cambiar todas estas
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
             # GIVEN
             mock_sqs.send_message = Mock()
@@ -475,7 +475,7 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         mock_sqs.send_message.assert_called_with(
             QueueUrl=E_get_study_srp.output_sqs,
             MessageBody=json.dumps({'request_id': request_id, 'srp': srp})
-        )  # TODO todos los que se salta la BBDD, aseverar q el mensaje sí se envia
+        )
 
 
 def test_e_get_study_srp_skip_already_processed_geo(database_holder):
