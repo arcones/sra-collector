@@ -1,0 +1,5 @@
+[environments.default]
+url = "jdbc:h2:mem:sracollector"
+schemas=["sracollector"]
+user = "sracollector"
+validateMigrationNaming = true

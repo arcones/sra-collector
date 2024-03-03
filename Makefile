@@ -21,13 +21,14 @@ remove-dev-db-tables:
 	@cd utils/remove_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_dev_tables.sql
 
+db-migrations-prod:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
-db-migrations:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
+repair-migrations-prod:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway repair
 
-repair-migrations:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway repair
-
+db-migrations-test:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-test:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
 update-diagram:
 	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod 777 tmp/diagrams && \
