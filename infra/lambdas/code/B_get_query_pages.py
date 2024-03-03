@@ -4,7 +4,7 @@ import time
 
 import boto3
 import urllib3
-from postgres_connection import postgres_connection
+from postgres_connection import postgres_connection  # TODO rename the library
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
@@ -16,7 +16,7 @@ page_size = 500
 
 
 def handler(event, context):
-    schema = postgres_connection.schema_for_env()
+    # schema = postgres_connection.schema_for_env()
 
     if event:
 
@@ -38,8 +38,8 @@ def handler(event, context):
 
                 study_count = get_study_count(ncbi_query)
 
-                if is_request_pending_to_be_processed(schema, request_id, ncbi_query):
-                    store_request_in_db(schema, request_id, ncbi_query, study_count)
+                if is_request_pending_to_be_processed(request_id, ncbi_query):
+                    store_request_in_db(request_id, ncbi_query, study_count)
 
                     retstart = 0
                     messages = []
@@ -84,9 +84,9 @@ def get_study_count(ncbi_query: str) -> int:
         raise exception
 
 
-def store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_count: int):
+def store_request_in_db(request_id: str, ncbi_query: str, study_count: int):
     try:
-        statement = f'insert into {schema}.request (id, query, geo_count) values (%s, %s, %s);'
+        statement = f'insert into request (id, query, geo_count) values (%s, %s, %s);'
         parameters = (request_id, ncbi_query, study_count)
         postgres_connection.execute_write_statement(statement, parameters)
     except Exception as exception:
@@ -94,9 +94,9 @@ def store_request_in_db(schema: str, request_id: str, ncbi_query: str, study_cou
         raise exception
 
 
-def is_request_pending_to_be_processed(schema: str, request_id: str, ncbi_query: str) -> bool:
+def is_request_pending_to_be_processed(request_id: str, ncbi_query: str) -> bool:
     try:
-        statement = f'select id from {schema}.request where id=%s and query=%s;'
+        statement = f'select id from request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
         return not postgres_connection.is_row_present(statement, parameters)
     except Exception as exception:

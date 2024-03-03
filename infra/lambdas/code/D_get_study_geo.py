@@ -47,7 +47,7 @@ class GeoEntity:
 
 
 def handler(event, context):
-    schema = postgres_connection.schema_for_env()
+    # schema = postgres_connection.schema_for_env()
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')

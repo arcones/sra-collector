@@ -8,7 +8,7 @@ truncate-prod-db-tables:
 	cd utils/truncate_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f truncate_tables.sql
 
-remove-prod-db-tables:
+remove-prod-db-tables: ## TODO with flyway clean
 	@cd utils/remove_tables && \
 	psql "postgresql://sracollector:$(DATABASE_PASSWORD)@sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com/sracollector" -f remove_tables.sql
 
@@ -19,7 +19,7 @@ repair-migrations-prod:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway repair
 
 db-migrations-test:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-test:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-test:/flyway/conf -v $(shell pwd)/tmp/test-db:/db  flyway/flyway migrate
 
 update-diagram:
 	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod 777 tmp/diagrams && \
@@ -114,4 +114,4 @@ xl-sra-collector-request:
 
 build-integration-tests-dependencies:
 	cd tests && pip install -r requirements.txt
-	cd infra/lambdas/docker/postgres_connection && python -m build && pip install dist/postgres_connection-0.0.3-py3-none-any.whl
+	cd infra/lambdas/docker/postgres_connection && python -m build && pip install dist/postgres_connection-0.0.4-py3-none-any.whl

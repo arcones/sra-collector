@@ -1,10 +1,7 @@
-import json
 import random
 import string
-import time
 
-import boto3
-import psycopg2
+import jaydebeapi
 import urllib3
 from psycopg2 import sql
 
@@ -18,31 +15,39 @@ def _provide_random_request_id():
 
 
 def _get_db_connection():
-    secrets_client = boto3.client('secretsmanager', region_name='eu-central-1')
-    database_credentials = secrets_client.get_secret_value(SecretId='rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6')
-    secrets_client.close()
-    username = json.loads(database_credentials['SecretString'])['username']
-    password = json.loads(database_credentials['SecretString'])['password']
-    host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
+    try:
+        h2_url = 'jdbc:h2:/home/arcones/TFG/sra-collector/tmp/test-db/test.db;MODE=PostgreSQL'
+        h2_user = ''
+        h2_password = ''
+        h2_driver = 'org.h2.Driver'
+        h2_jar_path = '/home/arcones/TFG/sra-collector/db/h2-2.2.224.jar'
 
-    connection_string = f"host={host} dbname='sracollector' user='{username}' password='{password}'"
-    print('\nDB connection ready :)')
-    return psycopg2.connect(connection_string)
+        # Establish the connection
+        database_connection = jaydebeapi.connect(
+            h2_driver,
+            h2_url,
+            [h2_user, h2_password],
+            h2_jar_path,
+        )
+        database_cursor = database_connection.cursor()
+        return database_connection, database_cursor
+    except Exception as exception:
+        raise exception
 
-
-def _truncate_db():
-    database_connection = _get_db_connection()
-    database_cursor = database_connection.cursor()
-    print('Truncating database...')
-    database_cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'sracollector_dev' and table_name != 'pysradb_error_reference'")
-    tables = database_cursor.fetchall()
-    for table in tables:
-        table_name = table[0]
-        truncate_query = sql.SQL('TRUNCATE TABLE sracollector_dev.{} RESTART IDENTITY CASCADE;').format(sql.Identifier(table_name))
-        database_cursor.execute(truncate_query)
-    database_connection.commit()
-    print('Database truncated')
-    return database_connection, database_cursor
+#
+# def _truncate_db():
+#     database_connection = _get_db_connection()
+#     database_cursor = database_connection.cursor()
+#     print('Truncating database...')
+#     database_cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'sracollector_dev' and table_name != 'pysradb_error_reference'")
+#     tables = database_cursor.fetchall()
+#     for table in tables:
+#         table_name = table[0]
+#         truncate_query = sql.SQL('TRUNCATE TABLE sracollector_dev.{} RESTART IDENTITY CASCADE;').format(sql.Identifier(table_name))
+#         database_cursor.execute(truncate_query)
+#     database_connection.commit()
+#     print('Database truncated')
+#     return database_connection, database_cursor
 
 
 def _store_test_request(database_holder, request_id, ncbi_query):
@@ -56,7 +61,7 @@ def _store_test_request(database_holder, request_id, ncbi_query):
 def _store_test_geo_study(database_holder, request_id, study_id, gse):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
+    study_statement = database_cursor.mogrify('insert into geo_study (request_id, ncbi_id, gse) values (%s, %s, %s) returning id',
                                               (request_id, study_id, gse))
     database_cursor.execute(study_statement)
     inserted_geo_study_id = database_cursor.fetchone()[0]
@@ -67,7 +72,7 @@ def _store_test_geo_study(database_holder, request_id, study_id, gse):
 def _store_test_geo_experiment(database_holder, request_id, study_id, gsm):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_experiment (request_id, ncbi_id, gsm) values (%s, %s, %s) returning id',
+    study_statement = database_cursor.mogrify('insert into geo_experiment (request_id, ncbi_id, gsm) values (%s, %s, %s) returning id',
                                               (request_id, study_id, gsm))
     database_cursor.execute(study_statement)
     inserted_geo_experiment_id = database_cursor.fetchone()[0]
@@ -78,7 +83,7 @@ def _store_test_geo_experiment(database_holder, request_id, study_id, gsm):
 def _store_test_geo_platform(database_holder, request_id, study_id, gpl):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_platform (request_id, ncbi_id, gpl) values (%s, %s, %s) returning id',
+    study_statement = database_cursor.mogrify('insert into geo_platform (request_id, ncbi_id, gpl) values (%s, %s, %s) returning id',
                                               (request_id, study_id, gpl))
     database_cursor.execute(study_statement)
     inserted_geo_platform_id = database_cursor.fetchone()[0]
@@ -89,7 +94,7 @@ def _store_test_geo_platform(database_holder, request_id, study_id, gpl):
 def _store_test_geo_data_set(database_holder, request_id, study_id, gds):
     database_cursor, database_connection = database_holder
 
-    study_statement = database_cursor.mogrify('insert into sracollector_dev.geo_data_set (request_id, ncbi_id, gds) values (%s, %s, %s) returning id',
+    study_statement = database_cursor.mogrify('insert into geo_data_set (request_id, ncbi_id, gds) values (%s, %s, %s) returning id',
                                               (request_id, study_id, gds))
     database_cursor.execute(study_statement)
     inserted_geo_data_set = database_cursor.fetchone()[0]
@@ -100,10 +105,10 @@ def _store_test_geo_data_set(database_holder, request_id, study_id, gds):
 def _store_test_sra_project(database_holder, srp, geo_study_id):
     database_cursor, database_connection = database_holder
 
-    project_statement = database_cursor.mogrify('insert into sracollector_dev.sra_project (srp) values (%s) returning id', (srp,))
+    project_statement = database_cursor.mogrify('insert into sra_project (srp) values (%s) returning id', (srp,))
     database_cursor.execute(project_statement)
     inserted_sra_project_id = database_cursor.fetchone()[0]
-    link_statement = database_cursor.mogrify('insert into sracollector_dev.geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s)',
+    link_statement = database_cursor.mogrify('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s)',
                                              (geo_study_id, inserted_sra_project_id))
     database_cursor.execute(link_statement)
     database_connection.commit()
@@ -113,7 +118,7 @@ def _store_test_sra_project(database_holder, srp, geo_study_id):
 def _store_test_sra_run(database_holder, srr, sra_project_id):
     database_cursor, database_connection = database_holder
 
-    run_statement = database_cursor.mogrify('insert into sracollector_dev.sra_run (srr, sra_project_id) values (%s, %s) returning id',
+    run_statement = database_cursor.mogrify('insert into sra_run (srr, sra_project_id) values (%s, %s) returning id',
                                             (srr, sra_project_id))
     database_cursor.execute(run_statement)
     inserted_sra_run_id = database_cursor.fetchone()[0]

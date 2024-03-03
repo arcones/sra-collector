@@ -7,12 +7,12 @@ from unittest.mock import patch
 
 import pytest
 from utils_test import _get_customized_input_from_sqs
+from utils_test import _get_db_connection
 from utils_test import _provide_random_request_id
 from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _store_test_sra_run
-from utils_test import _truncate_db
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -25,12 +25,11 @@ import F_get_study_srrs
 os.environ['ENV'] = 'test'
 
 
-@pytest.fixture(scope='session')
-def database_holder():
-    database_connection, database_cursor = _truncate_db()
-    yield database_cursor, database_connection
-    database_cursor.close()
-    database_connection.close()
+# def database_holder():
+#     database_connection, database_cursor = _get_db_connection()
+#     yield database_cursor, database_connection
+#     database_cursor.close()
+#     database_connection.close()
 
 
 FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'default_study_id': 200126815, 'default_gse': 'GSE126815', 'default_srp': 'SRP185522'}
@@ -64,7 +63,7 @@ def test_a_get_user_query():
         mock_sqs.send_message.assert_called_with(QueueUrl=A_get_user_query.output_sqs, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': ncbi_query}))
 
 
-def test_b_get_query_pages(database_holder):
+def test_b_get_query_pages():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
         with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
             # GIVEN
@@ -83,8 +82,8 @@ def test_b_get_query_pages(database_holder):
             assert actual_result == {'batchItemFailures': []}
 
             # THEN REGARDING DATA
-            database_cursor, _ = database_holder
-            database_cursor.execute(f"select id, query, geo_count from sracollector_dev.request where id='{request_id}'")
+            _, database_cursor = _get_db_connection()
+            database_cursor.execute(f"select id, query, geo_count from request where id='{request_id}'")
             actual_rows = database_cursor.fetchall()
             expected_row = [(request_id, FIXTURE['query'], FIXTURE['results'])]
             assert actual_rows == expected_row
@@ -124,7 +123,7 @@ def test_b_get_query_pages_skip_already_processed_study_id(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f"select id from sracollector_dev.request where id='{request_id}'")
+            database_cursor.execute(f"select id from request where id='{request_id}'")
             actual_rows = database_cursor.fetchall()
             assert actual_rows == [(request_id,)]
 
@@ -183,7 +182,7 @@ def test_d_get_study_geos_gse(database_holder):
 
                 # THEN REGARDING DATA
                 database_cursor, _ = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, gse from geo_study where request_id='{request_id}'")
                 actual_row = database_cursor.fetchall()
                 assert actual_row == [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
 
@@ -218,7 +217,7 @@ def test_d_get_study_geos_gsm(database_holder):
 
                 # THEN REGARDING DATA
                 database_cursor, _ = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id, gsm from sracollector_dev.geo_experiment where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, gsm from geo_experiment where request_id='{request_id}'")
                 actual_row = database_cursor.fetchall()
                 assert actual_row == [(study_id, request_id, gsm)]
 
@@ -249,7 +248,7 @@ def test_d_get_study_geos_gpl(database_holder):
 
                 # THEN REGARDING DATA
                 database_cursor, _ = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id, gpl from sracollector_dev.geo_platform where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, gpl from geo_platform where request_id='{request_id}'")
                 actual_row = database_cursor.fetchall()
                 assert actual_row == [(study_id, request_id, gpl)]
 
@@ -280,7 +279,7 @@ def test_d_get_study_geos_gds(database_holder):
 
                 # THEN REGARDING DATA
                 database_cursor, _ = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id, gds from sracollector_dev.geo_data_set where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, gds from geo_data_set where request_id='{request_id}'")
                 actual_row = database_cursor.fetchall()
                 assert actual_row == [(study_id, request_id, gds)]
 
@@ -310,7 +309,7 @@ def test_d_get_study_geos_skip_already_processed_study_id(database_holder):
 
                 # THEN REGARDING DATA
                 database_cursor, _ = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id, gse from sracollector_dev.geo_study where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, gse from geo_study where request_id='{request_id}'")
                 actual_rows = database_cursor.fetchall()
                 expected_rows = [(FIXTURE['default_study_id'], request_id, FIXTURE['default_gse'])]
 
@@ -342,14 +341,14 @@ def test_e_get_study_srp_ok(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
-                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+            database_cursor.execute(f'''select srp from sra_project
+                                        join geo_study_sra_project_link on id = sra_project_id
                                         where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             expected_ok_rows = [(FIXTURE['default_srp'],)]
             assert actual_ok_rows == expected_ok_rows
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+            database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
@@ -385,16 +384,16 @@ def test_e_get_study_srp_attribute_error(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
-                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+            database_cursor.execute(f'''select srp from sra_project
+                                        join geo_study_sra_project_link on id = sra_project_id
                                         where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
             database_cursor.execute(
-                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+                f'select pysradb_error_reference_id, details from sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()[0]
-            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='ATTRIBUTE_ERROR'")
+            database_cursor.execute(f"select id from pysradb_error_reference where operation='gse_to_srp' and name='ATTRIBUTE_ERROR'")
             pysradb_error_reference_id = database_cursor.fetchone()[0]
             assert actual_ko_rows == (pysradb_error_reference_id, 'jander')
 
@@ -425,16 +424,16 @@ def test_e_get_study_srp_value_error(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
-                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+            database_cursor.execute(f'''select srp from sra_project
+                                        join geo_study_sra_project_link on id = sra_project_id
                                         where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
             database_cursor.execute(
-                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+                f'select pysradb_error_reference_id, details from sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()[0]
-            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='VALUE_ERROR'")
+            database_cursor.execute(f"select id from pysradb_error_reference where operation='gse_to_srp' and name='VALUE_ERROR'")
             pysradb_error_reference_id = database_cursor.fetchone()[0]
             assert actual_ko_rows == (pysradb_error_reference_id, 'clander')
 
@@ -464,16 +463,16 @@ def test_e_get_study_srp_key_error(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
-                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+            database_cursor.execute(f'''select srp from sra_project
+                                        join geo_study_sra_project_link on id = sra_project_id
                                         where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
             database_cursor.execute(
-                f'select pysradb_error_reference_id, details from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+                f'select pysradb_error_reference_id, details from sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()[0]
-            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='gse_to_srp' and name='KEY_ERROR'")
+            database_cursor.execute(f"select id from pysradb_error_reference where operation='gse_to_srp' and name='KEY_ERROR'")
             pysradb_error_reference_id = database_cursor.fetchone()[0]
             assert actual_ko_rows == (pysradb_error_reference_id, "'crispin'")
 
@@ -498,12 +497,12 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         gses_for_sql_in = ', '.join([f"'{gse}'" for gse in gses])
 
         database_cursor, _ = database_holder
-        database_cursor.execute(f'''select count(*) from sracollector_dev.geo_study_sra_project_link
-                                    join sracollector_dev.geo_study on geo_study_sra_project_link.geo_study_id = geo_study.id
+        database_cursor.execute(f'''select count(*) from geo_study_sra_project_link
+                                    join geo_study on geo_study_sra_project_link.geo_study_id = geo_study.id
                                     where gse in ({gses_for_sql_in})''')
         link_rows_before = database_cursor.fetchone()[0]
         assert link_rows_before == 1
-        database_cursor.execute(f'select count(*) from sracollector_dev.sra_project where id={inserted_sra_project_id}')
+        database_cursor.execute(f'select count(*) from sra_project where id={inserted_sra_project_id}')
         srp_rows_before = database_cursor.fetchone()[0]
         assert srp_rows_before == 1
 
@@ -516,12 +515,12 @@ def test_e_get_study_srp_skip_already_linked_gse(database_holder):
         assert actual_result == {'batchItemFailures': []}
 
         # THEN REGARDING DATA
-        database_cursor.execute(f'''select count(*) from sracollector_dev.geo_study_sra_project_link
-                                            join sracollector_dev.geo_study on geo_study_sra_project_link.geo_study_id = geo_study.id
+        database_cursor.execute(f'''select count(*) from geo_study_sra_project_link
+                                            join geo_study on geo_study_sra_project_link.geo_study_id = geo_study.id
                                             where gse in ({gses_for_sql_in})''')
         link_rows_after = database_cursor.fetchone()[0]
         assert link_rows_after == 2
-        database_cursor.execute(f'select count(*) from sracollector_dev.sra_project where id={inserted_sra_project_id}')
+        database_cursor.execute(f'select count(*) from sra_project where id={inserted_sra_project_id}')
         srp_rows_after = database_cursor.fetchone()[0]
         assert srp_rows_after == 1
 
@@ -554,11 +553,11 @@ def test_e_get_study_srp_skip_already_processed_geo(database_holder):
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
-        database_cursor.execute(f'select srp from sracollector_dev.sra_project where id={inserted_sra_project_id}')
+        database_cursor.execute(f'select srp from sra_project where id={inserted_sra_project_id}')
         actual_ok_rows = database_cursor.fetchall()
         assert actual_ok_rows == [(FIXTURE['default_srp'],)]
 
-        database_cursor.execute(f'select pysradb_error_reference_id from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+        database_cursor.execute(f'select pysradb_error_reference_id from sra_project_missing where geo_study_id={inserted_geo_study_id}')
         actual_ko_rows = database_cursor.fetchall()
         assert actual_ko_rows == []
 
@@ -589,13 +588,13 @@ def test_e_get_study_srp_skip_unexpected_results(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'''select srp from sracollector_dev.sra_project
-                                        join sracollector_dev.geo_study_sra_project_link on id = sra_project_id
+            database_cursor.execute(f'''select srp from sra_project
+                                        join geo_study_sra_project_link on id = sra_project_id
                                         where geo_study_id={inserted_geo_study_id}''')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_project_missing where geo_study_id={inserted_geo_study_id}')
+            database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
@@ -627,14 +626,14 @@ def test_f_get_study_srrs_ok(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={inserted_sra_project_id}')
+            database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
             actual_ok_rows = database_cursor.fetchall()
             actual_ok_rows = actual_ok_rows.sort()
             expected_rows = [(srr,) for srr in srrs]
             expected_rows = expected_rows.sort()
             assert actual_ok_rows == expected_rows
 
-            database_cursor.execute(f'select * from sracollector_dev.sra_run_missing where sra_project_id={inserted_sra_project_id}')
+            database_cursor.execute(f'select * from sra_run_missing where sra_project_id={inserted_sra_project_id}')
             actual_ko_rows = database_cursor.fetchall()
             assert actual_ko_rows == []
 
@@ -672,13 +671,13 @@ def test_f_get_study_srrs_ko(database_holder):
 
             # THEN REGARDING DATA
             database_cursor, _ = database_holder
-            database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={inserted_sra_project_id}')
+            database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
             actual_ok_rows = database_cursor.fetchall()
             assert actual_ok_rows == []
 
-            database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={inserted_sra_project_id}')
+            database_cursor.execute(f'select pysradb_error_reference_id, details from sra_run_missing where sra_project_id={inserted_sra_project_id}')
             actual_ko_rows = database_cursor.fetchall()
-            database_cursor.execute(f"select id from sracollector_dev.pysradb_error_reference where operation='srp_to_srr' and name='ATTRIBUTE_ERROR'")
+            database_cursor.execute(f"select id from pysradb_error_reference where operation='srp_to_srr' and name='ATTRIBUTE_ERROR'")
             pysradb_error_reference_id = database_cursor.fetchone()[0]
             assert actual_ko_rows == [(pysradb_error_reference_id, "'NoneType' object has no attribute 'columns'")]
 
@@ -709,11 +708,11 @@ def test_f_get_study_srrs_skip_already_processed_srp(database_holder):
 
         # THEN REGARDING DATA
         database_cursor, _ = database_holder
-        database_cursor.execute(f'select srr from sracollector_dev.sra_run where sra_project_id={sra_project_id}')
+        database_cursor.execute(f'select srr from sra_run where sra_project_id={sra_project_id}')
         actual_ok_rows = database_cursor.fetchall()
         assert actual_ok_rows == [(srr,)]
 
-        database_cursor.execute(f'select pysradb_error_reference_id, details from sracollector_dev.sra_run_missing where sra_project_id={sra_project_id}')
+        database_cursor.execute(f'select pysradb_error_reference_id, details from sra_run_missing where sra_project_id={sra_project_id}')
         actual_ko_rows = database_cursor.fetchall()
         assert actual_ko_rows == []
 

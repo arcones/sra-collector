@@ -1,5 +1,3 @@
 [environments.default]
-url = "jdbc:h2:mem:sracollector"
-schemas=["sracollector"]
-user = "sracollector"
+url = "jdbc:h2:/db/test.db;MODE=PostgreSQL"
 validateMigrationNaming = true
