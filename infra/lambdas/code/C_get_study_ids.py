@@ -4,6 +4,7 @@ import time
 
 import boto3
 import urllib3
+from postgres_connection import postgres_connection
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
@@ -35,6 +36,8 @@ def handler(event, context):
                 logging.debug(f'Query received for keyword {ncbi_query} with retstart {retstart} and retmax {retmax}')
 
                 study_list = esearch_entities_list(ncbi_query, retstart, retmax)
+
+                store_study_ids_in_db(request_id, study_list)
 
                 logging.debug(f"Study list contains: {','.join(map(str, sorted(study_list)))}")
 
@@ -68,6 +71,16 @@ def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[i
         entities_list = response['esearchresult']['idlist']
         logging.info(f"Entity list contains: {','.join(entities_list)}")
         return list(map(int, entities_list))
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def store_study_ids_in_db(request_id: str, ncbi_ids: [int]):
+    try:
+        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict (request_id, ncbi_id) do nothing;'
+        parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
+        postgres_connection.execute_bulk_write_statement_2(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

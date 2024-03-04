@@ -1,9 +1,8 @@
-import hashlib
 import json
 import logging
 import os
+import re
 import time
-from io import StringIO
 
 import boto3
 import jaydebeapi
@@ -36,7 +35,25 @@ def execute_write_statement(statement: str, parameters: tuple):
     database_cursor = database_connection.cursor()
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
-        cursor_execute(database_cursor, statement, parameters)
+        _cursor_execute(database_cursor, statement, parameters)
+        logger.info(f'Executed {statement} with parameters {parameters}')
+        database_connection.commit()
+        return write_command_output
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+    finally:
+        database_cursor.close()
+        database_connection.close()
+
+
+def execute_bulk_write_statement_2(statement: str, parameters: [tuple]):  # TODO rename
+    write_command_output = None
+    database_connection = _database_for_env()
+    database_cursor = database_connection.cursor()
+    try:
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        _cursor_execute(database_cursor, statement, parameters, True)
         logger.info(f'Executed {statement} with parameters {parameters}')
         database_connection.commit()
         return write_command_output
@@ -54,7 +71,7 @@ def execute_write_statement_returning(statement: str, parameters: tuple):
     database_cursor = database_connection.cursor()
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
-        database_cursor.execute(statement, parameters)
+        _cursor_execute(statement, parameters)
         write_command_output = database_cursor.fetchone()[0]
         logger.info(f'Executed {statement} with parameters {parameters}')
         database_connection.commit()
@@ -67,40 +84,44 @@ def execute_write_statement_returning(statement: str, parameters: tuple):
         database_connection.close()
 
 
-def execute_bulk_write_statement(schema: str, destination_table: str, columns: [str], rows: [tuple]):
-    database_connection = _database_for_env()
-    database_cursor = database_connection.cursor()
-    tuple_length = max([len(row) for row in rows])
-    assert tuple_length == len(columns), "The tuples provided don't have the same size as the columns"
+# def execute_bulk_write_statement(schema: str, destination_table: str, columns: [str], rows: [tuple]):
+#     database_connection = _database_for_env()
+#     database_cursor = database_connection.cursor()
+#     tuple_length = max([len(row) for row in rows])
+#     assert tuple_length == len(columns), "The tuples provided don't have the same size as the columns"
+#
+#     logger.info(f'Inserting {len(rows)} in {destination_table}')
+#     try:
+#         file = StringIO()
+#         for row in rows:
+#             file.write('\t'.join(map(str, row)) + '\n')
+#         file.seek(0)
+#         file_hash = hashlib.md5(file.getvalue().encode('utf-8')).hexdigest()
+#         logger.info(f'Executing bulk insert with file hash "{file_hash}"')
+#         sql = f"COPY {schema}.{destination_table} ({','.join(columns)}) FROM STDIN WITH (FORMAT csv, DELIMITER E'\\t')"
+#         database_cursor.copy_expert(sql, file)
+#         logger.info(f'Executed bulk insert')
+#         database_connection.commit()
+#     except Exception as exception:
+#         logging.error(f'An exception has occurred: {str(exception)}')
+#         raise exception
+#     finally:
+#         database_cursor.close()
+#         database_connection.close()
 
-    logger.info(f'Inserting {len(rows)} in {destination_table}')
-    try:
-        file = StringIO()
-        for row in rows:
-            file.write('\t'.join(map(str, row)) + '\n')
-        file.seek(0)
-        file_hash = hashlib.md5(file.getvalue().encode('utf-8')).hexdigest()
-        logger.info(f'Executing bulk insert with file hash "{file_hash}"')
-        sql = f"COPY {schema}.{destination_table} ({','.join(columns)}) FROM STDIN WITH (FORMAT csv, DELIMITER E'\\t')"
-        database_cursor.copy_expert(sql, file)
-        logger.info(f'Executed bulk insert')
-        database_connection.commit()
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-    finally:
-        database_cursor.close()
-        database_connection.close()
 
-
-def execute_read_statement_for_primary_key(statement: str, parameters: tuple) -> int:
+def execute_read_statement_for_primary_key(statement: str, parameters: tuple) -> int | None:
     database_connection = _database_for_env()
     database_cursor = database_connection.cursor()
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
-        database_cursor.execute(statement, parameters)
+        _cursor_execute(database_cursor, statement, parameters)
         logger.info(f'Executed {statement} with parameters {parameters}')
-        return database_cursor.fetchone()[0] if database_cursor.rowcount > 0 else None
+        is_result_present = database_cursor.fetchone()
+        if is_result_present:
+            return is_result_present[0]
+        else:
+            return None
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -114,7 +135,7 @@ def is_row_present(statement: str, parameters: tuple) -> bool:
     database_cursor = database_connection.cursor()
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
-        cursor_execute(database_cursor, statement, parameters)
+        _cursor_execute(database_cursor, statement, parameters)
         result = database_cursor.fetchone()
         logger.info(f'Executed {statement} with parameters {parameters}')
         return result is not None
@@ -126,34 +147,32 @@ def is_row_present(statement: str, parameters: tuple) -> bool:
         database_connection.close()
 
 
-def cursor_execute(database_cursor, statement, parameters):
-    if os.environ['ENV'] == 'prod':
-        database_cursor.execute(statement, parameters)
+def _cursor_execute(database_cursor, statement, parameters, is_many=False):
+    if os.environ['ENV'] != 'prod':
+        adapted_statement = statement.replace('%s', '?').replace('\n', '')
+        on_conflict_pattern = r'on +conflict +\(.*\) +do +nothing'
+        statement = re.sub(on_conflict_pattern, '', adapted_statement)
+        parameters = list(parameters)
+
+    if is_many:
+        database_cursor.executemany(statement, parameters)
     else:
-        jaydebeapi_statement = statement.replace('%s', '?')
-        jaydebeapi_parameters = list(parameters)
-        database_cursor.execute(jaydebeapi_statement, jaydebeapi_parameters)
+        database_cursor.execute(statement, parameters)
 
 
 def _get_connection_test():
     try:
-        h2_url = 'jdbc:h2:/home/arcones/TFG/sra-collector/tmp/test-db/test.db;MODE=PostgreSQL'
-        h2_user = ''
-        h2_password = ''
-        h2_driver = 'org.h2.Driver'
-        h2_jar_path = '/home/arcones/TFG/sra-collector/db/h2-2.2.224.jar'
-
-        # Establish the connection
         database_connection = jaydebeapi.connect(
-            h2_driver,
-            h2_url,
-            [h2_user, h2_password],
-            h2_jar_path,
+            'org.h2.Driver',
+            'jdbc:h2:/home/arcones/TFG/sra-collector/tmp/test-db/test.db;MODE=PostgreSQL',
+            ['', ''],
+            '/home/arcones/TFG/sra-collector/db/h2-2.2.224.jar',
         )
         return database_connection
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
+
 
 def _get_connection_prod():
     database_credentials = secrets.get_secret_value(SecretId='rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6')
