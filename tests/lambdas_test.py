@@ -156,13 +156,15 @@ def test_c_get_study_ids():
 
                 # THEN REGARDING MESSAGES
                 expected_call = [f'{{"request_id": "{request_id}", "study_id": {expected_study_id}}}' for expected_study_id in expected_study_ids]
+                expected_call.sort()
 
                 assert mock_sqs.send_message_batch.call_count == 1
 
                 actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
                 actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+                actual_calls_message_bodies.sort()
 
-                assert expected_call.sort() == actual_calls_message_bodies.sort()
+                assert expected_call == actual_calls_message_bodies
 
 
 def test_d_get_study_geos_gse():
@@ -427,50 +429,52 @@ def test_e_get_study_srp_skip_unexpected_results():
                 assert mock_sqs.send_message.call_count == 0
 
 
-def test_f_get_study_srrs_ok(database_holder):
+def test_f_get_study_srrs_ok():
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
-            # GIVEN
-            request_id = _provide_random_request_id()
-            srrs = ['SRR22873806', 'SRR22873807']
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = _provide_random_request_id()
+                srrs = ['SRR22873806', 'SRR22873807']
 
-            mock_sqs.send_message_batch = Mock()
-            mock_sra_web_srp_to_srr.return_value = {'run_accession': srrs}
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
+                inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
 
-            input_body = json.dumps({'request_id': request_id, 'srp': DEFAULT_FIXTURE['srp']}).replace('"', '\"')
+                mock_sqs.send_message_batch = Mock()
+                mock_sra_web_srp_to_srr.return_value = {'run_accession': srrs}
 
-            _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
-            inserted_geo_study_id = _store_test_geo_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], DEFAULT_FIXTURE['gse'])
-            inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
-            # WHEN
-            actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                # WHEN
+                actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
-            # THEN REGARDING LAMBDA
-            assert actual_result == {'batchItemFailures': []}
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
 
-            # THEN REGARDING DATA
-            database_cursor, _ = database_holder
-            database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
-            actual_ok_rows = database_cursor.fetchall()
-            actual_ok_rows = actual_ok_rows.sort()
-            expected_rows = [(srr,) for srr in srrs]
-            expected_rows = expected_rows.sort()
-            assert actual_ok_rows == expected_rows
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
+                actual_ok_rows = database_cursor.fetchall()
+                actual_ok_rows = actual_ok_rows.sort()
+                expected_rows = [(srr,) for srr in srrs]
+                expected_rows = expected_rows.sort()
+                assert actual_ok_rows == expected_rows
 
-            database_cursor.execute(f'select * from sra_run_missing where sra_project_id={inserted_sra_project_id}')
-            actual_ko_rows = database_cursor.fetchall()
-            assert actual_ko_rows == []
+                database_cursor.execute(f'select * from sra_run_missing where sra_project_id={inserted_sra_project_id}')
+                actual_ko_rows = database_cursor.fetchall()
+                assert actual_ko_rows == []
 
-            # THEN REGARDING MESSAGES
-            expected_calls = [f'{{"request_id": "{request_id}", "srr": "{srr}"}}' for srr in srrs]
+                # THEN REGARDING MESSAGES
+                expected_calls = [f'{{"srr": "{srr}"}}' for srr in srrs]
 
-            assert mock_sqs.send_message_batch.call_count == 1
+                assert mock_sqs.send_message_batch.call_count == 1
 
-            actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
-            actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+                actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
+                actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
 
-            assert expected_calls.sort() == actual_calls_message_bodies.sort()
+                assert expected_calls == actual_calls_message_bodies
 
 
 def test_f_get_study_srrs_ko(database_holder):

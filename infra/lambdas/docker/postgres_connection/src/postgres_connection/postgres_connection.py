@@ -109,6 +109,22 @@ def execute_write_statement_returning(statement: str, parameters: tuple):
 #         database_connection.close()
 
 
+def execute_read_statement(statement: str, parameters: tuple):
+    database_connection = _database_for_env()
+    database_cursor = database_connection.cursor()
+    try:
+        logger.info(f'Executing: {statement} with parameters {parameters}...')
+        _cursor_execute(database_cursor, statement, parameters)
+        logger.info(f'Executed {statement} with parameters {parameters}')
+        return database_cursor.fetchall()
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+    finally:
+        database_cursor.close()
+        database_connection.close()
+
+
 def execute_read_statement_for_primary_key(statement: str, parameters: tuple) -> int | None:
     database_connection = _database_for_env()
     database_cursor = database_connection.cursor()
