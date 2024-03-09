@@ -66,12 +66,11 @@ def execute_bulk_write_statement_2(statement: str, parameters: [tuple]):  # TODO
 
 
 def execute_write_statement_returning(statement: str, parameters: tuple):
-    write_command_output = None
     database_connection = _database_for_env()
     database_cursor = database_connection.cursor()
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
-        _cursor_execute(statement, parameters)
+        _cursor_execute(database_cursor, statement, parameters)
         write_command_output = database_cursor.fetchone()[0]
         logger.info(f'Executed {statement} with parameters {parameters}')
         database_connection.commit()
@@ -148,16 +147,40 @@ def is_row_present(statement: str, parameters: tuple) -> bool:
 
 
 def _cursor_execute(database_cursor, statement, parameters, is_many=False):
+    statement_to_parameters = {statement: parameters}
+
     if os.environ['ENV'] != 'prod':
-        adapted_statement = statement.replace('%s', '?').replace('\n', '')
-        on_conflict_pattern = r'on +conflict +\(.*\) +do +nothing'
-        statement = re.sub(on_conflict_pattern, '', adapted_statement)
-        parameters = list(parameters)
+        statement = _adapt_statement_to_h2(statement)
+        statement_to_parameters = _handle_insert_returning_clause(statement, list(parameters))
 
     if is_many:
-        database_cursor.executemany(statement, parameters)
+        for statement, parameters in statement_to_parameters.items():
+            database_cursor.executemany(statement, parameters)
     else:
-        database_cursor.execute(statement, parameters)
+        for statement, parameters in statement_to_parameters.items():
+            database_cursor.execute(statement, parameters)
+
+
+def _adapt_statement_to_h2(statement):
+    adapted_statement = statement.replace('%s', '?').replace('\n', '')
+    on_conflict_pattern = r'on +conflict +\(.*\) +do +nothing'
+    return re.sub(on_conflict_pattern, '', adapted_statement)
+
+
+def _handle_insert_returning_clause(statement, parameters):
+    if 'returning id' in statement:
+        pattern = re.compile(r'insert into (\w+) \((\w+)\) .*', re.IGNORECASE)
+        matches = pattern.search(statement)
+        select_table = matches.group(1)
+        select_column = matches.group(2)
+
+        aux_select = f'select id from {select_table} where {select_column}=?'
+
+        adapted_insert = statement.replace('returning id', '')
+
+        return {adapted_insert: parameters, aux_select: parameters}
+    else:
+        return {statement: parameters}
 
 
 def _get_connection_test():

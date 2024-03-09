@@ -89,7 +89,7 @@ def summary_process(request_id: str, study_id: int, summary: str):
             store_geo_entity_in_db(request_id, study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'request_id': request_id, 'gse': geo_entity.identifier}
+                message = {'ncbi_study_id': get_id_ncbi_study(request_id, study_id), 'gse': geo_entity.identifier}
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
                 logging.info(f'Sent message {message} for study {study_id}')
         else:

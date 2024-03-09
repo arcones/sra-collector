@@ -46,7 +46,7 @@ def handler(event, context):
                 for study_id in study_list:
                     messages.append({
                         'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'request_id': request_id, 'study_id': study_id})
+                        'MessageBody': json.dumps({'request_id': request_id, 'study_id': study_id}) ## TODO hace falta seguir enviando el request_id aqui?
                     })
 
                 message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
