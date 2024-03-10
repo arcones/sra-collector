@@ -16,8 +16,6 @@ page_size = 500
 
 
 def handler(event, context):
-    # schema = postgres_connection.schema_for_env()
-
     if event:
 
         logging.info(f'Received {len(event["Records"])} records event {event}')
@@ -34,8 +32,6 @@ def handler(event, context):
                 ncbi_query = request_body['ncbi_query']
                 request_id = request_body['request_id']
 
-                request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
-
                 study_count = get_study_count(ncbi_query)
 
                 if is_request_pending_to_be_processed(request_id, ncbi_query):
@@ -51,7 +47,7 @@ def handler(event, context):
 
                         messages.append({
                             'Id': str(time.time()).replace('.', ''),
-                            'MessageBody': json.dumps({**request_info, 'retstart': retstart, 'retmax': page_size})
+                            'MessageBody': json.dumps({'request_id': request_id, 'retstart': retstart, 'retmax': page_size})
                         })
 
                         retstart = retstart + page_size

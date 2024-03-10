@@ -82,9 +82,9 @@ def test_b_get_query_pages():
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
-                expected_calls = [f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query"]}", "retstart": 0, "retmax": 500}}',
-                                  f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query"]}", "retstart": 500, "retmax": 500}}',
-                                  f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query"]}", "retstart": 1000, "retmax": 500}}']
+                expected_calls = [f'{{"request_id": "{request_id}", "retstart": 0, "retmax": 500}}',
+                                  f'{{"request_id": "{request_id}", "retstart": 500, "retmax": 500}}',
+                                  f'{{"request_id": "{request_id}", "retstart": 1000, "retmax": 500}}']
 
                 assert mock_sqs_send.send_message_batch.call_count == 1
 
@@ -132,7 +132,7 @@ def test_c_get_study_ids():
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query'], 'retstart': 0, 'retmax': 500}).replace('"', '\"')
+                input_body = json.dumps({'request_id': request_id, 'retstart': 0, 'retmax': 500})
 
                 mock_sqs.send_message_batch = Mock()
                 with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
@@ -164,6 +164,7 @@ def test_c_get_study_ids():
                 actual_calls_message_bodies.sort()
 
                 assert expected_call == actual_calls_message_bodies
+
 
 
 def test_d_get_study_geos_gse():

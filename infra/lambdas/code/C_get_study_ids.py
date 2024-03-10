@@ -28,14 +28,15 @@ def handler(event, context):
 
                 logging.info(f'Processing record {request_body}')
 
-                ncbi_query = request_body['ncbi_query']
                 request_id = request_body['request_id']
                 retstart = request_body['retstart']
                 retmax = request_body['retmax']
 
-                logging.debug(f'Query received for keyword {ncbi_query} with retstart {retstart} and retmax {retmax}')
+                query = get_query(request_id)
 
-                study_list = esearch_entities_list(ncbi_query, retstart, retmax)
+                logging.debug(f'Query received for keyword {query} with retstart {retstart} and retmax {retmax}')
+
+                study_list = esearch_entities_list(query, retstart, retmax)
 
                 store_study_ids_in_db(request_id, study_list)
 
@@ -81,6 +82,15 @@ def store_study_ids_in_db(request_id: str, ncbi_ids: [int]):
         statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict (request_id, ncbi_id) do nothing;'
         parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
         postgres_connection.execute_bulk_write_statement_2(statement, parameters)
+    except Exception as exception:
+        logging.error(f'An exception has occurred: {str(exception)}')
+        raise exception
+
+
+def get_query(request_id: str):
+    try:
+        statement = f'select query from request where id=%s;'
+        return postgres_connection.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
