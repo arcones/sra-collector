@@ -17,7 +17,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: Run Integration Tests
-        run: make build-integration-tests-dependencies && chown $USER:$USER tmp/test-db/test.db.mv.db && pytest -s
+        run: make build-integration-tests-dependencies && sudo chown $USER:$USER tmp/test-db/test.db.mv.db && pytest -s
   infra:
     needs:
       - tests
