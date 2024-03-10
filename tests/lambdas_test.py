@@ -12,7 +12,6 @@ from utils_test import _provide_random_request_id
 from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
-from utils_test import _store_test_sra_run
 from utils_test import _stores_test_ncbi_study
 from utils_test import H2ConnectionManager
 

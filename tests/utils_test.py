@@ -1,3 +1,4 @@
+import os
 import random
 import string
 
@@ -13,10 +14,10 @@ def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))
 
 
-class H2ConnectionManager: ## TODO esto tab guay a prod tb. q sino las lambdas abren y cierra en cualquier operacion
+class H2ConnectionManager: ## TODO esto tan guay a prod tb. q sino las lambdas abren y cierra en cualquier operacion
     def __init__(self):
-        self.url = 'jdbc:h2:/home/arcones/TFG/sra-collector/tmp/test-db/test.db;MODE=PostgreSQL'
-        self.jar_path = '/home/arcones/TFG/sra-collector/db/h2-2.2.224.jar'
+        self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
+        self.jar_path = './db/h2-2.2.224.jar'
         self.driver = 'org.h2.Driver'
         self.credentials = ['', '']
 
@@ -30,22 +31,6 @@ class H2ConnectionManager: ## TODO esto tab guay a prod tb. q sino las lambdas a
             self.database_cursor.close()
         if self.database_connection:
             self.database_connection.close()
-
-
-#
-# def _truncate_db():
-#     database_connection = _get_db_connection()
-#     database_cursor = database_connection.cursor()
-#     print('Truncating database...')
-#     database_cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'sracollector_dev' and table_name != 'pysradb_error_reference'")
-#     tables = database_cursor.fetchall()
-#     for table in tables:
-#         table_name = table[0]
-#         truncate_query = sql.SQL('TRUNCATE TABLE {} RESTART IDENTITY CASCADE;').format(sql.Identifier(table_name))
-#         database_cursor.execute(truncate_query)
-#     database_connection.commit()
-#     print('Database truncated')
-#     return database_connection, database_cursor
 
 
 def _store_test_request(database_holder, request_id, ncbi_query):
@@ -71,40 +56,6 @@ def _store_test_geo_study(database_holder, study_id, gse):
     return database_cursor.fetchone()[0]
 
 
-def _store_test_geo_experiment(database_holder, request_id, study_id, gsm):
-    database_cursor, database_connection = database_holder
-
-    study_statement = database_cursor.mogrify('insert into geo_experiment (request_id, ncbi_id, gsm) values (%s, %s, %s) returning id;',
-                                              (request_id, study_id, gsm))
-    database_cursor.execute(study_statement)
-    inserted_geo_experiment_id = database_cursor.fetchone()[0]
-    database_connection.commit()
-    return inserted_geo_experiment_id
-
-
-def _store_test_geo_platform(database_holder, request_id, study_id, gpl):
-    database_cursor, database_connection = database_holder
-
-    study_statement = database_cursor.mogrify('insert into geo_platform (request_id, ncbi_id, gpl) values (%s, %s, %s) returning id;',
-                                              (request_id, study_id, gpl))
-    database_cursor.execute(study_statement)
-    inserted_geo_platform_id = database_cursor.fetchone()[0]
-    database_connection.commit()
-    return inserted_geo_platform_id
-
-# TODO limpiar métodos que no son utilizados
-
-def _store_test_geo_data_set(database_holder, request_id, study_id, gds):
-    database_cursor, database_connection = database_holder
-
-    study_statement = database_cursor.mogrify('insert into geo_data_set (request_id, ncbi_id, gds) values (%s, %s, %s) returning id;',
-                                              (request_id, study_id, gds))
-    database_cursor.execute(study_statement)
-    inserted_geo_data_set = database_cursor.fetchone()[0]
-    database_connection.commit()
-    return inserted_geo_data_set
-
-
 def _store_test_sra_project(database_holder, geo_study_id, srp):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into sra_project (srp) values (?);', [srp])
@@ -114,24 +65,6 @@ def _store_test_sra_project(database_holder, geo_study_id, srp):
     database_cursor.execute('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (?, ?);', [geo_study_id, inserted_sra_project_id])
     database_connection.commit()
     return inserted_sra_project_id
-
-
-def _store_test_sra_run(database_holder, srr, sra_project_id):
-    database_cursor, database_connection = database_holder
-
-    run_statement = database_cursor.mogrify('insert into sra_run (srr, sra_project_id) values (%s, %s) returning id;',
-                                            (srr, sra_project_id))
-    database_cursor.execute(run_statement)
-    inserted_sra_run_id = database_cursor.fetchone()[0]
-    database_connection.commit()
-    return inserted_sra_run_id
-
-
-def _get_needed_batches_of_ten_messages(messages_count):
-    batches, remainder = divmod(messages_count, 10)
-    if remainder > 0:
-        batches += 1
-    return batches
 
 
 def _get_customized_input_from_sqs(bodies: [str]) -> dict:
