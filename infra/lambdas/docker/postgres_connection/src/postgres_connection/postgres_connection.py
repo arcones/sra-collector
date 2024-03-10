@@ -203,9 +203,9 @@ def _get_connection_test():
     try:
         database_connection = jaydebeapi.connect(
             'org.h2.Driver',
-            'jdbc:h2:/home/arcones/TFG/sra-collector/tmp/test-db/test.db;MODE=PostgreSQL',
+            'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL',
             ['', ''],
-            '/home/arcones/TFG/sra-collector/db/h2-2.2.224.jar',
+            './db/h2-2.2.224.jar',
         )
         return database_connection
     except Exception as exception:
