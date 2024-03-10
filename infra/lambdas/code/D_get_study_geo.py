@@ -52,48 +52,46 @@ def handler(event, context):
         ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
         ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-        ordered_records = sorted(event['Records'], key=lambda r: json.loads(r['body'])['study_id'])
+        ncbi_study_id_2_ncbi_id_list = []
 
-        request_id_2_study_id_list = []
-
-        for record in ordered_records:
+        for record in event['Records']:
             try:
                 request_body = json.loads(record['body'])
 
                 logging.info(f'Processing record {request_body}')
 
-                request_id = request_body['request_id']
-                study_id = request_body['study_id']
-                request_id_2_study_id_list.append({'request_id': request_id, 'study_id': str(study_id)})
+                ncbi_study_id = request_body['ncbi_study_id']
+                ncbi_study_id_2_ncbi_id_list.append({'ncbi_study_id': ncbi_study_id, 'ncbi_id': get_ncbi_id(ncbi_study_id)})
             except Exception as exception:
                 logging.error(f'An exception has occurred: {str(exception)}')
                 raise exception
 
         base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
-        response = http.request('GET', f'{base_url}&id={",".join(request_id_2_study_id["study_id"] for request_id_2_study_id in request_id_2_study_id_list)}')
+        ncbi_ids_as_strs = list(map(str, [ncbi_study_id_2_ncbi_id['ncbi_id'] for ncbi_study_id_2_ncbi_id in ncbi_study_id_2_ncbi_id_list]))
+        response = http.request('GET', f'{base_url}&id={",".join(ncbi_ids_as_strs)}')
         parsed_response = json.loads(response.data)['result']
 
-        for study_id_in_response in parsed_response:
-            request_id_2_study_id = [request_id_2_study_id for request_id_2_study_id in request_id_2_study_id_list if request_id_2_study_id['study_id'] == study_id_in_response]
-            if len(request_id_2_study_id) == 1 and study_id_in_response == request_id_2_study_id[0]['study_id']:
-                summary_process(request_id_2_study_id[0]['request_id'], int(study_id_in_response), parsed_response[study_id_in_response])
+        for parsed_response_item in parsed_response:
+            if parsed_response_item in ncbi_ids_as_strs:
+                ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
+                summary_process(ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
 
 
-def summary_process(request_id: str, study_id: int, summary: str):
+def summary_process(ncbi_study_id: int, ncbi_id: int, summary: str):
     try:
-        logging.debug(f'Study summary from study {study_id} is {summary}')
+        logging.debug(f'Study summary from study {ncbi_id} is {summary}')
         geo_entity = extract_geo_entity_from_summaries(summary)
 
         if geo_entity is not None:
-            logging.info(f'Retrieved geo {geo_entity.identifier} for study {study_id}')
-            store_geo_entity_in_db(request_id, study_id, geo_entity)
+            logging.info(f'Retrieved geo {geo_entity.identifier} for study {ncbi_id}')
+            geo_entity_id = store_geo_entity_in_db(ncbi_study_id, ncbi_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'ncbi_study_id': get_id_ncbi_study(request_id, study_id), 'gse': geo_entity.identifier}
+                message = {'geo_entity_id': geo_entity_id}
                 sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
-                logging.info(f'Sent message {message} for study {study_id}')
+                logging.info(f'Sent message {message} for study {ncbi_id}')
         else:
-            logging.info(f'The record with request_id {request_id} and study_id {study_id} has already been processed')
+            logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:
         if exception is not SystemError:
             logging.error(f'An exception has occurred: {str(exception)}')
@@ -116,25 +114,25 @@ def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
         raise exception
 
 
-def get_id_ncbi_study(request_id: str, study_id: int) -> int:
+def get_ncbi_id(ncbi_study_id: int) -> int:
     try:
-        statement = f'select id from ncbi_study where request_id=%s and ncbi_id=%s;'
-        parameters = (request_id, study_id)
-        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
+        statement = f'select ncbi_id from ncbi_study where id=%s;'
+        parameters = (ncbi_study_id,)
+        return postgres_connection.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def store_geo_entity_in_db(request_id: str, study_id: int, geo_entity: GeoEntity):
+def store_geo_entity_in_db(ncbi_study_id: int, study_id: int, geo_entity: GeoEntity):
     try:
-        ncbi_id = get_id_ncbi_study(request_id, study_id)
         statement = f"""insert into {geo_entity.geo_entity_type.value['table']}
                         (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
                         values (%s, %s) on conflict
-                        (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']}) do nothing;"""
-        parameters = (ncbi_id, geo_entity.identifier)
-        postgres_connection.execute_write_statement(statement, parameters)
+                        (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
+                         do nothing returning id;"""
+        parameters = (ncbi_study_id, geo_entity.identifier)
+        return postgres_connection.execute_write_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

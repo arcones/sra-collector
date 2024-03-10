@@ -14,7 +14,7 @@ repair-migrations-prod:
 
 db-migrations-test:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-test:/flyway/conf -v $(shell pwd)/tmp/test-db:/db  flyway/flyway clean migrate
-	sudo chown $USER:$USER tmp/test-db/test.db.mv.db
+	sudo chown $(shell whoami):$(shell whoami) tmp/test-db/test.db.mv.db
 
 update-diagram:
 	@rm -rf tmp/diagrams && mkdir -p tmp/diagrams && chmod 777 tmp/diagrams && \

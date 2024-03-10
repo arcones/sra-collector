@@ -38,16 +38,14 @@ def handler(event, context):
 
                 study_list = esearch_entities_list(query, retstart, retmax)
 
-                store_study_ids_in_db(request_id, study_list)
-
-                logging.debug(f"Study list contains: {','.join(map(str, sorted(study_list)))}")
+                ncbi_study_id_list = store_study_ids_in_db(request_id, study_list)
 
                 messages = []
 
-                for study_id in study_list:
+                for ncbi_study_id in ncbi_study_id_list:
                     messages.append({
                         'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'request_id': request_id, 'study_id': study_id}) ## TODO hace falta seguir enviando el request_id aqui?
+                        'MessageBody': json.dumps({'ncbi_study_id': ncbi_study_id})
                     })
 
                 message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
@@ -79,9 +77,10 @@ def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[i
 
 def store_study_ids_in_db(request_id: str, ncbi_ids: [int]):
     try:
-        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict (request_id, ncbi_id) do nothing;'
+        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict (request_id, ncbi_id) do nothing returning id;'
         parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
-        postgres_connection.execute_bulk_write_statement_2(statement, parameters)
+        ncbi_study_id_tuples = postgres_connection.execute_bulk_write_statement(statement, parameters)
+        return [ncbi_study_id_tuple[0] for ncbi_study_id_tuple in ncbi_study_id_tuples]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -90,7 +89,7 @@ def store_study_ids_in_db(request_id: str, ncbi_ids: [int]):
 def get_query(request_id: str):
     try:
         statement = f'select query from request where id=%s;'
-        return postgres_connection.execute_read_statement(statement, (request_id,))[0][0]
+        return postgres_connection.execute_read_statement(statement, (request_id,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

@@ -94,7 +94,7 @@ def is_request_pending_to_be_processed(request_id: str, ncbi_query: str) -> bool
     try:
         statement = f'select id from request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
-        return not postgres_connection.is_row_present(statement, parameters)
+        return postgres_connection.execute_read_statement(statement, parameters) is None
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

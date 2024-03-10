@@ -75,7 +75,7 @@ def store_srrs_in_db(srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
         logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
-        postgres_connection.execute_bulk_write_statement_2('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
+        postgres_connection.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -107,20 +107,7 @@ def get_pysradb_error_reference(pysradb_error: PysradbError) -> int:
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='srp_to_srr';"
         parameters = (pysradb_error.value,)
-        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
+        return postgres_connection.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-
-
-# def is_srp_pending_to_be_processed(srp: str) -> bool:
-#     try:
-#         sra_project_id = get_id_sra_project(request_id, srp)
-#         statement = f'''select id from sra_run where sra_project_id=%s
-#                         union
-#                         select id from sra_run_missing where sra_project_id=%s;'''
-#         parameters = (sra_project_id, sra_project_id)
-#         return not postgres_connection.is_row_present(statement, parameters)
-#     except Exception as exception:
-#         logging.error(f'An exception has occurred: {str(exception)}')
-#         raise exception
