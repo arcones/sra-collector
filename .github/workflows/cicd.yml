@@ -17,7 +17,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: Run Integration Tests
-        run: make build-integration-tests-dependencies && pytest -s
+        run: make build-integration-tests-dependencies && make db-migrations-test && pytest -s
   infra:
     needs:
       - tests
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Flyway Migration
-        run: make db-migrations
+        run: make db-migrations-prod
   db-diagram:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
