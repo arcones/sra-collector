@@ -56,14 +56,12 @@ def test_a_get_user_query():
 
 def test_b_get_query_pages():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
-        with patch.object(B_get_query_pages.http, 'request') as mock_http_request: ## TODO hacer los mocks más especificos
+        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_esearch):
             with H2ConnectionManager() as (database_connection, database_cursor):
                 # GIVEN
                 request_id = _provide_random_request_id()
 
                 mock_sqs_send.send_message_batch = Mock()
-                with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
-                    mock_http_request.return_value.data = response.read()
 
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
 
@@ -93,14 +91,12 @@ def test_b_get_query_pages():
 
 def test_b_get_query_pages_skip_already_processed_study_id():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
-        with patch.object(B_get_query_pages.http, 'request') as mock_http_request:
+        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_esearch):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
 
                 mock_sqs.send_message_batch = Mock()
-                with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
-                    mock_http_request.return_value.data = response.read()
 
                 _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
 
@@ -120,6 +116,14 @@ def test_b_get_query_pages_skip_already_processed_study_id():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 0
+
+
+def _mock_esearch(method, url, *args, **kwargs): # TODO aqui me quede. usar esto para hacer mas especificos todos los mocks de request y de pysradb
+    if method == 'GET' and url == 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=1':
+        with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
+            return Mock(data=response.read())
+    else:
+        sys.exit(f'Unexpected call to http.request with method {method} and url {url}')
 
 
 def test_c_get_study_ids():
