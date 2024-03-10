@@ -3,7 +3,6 @@ import logging
 from enum import Enum
 
 import boto3
-from db_connection import db_connection
 from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
 
@@ -22,15 +21,15 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
 
 
 def handler(event, context):
-    with DBConnectionManager() as database_holder:
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
+    if event:
+        logging.info(f'Received {len(event["Records"])} records event {event}')
 
-            batch_item_failures = []
-            sqs_batch_response = {}
+        batch_item_failures = []
+        sqs_batch_response = {}
 
-            for record in event['Records']:
-                try:
+        for record in event['Records']:
+            try:
+                with DBConnectionManager() as database_holder:
                     request_body = json.loads(record['body'])
 
                     logging.info(f'Processing record {request_body}')
@@ -63,11 +62,11 @@ def handler(event, context):
                     except KeyError as key_error:
                         logging.info(f'For {gse}, pysradb produced key error: {key_error}')
                         store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.KEY_ERROR, str(key_error))
-                except Exception as exception:
-                    batch_item_failures.append({'itemIdentifier': record['messageId']})
-                    logging.error(f'An exception has occurred: {str(exception)}')
-            sqs_batch_response['batchItemFailures'] = batch_item_failures
-            return sqs_batch_response
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
@@ -75,10 +74,10 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
         sra_project_id = get_id_sra_project(database_holder, srp)
         if not sra_project_id:
             statement = f'insert into sra_project (srp) values (%s) on conflict do nothing returning id;'
-            sra_project_id = db_connection.execute_write_statement(database_holder, statement, (srp,))[0]
+            sra_project_id = database_holder.execute_write_statement(statement, (srp,))[0]
         statement = f'insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s) on conflict do nothing;'
         parameters = (geo_entity_id, sra_project_id)
-        db_connection.execute_write_statement(database_holder, statement, parameters)
+        database_holder.execute_write_statement(statement, parameters)
         return sra_project_id
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
@@ -88,7 +87,7 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
 def get_id_sra_project(database_holder, srp: str) -> int:
     try:
         statement = f'select max(id) from sra_project where srp=%s;'
-        return db_connection.execute_read_statement(database_holder, statement, (srp,))[0]
+        return database_holder.execute_read_statement(statement, (srp,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -97,7 +96,7 @@ def get_id_sra_project(database_holder, srp: str) -> int:
 def get_gse_geo_study(database_holder, geo_entity_id: int) -> str:
     try:
         statement = f'select gse from geo_study where id=%s;'
-        return db_connection.execute_read_statement(database_holder, statement, (geo_entity_id,))[0]
+        return database_holder.execute_read_statement(statement, (geo_entity_id,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -109,7 +108,7 @@ def store_missing_srp_in_db(database_holder, geo_entity_id: int, pysradb_error: 
         statement = f'''insert into sra_project_missing (geo_study_id, pysradb_error_reference_id, details)
                         values (%s, %s, %s) on conflict do nothing;'''
         parameters = (geo_entity_id, pysradb_error_reference_id, details)
-        db_connection.execute_write_statement(database_holder, statement, parameters)
+        database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -119,7 +118,7 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='gse_to_srp';"
         parameters = (pysradb_error.value,)
-        return db_connection.execute_read_statement(database_holder, statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

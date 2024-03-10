@@ -4,7 +4,6 @@ from enum import Enum
 
 import boto3
 import urllib3
-from db_connection import db_connection
 from db_connection.db_connection import DBConnectionManager
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
@@ -86,7 +85,7 @@ def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: 
 
         if geo_entity is not None:
             logging.info(f'Retrieved geo {geo_entity.identifier} for study {ncbi_id}')
-            geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, ncbi_id, geo_entity)
+            geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
                 message = {'geo_entity_id': geo_entity_id}
@@ -120,19 +119,19 @@ def get_ncbi_id(database_holder, ncbi_study_id: int) -> int:
     try:
         statement = f'select ncbi_id from ncbi_study where id=%s;'
         parameters = (ncbi_study_id,)
-        return db_connection.execute_read_statement(database_holder, statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def store_geo_entity_in_db(database_holder, ncbi_study_id: int, study_id: int, geo_entity: GeoEntity):
+def store_geo_entity_in_db(database_holder, ncbi_study_id: int, geo_entity: GeoEntity):
     try:
         statement = f"""insert into {geo_entity.geo_entity_type.value['table']}
                         (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
                         values (%s, %s) on conflict do nothing returning id;"""
         parameters = (ncbi_study_id, geo_entity.identifier)
-        return db_connection.execute_write_statement(database_holder, statement, parameters)[0]
+        return database_holder.execute_write_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

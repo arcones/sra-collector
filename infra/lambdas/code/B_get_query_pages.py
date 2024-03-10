@@ -4,7 +4,6 @@ import time
 
 import boto3
 import urllib3
-from db_connection import db_connection
 from db_connection.db_connection import DBConnectionManager
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
@@ -17,15 +16,15 @@ page_size = 500
 
 
 def handler(event, context):
-    with DBConnectionManager() as database_holder:
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
+    if event:
+        logging.info(f'Received {len(event["Records"])} records event {event}')
 
-            batch_item_failures = []
-            sqs_batch_response = {}
+        batch_item_failures = []
+        sqs_batch_response = {}
 
-            for record in event['Records']:
-                try:
+        for record in event['Records']:
+            try:
+                with DBConnectionManager() as database_holder:
                     request_body = json.loads(record['body'])
 
                     logging.info(f'Processing record {request_body}')
@@ -61,11 +60,11 @@ def handler(event, context):
                         logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                     else:
                         logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
-                except Exception as exception:
-                    batch_item_failures.append({'itemIdentifier': record['messageId']})
-                    logging.error(f'An exception has occurred: {str(exception)}')
-            sqs_batch_response['batchItemFailures'] = batch_item_failures
-            return sqs_batch_response
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def get_study_count(ncbi_query: str) -> int:
@@ -85,7 +84,7 @@ def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study
     try:
         statement = f'insert into request (id, query, geo_count) values (%s, %s, %s) on conflict do nothing;'
         parameters = (request_id, ncbi_query, study_count)
-        db_connection.execute_write_statement(database_holder, statement, parameters)
+        database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -95,7 +94,7 @@ def is_request_pending_to_be_processed(database_holder, request_id: str, ncbi_qu
     try:
         statement = f'select id from request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
-        return db_connection.execute_read_statement(database_holder, statement, parameters) is None
+        return database_holder.execute_read_statement(statement, parameters) is None
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

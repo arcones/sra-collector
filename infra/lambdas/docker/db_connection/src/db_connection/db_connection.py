@@ -56,7 +56,7 @@ class DBConnectionManager:
             self.database_connection = jaydebeapi.connect(self.driver, self.url, self.credentials, self.jar_path)
             self.database_cursor = self.database_connection.cursor()
 
-        return self.database_connection, self.database_cursor
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.database_cursor:
@@ -64,96 +64,68 @@ class DBConnectionManager:
         if self.database_connection:
             self.database_connection.close()
 
+    def execute_read_statement(self, statement: str, parameters: tuple):
+        try:
+            logger.info(f'Executing: {statement} with parameters {parameters}...')
+            result = self._cursor_execute_single_and_return(statement, parameters)
+            logger.info(f'Executed {statement} with parameters {parameters}')
+            return result
+        except Exception as exception:
+            logging.error(f'An exception has occurred: {str(exception)}')
+            raise exception
 
-def execute_read_statement(database_holder, statement: str, parameters: tuple):
-    database_connection, database_cursor = database_holder ## TODO no podria cogerlo de self?
-    try:
-        logger.info(f'Executing: {statement} with parameters {parameters}...')
-        result = _cursor_execute_single_and_return(database_cursor, statement, parameters)
-        logger.info(f'Executed {statement} with parameters {parameters}')
+    def execute_write_statement(self, statement: str, parameters: tuple):
+        try:
+            logger.info(f'Executing: {statement} with parameters {parameters}...')
+            result = self._cursor_execute_single_and_return(statement, parameters)
+            logger.info(f'Executed {statement} with parameters {parameters}')
+            self.database_connection.commit()
+            return result
+        except Exception as exception:
+            logging.error(f'An exception has occurred: {str(exception)}')
+            raise exception
+
+    def execute_bulk_write_statement(self, statement: str, parameters: [tuple]):
+        try:
+            logger.info(f'Executing: {statement} with parameters {parameters}...')
+            result = self._cursor_execute_multiple_and_return(statement, parameters)
+            logger.info(f'Executed {statement} with parameters {parameters}')
+            self.database_connection.commit()
+            return result
+        except Exception as exception:
+            logging.error(f'An exception has occurred: {str(exception)}')
+            raise exception
+
+    def _cursor_execute_single_and_return(self, statement, parameters) -> None | tuple:
+        result = None
+        if os.environ['ENV'] == 'prod':
+            self.database_cursor.execute(statement, parameters)
+            result = self.database_cursor.fetchone()
+        else:
+            statement_2_parameters = _adapt_statement_to_env(statement, parameters)
+            for statement, parameters in statement_2_parameters.items():
+                if _is_select(statement):
+                    self.database_cursor.execute(statement, parameters)
+                    result = self.database_cursor.fetchone()
+                else:
+                    self.database_cursor.execute(statement, parameters)
         return result
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
 
-
-def execute_write_statement(database_holder, statement: str, parameters: tuple):
-    database_connection, database_cursor = database_holder
-    try:
-        logger.info(f'Executing: {statement} with parameters {parameters}...')
-        result = _cursor_execute_single_and_return(database_cursor, statement, parameters)
-        logger.info(f'Executed {statement} with parameters {parameters}')
-        database_connection.commit()
+    def _cursor_execute_multiple_and_return(self, statement, parameters) -> [tuple]:
+        result = []
+        if os.environ['ENV'] == 'prod':
+            self.database_cursor.execute(statement, parameters)
+            result.append(self.database_cursor.fetchall())
+        else:
+            statement_2_parameters = _adapt_statement_to_env(statement, parameters)
+            for statement, parameter_groups in statement_2_parameters.items():
+                if _is_select(statement):
+                    for parameter_group in parameter_groups:
+                        self.database_cursor.execute(statement, parameter_group)
+                        result.append(self.database_cursor.fetchone())
+                else:
+                    self.database_cursor.executemany(statement, parameter_groups)
         return result
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-
-
-def execute_bulk_write_statement(database_holder, statement: str, parameters: [tuple]):
-    database_connection, database_cursor = database_holder
-    try:
-        logger.info(f'Executing: {statement} with parameters {parameters}...')
-        result = _cursor_execute_multiple_and_return(database_cursor, statement, parameters)
-        logger.info(f'Executed {statement} with parameters {parameters}')
-        database_connection.commit()
-        return result
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-
-
-def _cursor_execute_single_and_return(database_cursor, statement, parameters) -> None | tuple:
-    result = None
-    if os.environ['ENV'] == 'prod':
-        database_cursor.execute(statement, parameters)
-        result = database_cursor.fetchone()
-    else:
-        statement_2_parameters = _adapt_statement_to_env(statement, parameters)
-        for statement, parameters in statement_2_parameters.items():
-            if _is_select(statement):
-                database_cursor.execute(statement, parameters)
-                result = database_cursor.fetchone()
-            else:
-                database_cursor.execute(statement, parameters)
-    return result
-
-
-def _cursor_execute_multiple_and_return(database_cursor, statement, parameters) -> [tuple]:
-    result = []
-    if os.environ['ENV'] == 'prod':
-        database_cursor.execute(statement, parameters)
-        result.append(database_cursor.fetchall())
-    else:
-        statement_2_parameters = _adapt_statement_to_env(statement, parameters)
-        for statement, parameter_groups in statement_2_parameters.items():
-            if _is_select(statement):
-                for parameter_group in parameter_groups:
-                    database_cursor.execute(statement, parameter_group)
-                    result.append(database_cursor.fetchone())
-            else:
-                database_cursor.executemany(statement, parameter_groups)
-    return result
-
-
-def _is_select(statement):
-    return statement.lower().startswith('select')
-
-
-def _adapt_statement_to_env(statement, parameters):
-    statement_2_parameters = {statement: parameters}
-
-    if os.environ['ENV'] != 'prod':
-        statement = _adapt_statement_to_h2_syntax(statement)
-        statement_2_parameters = _handle_insert_returning_clause(statement, list(parameters))
-
-    return statement_2_parameters
-
-
-def _adapt_statement_to_h2_syntax(statement):
-    adapted_statement = statement.replace('%s', '?').replace('\n', '')
-    on_conflict_pattern = r'on +conflict +do +nothing'
-    return re.sub(on_conflict_pattern, '', adapted_statement)
 
 
 def _handle_insert_returning_clause(statement, parameters):
@@ -176,3 +148,23 @@ def _handle_insert_returning_clause(statement, parameters):
         return {adapted_insert: parameters, aux_select: parameters}
     else:
         return {statement: parameters}
+
+
+def _adapt_statement_to_h2_syntax(statement):
+    adapted_statement = statement.replace('%s', '?').replace('\n', '')
+    on_conflict_pattern = r'on +conflict +do +nothing'
+    return re.sub(on_conflict_pattern, '', adapted_statement)
+
+
+def _adapt_statement_to_env(statement, parameters):
+    statement_2_parameters = {statement: parameters}
+
+    if os.environ['ENV'] != 'prod':
+        statement = _adapt_statement_to_h2_syntax(statement)
+        statement_2_parameters = _handle_insert_returning_clause(statement, list(parameters))
+
+    return statement_2_parameters
+
+
+def _is_select(statement):
+    return statement.lower().startswith('select')

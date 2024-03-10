@@ -4,7 +4,6 @@ import time
 from enum import Enum
 
 import boto3
-from db_connection import db_connection
 from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
 
@@ -20,15 +19,15 @@ class PysradbError(Enum):
 
 
 def handler(event, context):
-    with DBConnectionManager() as database_holder:
-        if event:
-            logging.info(f'Received {len(event["Records"])} records event {event}')
+    if event:
+        logging.info(f'Received {len(event["Records"])} records event {event}')
 
-            batch_item_failures = []
-            sqs_batch_response = {}
+        batch_item_failures = []
+        sqs_batch_response = {}
 
-            for record in event['Records']:
-                try:
+        for record in event['Records']:
+            try:
+                with DBConnectionManager() as database_holder:
                     request_body = json.loads(record['body'])
 
                     logging.info(f'Processing record {request_body}')
@@ -65,18 +64,18 @@ def handler(event, context):
                     except AttributeError as attribute_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced attribute error with name {attribute_error.name}')
                         store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
-                except Exception as exception:
-                    batch_item_failures.append({'itemIdentifier': record['messageId']})
-                    logging.error(f'An exception has occurred: {str(exception)}')
-            sqs_batch_response['batchItemFailures'] = batch_item_failures
-            return sqs_batch_response
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred: {str(exception)}')
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
 
 
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
         logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
-        db_connection.execute_bulk_write_statement(database_holder, 'insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
+        database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -86,7 +85,7 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
         statement = f'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
-        row = db_connection.execute_read_statement(database_holder, statement, parameters)
+        row = database_holder.execute_read_statement(statement, parameters)
         return row[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
@@ -99,7 +98,7 @@ def store_missing_srr_in_db(database_holder, sra_project_id: int, pysradb_error:
         statement = f'''insert into sra_run_missing (sra_project_id, pysradb_error_reference_id, details)
                         values (%s, %s, %s) on conflict do nothing;'''
         parameters = (sra_project_id, pysradb_error_reference_id, details)
-        db_connection.execute_write_statement(database_holder, statement, parameters)
+        database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
@@ -109,7 +108,7 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='srp_to_srr';"
         parameters = (pysradb_error.value,)
-        return db_connection.execute_read_statement(database_holder, statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

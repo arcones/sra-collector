@@ -14,7 +14,7 @@ def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))
 
 
-class H2ConnectionManager: ## TODO esto tan guay a prod tb. q sino las lambdas abren y cierra en cualquier operacion
+class H2ConnectionManager:
     def __init__(self):
         self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
         self.jar_path = './db/h2-2.2.224.jar'
