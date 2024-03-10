@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name='postgres_connection',
+    name='db_connection',
     version='0.0.4',
     author='Marta Arcones',
     author_email='marta.arcones@alumnos.upm.es',

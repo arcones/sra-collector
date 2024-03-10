@@ -1,6 +1,6 @@
 FROM python:3.11
 
-ENV DB_CONNECTION_LIB_FOLDER=postgres_connection
+ENV DB_CONNECTION_LIB_FOLDER=db_connection
 ENV DB_CONNECTION_LIB_VERSION=0.0.4
 
 ENV DEPS_FOLDER=lambda-dependencies/python

@@ -109,4 +109,4 @@ xl-sra-collector-request:
 
 build-integration-tests-dependencies: db-migrations-test
 	cd tests && pip install -r requirements.txt
-	cd infra/lambdas/docker/postgres_connection && python -m build && pip install dist/postgres_connection-0.0.4-py3-none-any.whl
+	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-0.0.4-py3-none-any.whl --force-reinstall

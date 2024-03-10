@@ -4,7 +4,8 @@ import time
 
 import boto3
 import urllib3
-from postgres_connection import postgres_connection
+from db_connection import db_connection
+from db_connection.db_connection import DBConnectionManager
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
@@ -15,50 +16,50 @@ http = urllib3.PoolManager()
 
 
 def handler(event, context):
-    if event:
+    with DBConnectionManager() as database_holder:
+        if event:
+            logging.info(f'Received {len(event["Records"])} records event {event}')
 
-        logging.info(f'Received {len(event["Records"])} records event {event}')
+            batch_item_failures = []
+            sqs_batch_response = {}
 
-        batch_item_failures = []
-        sqs_batch_response = {}
+            for record in event['Records']:
+                try:
+                    request_body = json.loads(record['body'])
 
-        for record in event['Records']:
-            try:
-                request_body = json.loads(record['body'])
+                    logging.info(f'Processing record {request_body}')
 
-                logging.info(f'Processing record {request_body}')
+                    request_id = request_body['request_id']
+                    retstart = request_body['retstart']
+                    retmax = request_body['retmax']
 
-                request_id = request_body['request_id']
-                retstart = request_body['retstart']
-                retmax = request_body['retmax']
+                    query = get_query(database_holder, request_id)
 
-                query = get_query(request_id)
+                    logging.debug(f'Query received for keyword {query} with retstart {retstart} and retmax {retmax}')
 
-                logging.debug(f'Query received for keyword {query} with retstart {retstart} and retmax {retmax}')
+                    study_list = esearch_entities_list(query, retstart, retmax)
 
-                study_list = esearch_entities_list(query, retstart, retmax)
+                    ncbi_study_id_list = store_study_ids_in_db(database_holder, request_id, study_list)
 
-                ncbi_study_id_list = store_study_ids_in_db(request_id, study_list)
+                    messages = []
 
-                messages = []
+                    for ncbi_study_id in ncbi_study_id_list:
+                        messages.append({
+                            'Id': str(time.time()).replace('.', ''),
+                            'MessageBody': json.dumps({'ncbi_study_id': ncbi_study_id})
+                        })
 
-                for ncbi_study_id in ncbi_study_id_list:
-                    messages.append({
-                        'Id': str(time.time()).replace('.', ''),
-                        'MessageBody': json.dumps({'ncbi_study_id': ncbi_study_id})
-                    })
+                    message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
 
-                message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
+                    for message_batch in message_batches:
+                        sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
 
-                for message_batch in message_batches:
-                    sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-
-                logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
-            except Exception as exception:
-                batch_item_failures.append({'itemIdentifier': record['messageId']})
-                logging.error(f'An exception has occurred: {str(exception)}')
-        sqs_batch_response['batchItemFailures'] = batch_item_failures
-        return sqs_batch_response
+                    logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                except Exception as exception:
+                    batch_item_failures.append({'itemIdentifier': record['messageId']})
+                    logging.error(f'An exception has occurred: {str(exception)}')
+            sqs_batch_response['batchItemFailures'] = batch_item_failures
+            return sqs_batch_response
 
 
 def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[int]:
@@ -75,21 +76,21 @@ def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[i
         raise exception
 
 
-def store_study_ids_in_db(request_id: str, ncbi_ids: [int]):
+def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
     try:
-        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict (request_id, ncbi_id) do nothing returning id;'
+        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict do nothing returning id;'
         parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
-        ncbi_study_id_tuples = postgres_connection.execute_bulk_write_statement(statement, parameters)
+        ncbi_study_id_tuples = db_connection.execute_bulk_write_statement(database_holder, statement, parameters)
         return [ncbi_study_id_tuple[0] for ncbi_study_id_tuple in ncbi_study_id_tuples]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def get_query(request_id: str):
+def get_query(database_holder, request_id: str):
     try:
         statement = f'select query from request where id=%s;'
-        return postgres_connection.execute_read_statement(statement, (request_id,))[0]
+        return db_connection.execute_read_statement(database_holder, statement, (request_id,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

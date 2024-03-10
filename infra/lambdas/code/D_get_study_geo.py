@@ -4,7 +4,8 @@ from enum import Enum
 
 import boto3
 import urllib3
-from postgres_connection import postgres_connection
+from db_connection import db_connection
+from db_connection.db_connection import DBConnectionManager
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 urllib3_logger = logging.getLogger('urllib3')
@@ -47,44 +48,45 @@ class GeoEntity:
 
 
 def handler(event, context):
-    if event:
-        logging.info(f'Received {len(event["Records"])} records event {event}')
-        ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
-        ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
+    with DBConnectionManager() as database_holder:
+        if event:
+            logging.info(f'Received {len(event["Records"])} records event {event}')
+            ncbi_api_key_secret = secrets.get_secret_value(SecretId='ncbi_api_key_secret')
+            ncbi_api_key = json.loads(ncbi_api_key_secret['SecretString'])['value']
 
-        ncbi_study_id_2_ncbi_id_list = []
+            ncbi_study_id_2_ncbi_id_list = []
 
-        for record in event['Records']:
-            try:
-                request_body = json.loads(record['body'])
+            for record in event['Records']:
+                try:
+                    request_body = json.loads(record['body'])
 
-                logging.info(f'Processing record {request_body}')
+                    logging.info(f'Processing record {request_body}')
 
-                ncbi_study_id = request_body['ncbi_study_id']
-                ncbi_study_id_2_ncbi_id_list.append({'ncbi_study_id': ncbi_study_id, 'ncbi_id': get_ncbi_id(ncbi_study_id)})
-            except Exception as exception:
-                logging.error(f'An exception has occurred: {str(exception)}')
-                raise exception
+                    ncbi_study_id = request_body['ncbi_study_id']
+                    ncbi_study_id_2_ncbi_id_list.append({'ncbi_study_id': ncbi_study_id, 'ncbi_id': get_ncbi_id(database_holder, ncbi_study_id)})
+                except Exception as exception:
+                    logging.error(f'An exception has occurred: {str(exception)}')
+                    raise exception
 
-        base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
-        ncbi_ids_as_strs = list(map(str, [ncbi_study_id_2_ncbi_id['ncbi_id'] for ncbi_study_id_2_ncbi_id in ncbi_study_id_2_ncbi_id_list]))
-        response = http.request('GET', f'{base_url}&id={",".join(ncbi_ids_as_strs)}')
-        parsed_response = json.loads(response.data)['result']
+            base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
+            ncbi_ids_as_strs = list(map(str, [ncbi_study_id_2_ncbi_id['ncbi_id'] for ncbi_study_id_2_ncbi_id in ncbi_study_id_2_ncbi_id_list]))
+            response = http.request('GET', f'{base_url}&id={",".join(ncbi_ids_as_strs)}')
+            parsed_response = json.loads(response.data)['result']
 
-        for parsed_response_item in parsed_response:
-            if parsed_response_item in ncbi_ids_as_strs:
-                ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
-                summary_process(ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
+            for parsed_response_item in parsed_response:
+                if parsed_response_item in ncbi_ids_as_strs:
+                    ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
+                    summary_process(database_holder, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
 
 
-def summary_process(ncbi_study_id: int, ncbi_id: int, summary: str):
+def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: str):
     try:
         logging.debug(f'Study summary from study {ncbi_id} is {summary}')
         geo_entity = extract_geo_entity_from_summaries(summary)
 
         if geo_entity is not None:
             logging.info(f'Retrieved geo {geo_entity.identifier} for study {ncbi_id}')
-            geo_entity_id = store_geo_entity_in_db(ncbi_study_id, ncbi_id, geo_entity)
+            geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, ncbi_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
                 message = {'geo_entity_id': geo_entity_id}
@@ -114,25 +116,23 @@ def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
         raise exception
 
 
-def get_ncbi_id(ncbi_study_id: int) -> int:
+def get_ncbi_id(database_holder, ncbi_study_id: int) -> int:
     try:
         statement = f'select ncbi_id from ncbi_study where id=%s;'
         parameters = (ncbi_study_id,)
-        return postgres_connection.execute_read_statement(statement, parameters)[0]
+        return db_connection.execute_read_statement(database_holder, statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def store_geo_entity_in_db(ncbi_study_id: int, study_id: int, geo_entity: GeoEntity):
+def store_geo_entity_in_db(database_holder, ncbi_study_id: int, study_id: int, geo_entity: GeoEntity):
     try:
         statement = f"""insert into {geo_entity.geo_entity_type.value['table']}
                         (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
-                        values (%s, %s) on conflict
-                        (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
-                         do nothing returning id;"""
+                        values (%s, %s) on conflict do nothing returning id;"""
         parameters = (ncbi_study_id, geo_entity.identifier)
-        return postgres_connection.execute_write_statement(statement, parameters)[0]
+        return db_connection.execute_write_statement(database_holder, statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

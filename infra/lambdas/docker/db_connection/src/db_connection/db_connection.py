@@ -18,9 +18,55 @@ secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 logger = logging.getLogger(__name__)
 
 
-def execute_read_statement(statement: str, parameters: tuple):
-    database_connection = _database_for_env()
-    database_cursor = database_connection.cursor()
+class DBConnectionManager:
+    def __init__(self):
+        if os.environ['ENV'] == 'prod':
+            self.database_credentials = secrets.get_secret_value(SecretId='rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6')
+            self.username = json.loads(self.database_credentials['SecretString'])['username']
+            self.password = json.loads(self.database_credentials['SecretString'])['password']
+            self.host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
+            self.connection_string = f"host={self.host} dbname='sracollector' user='{self.username}' password='{self.password}'"
+        else:
+            self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
+            self.jar_path = './db/h2-2.2.224.jar'
+            self.driver = 'org.h2.Driver'
+            self.credentials = ['', '']
+
+    def __enter__(self):
+        if os.environ['ENV'] == 'prod':
+            database_connection = None
+            connection_attempts = 0
+
+            while database_connection is None:
+                try:
+                    self.database_connection = psycopg2.connect(self.connection_string)
+                    logger.info(f'Successfully connected with database in attempt #{connection_attempts}')
+                except OperationalError as operationalError:
+                    if connection_attempts == MAX_TRIES:
+                        logger.error(f'Not able to connect with database after {connection_attempts} attempts')
+                        logger.error(str(operationalError))
+                        raise operationalError
+                    else:
+                        logger.warning(f'Not able to connect with database in attempt #{connection_attempts}')
+                        logger.warning(str(operationalError))
+                        connection_attempts += 1
+                        time.sleep(1)
+            self.database_cursor = self.database_connection.cursor()
+        else:
+            self.database_connection = jaydebeapi.connect(self.driver, self.url, self.credentials, self.jar_path)
+            self.database_cursor = self.database_connection.cursor()
+
+        return self.database_connection, self.database_cursor
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.database_cursor:
+            self.database_cursor.close()
+        if self.database_connection:
+            self.database_connection.close()
+
+
+def execute_read_statement(database_holder, statement: str, parameters: tuple):
+    database_connection, database_cursor = database_holder ## TODO no podria cogerlo de self?
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
         result = _cursor_execute_single_and_return(database_cursor, statement, parameters)
@@ -29,14 +75,10 @@ def execute_read_statement(statement: str, parameters: tuple):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-    finally:
-        database_cursor.close()
-        database_connection.close()
 
 
-def execute_write_statement(statement: str, parameters: tuple):
-    database_connection = _database_for_env()
-    database_cursor = database_connection.cursor()
+def execute_write_statement(database_holder, statement: str, parameters: tuple):
+    database_connection, database_cursor = database_holder
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
         result = _cursor_execute_single_and_return(database_cursor, statement, parameters)
@@ -46,14 +88,10 @@ def execute_write_statement(statement: str, parameters: tuple):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-    finally:
-        database_cursor.close()
-        database_connection.close()
 
 
-def execute_bulk_write_statement(statement: str, parameters: [tuple]):
-    database_connection = _database_for_env()
-    database_cursor = database_connection.cursor()
+def execute_bulk_write_statement(database_holder, statement: str, parameters: [tuple]):
+    database_connection, database_cursor = database_holder
     try:
         logger.info(f'Executing: {statement} with parameters {parameters}...')
         result = _cursor_execute_multiple_and_return(database_cursor, statement, parameters)
@@ -63,20 +101,6 @@ def execute_bulk_write_statement(statement: str, parameters: [tuple]):
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
-    finally:
-        database_cursor.close()
-        database_connection.close()
-
-
-def _database_for_env():
-    if os.environ['ENV'] == 'prod':
-        database_connection = _get_connection_prod()
-        logger.debug(f'Using PROD database')
-    else:
-        database_connection = _get_connection_test()
-        logger.debug(f'Using TEST database')
-
-    return database_connection
 
 
 def _cursor_execute_single_and_return(database_cursor, statement, parameters) -> None | tuple:
@@ -128,7 +152,7 @@ def _adapt_statement_to_env(statement, parameters):
 
 def _adapt_statement_to_h2_syntax(statement):
     adapted_statement = statement.replace('%s', '?').replace('\n', '')
-    on_conflict_pattern = r'on +conflict +\(.*\) +do +nothing'
+    on_conflict_pattern = r'on +conflict +do +nothing'
     return re.sub(on_conflict_pattern, '', adapted_statement)
 
 
@@ -152,45 +176,3 @@ def _handle_insert_returning_clause(statement, parameters):
         return {adapted_insert: parameters, aux_select: parameters}
     else:
         return {statement: parameters}
-
-
-def _get_connection_test():
-    try:
-        database_connection = jaydebeapi.connect(
-            'org.h2.Driver',
-            'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL',
-            ['', ''],
-            './db/h2-2.2.224.jar',
-        )
-        return database_connection
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-
-
-def _get_connection_prod():
-    database_credentials = secrets.get_secret_value(SecretId='rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6')
-    username = json.loads(database_credentials['SecretString'])['username']
-    password = json.loads(database_credentials['SecretString'])['password']
-    host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
-
-    connection_string = f"host={host} dbname='sracollector' user='{username}' password='{password}'"
-
-    database_connection = None
-    connection_attempts = 0
-
-    while database_connection is None:
-        try:
-            database_connection = psycopg2.connect(connection_string)
-            logger.info(f'Successfully connected with database in attempt #{connection_attempts}')
-        except OperationalError as operationalError:
-            if connection_attempts == MAX_TRIES:
-                logger.error(f'Not able to connect with database after {connection_attempts} attempts')
-                logger.error(str(operationalError))
-                raise operationalError
-            else:
-                logger.warning(f'Not able to connect with database in attempt #{connection_attempts}')
-                logger.warning(str(operationalError))
-                connection_attempts += 1
-                time.sleep(1)
-    return database_connection
