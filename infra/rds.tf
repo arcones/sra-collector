@@ -7,7 +7,7 @@ resource "aws_db_instance" "sra_collector_db" {
   db_name                       = "sracollector"
   engine                        = "postgres"
   engine_version                = "16.1"
-  instance_class                = "db.t4g.micro"
+  instance_class                = "db.t4g.small"
   identifier                    = "sracollector"
   manage_master_user_password   = true
   master_user_secret_kms_key_id = aws_kms_key.db_kms_key.key_id

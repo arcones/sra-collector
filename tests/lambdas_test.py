@@ -181,7 +181,7 @@ def test_d_get_study_geos_gse():
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                    D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
@@ -217,13 +217,11 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
 
                     mock_sqs.send_message = Mock()
                     mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
-                    # with open(f'tests/fixtures/{geo_fixture}') as response:
-                    #     mock_http_request.return_value.data = response.read()
 
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    actual_result = D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                    D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
@@ -451,7 +449,11 @@ def test_f_get_study_srrs_ok():
                 assert expected_calls == actual_calls_message_bodies
 
 
-def test_f_get_study_srrs_ko():
+@pytest.mark.parametrize('pysradb_exception, pysradb_exception_info, pysradb_exception_name', [
+    (AttributeError, 'jander', 'ATTRIBUTE_ERROR'),
+    (TypeError, 'clander', 'TYPE_ERROR')
+])
+def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_exception_name):
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
         with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             with H2ConnectionManager() as database_holder:
@@ -464,7 +466,7 @@ def test_f_get_study_srrs_ko():
                 inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
 
                 mock_sqs.send_message_batch = Mock()
-                mock_sra_web_srp_to_srr.side_effect = AttributeError("'NoneType' object has no attribute 'columns'")
+                mock_sra_web_srp_to_srr.side_effect = pysradb_exception(pysradb_exception_info)
 
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
@@ -482,9 +484,9 @@ def test_f_get_study_srrs_ko():
 
                 database_cursor.execute(f'select pysradb_error_reference_id, details from sra_run_missing where sra_project_id={inserted_sra_project_id}')
                 actual_ko_rows = database_cursor.fetchall()
-                database_cursor.execute(f"select id from pysradb_error_reference where operation='srp_to_srr' and name='ATTRIBUTE_ERROR'")
+                database_cursor.execute(f"select id from pysradb_error_reference where operation='srp_to_srr' and name='{pysradb_exception_name}'")
                 pysradb_error_reference_id = database_cursor.fetchone()[0]
-                assert actual_ko_rows == [(pysradb_error_reference_id, "'NoneType' object has no attribute 'columns'")]
+                assert actual_ko_rows == [(pysradb_error_reference_id, pysradb_exception_info)]
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message_batch.call_count == 0

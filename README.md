@@ -27,6 +27,7 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/Python-blue?logo=python&logoColor=yellow)
 ![Static Badge](https://img.shields.io/badge/Terraform-lavender?logo=terraform)
 ![Static Badge](https://img.shields.io/badge/PostgreSQL-yellow?logo=postgresql)
+![Static Badge](https://img.shields.io/badge/H2-violet?logo=adminer)
 ![Static Badge](https://img.shields.io/badge/docker-white?logo=docker)
 ![Static Badge](https://img.shields.io/badge/git-moccasin?logo=git)
 ![Static Badge](https://img.shields.io/badge/GHActions-black?logo=githubactions)
@@ -41,8 +42,7 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
 ![Static Badge](https://img.shields.io/badge/SamCLI-orange?logo=amazonaws)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
-![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=maroon)
-TODO add h2, mocks
+![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=black)
 
 ## Style Patterns & Techniques
 - Cloud Native

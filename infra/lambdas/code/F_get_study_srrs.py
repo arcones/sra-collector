@@ -14,6 +14,7 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/F_srrs'
 
 
 class PysradbError(Enum):
+    TYPE_ERROR = 'TYPE_ERROR'
     ATTRIBUTE_ERROR = 'ATTRIBUTE_ERROR'
     NOT_FOUND = 'NOT_FOUND'
 
@@ -64,6 +65,9 @@ def handler(event, context):
                     except AttributeError as attribute_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced attribute error with name {attribute_error.name}')
                         store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                    except TypeError as type_error:
+                        logging.info(f'For SRP with id {sra_project_id}, pysradb produced type error with name {type_error}')
+                        store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.TYPE_ERROR, str(type_error))
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
