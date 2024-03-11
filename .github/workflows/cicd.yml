@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Flyway Migration
-        run: make db-migrations
+        run: make db-migrations-prod
   db-diagram:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
