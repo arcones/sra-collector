@@ -12,6 +12,7 @@ http = urllib3.PoolManager()
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522', 'srrs': ['SRR22873806', 'SRR22873807']}
 
+
 def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))
 
@@ -115,7 +116,7 @@ def _mock_eutils(method, url, *args, **kwargs):
         elif url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=500&retstart=0&usehistory=y':
             with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
                 return Mock(data=response.read())
-        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=200126815': #TODO unificar este tipo de identificadores a nacbi_id ???
+        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=200126815':
             with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=100019750':
@@ -134,9 +135,9 @@ def _mock_eutils(method, url, *args, **kwargs):
 
 
 def _mock_pysradb(entity, *args, **kwargs):
-    if entity == DEFAULT_FIXTURE['gse']:
+    if entity.startswith('GSE'):
         return {'study_accession': [DEFAULT_FIXTURE['srp']]}
-    elif entity == DEFAULT_FIXTURE['srp']:
+    elif entity.startswith('SRP'):
         return {'run_accession': DEFAULT_FIXTURE['srrs']}
     else:
-        sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
+        sys.exit(f'Cannot mock unexpected call to pysradb with entity {entity}')

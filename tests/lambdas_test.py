@@ -237,7 +237,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
 
 def test_e_get_study_srp_ok():
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=_mock_pysradb): ## todo aquimequede, parcheando guay el pysradb
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=_mock_pysradb):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -432,7 +432,7 @@ def test_f_get_study_srrs_ok():
                 database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
                 actual_ok_rows = database_cursor.fetchall()
                 actual_ok_rows = actual_ok_rows.sort()
-                expected_rows = [(srr,) for srr in srrs]
+                expected_rows = [(srr,) for srr in DEFAULT_FIXTURE['srrs']]
                 expected_rows = expected_rows.sort()
                 assert actual_ok_rows == expected_rows
 
@@ -441,7 +441,7 @@ def test_f_get_study_srrs_ok():
                 assert actual_ko_rows == []
 
                 # THEN REGARDING MESSAGES
-                expected_calls = [f'{{"srr": "{srr}"}}' for srr in srrs]
+                expected_calls = [f'{{"srr": "{srr}"}}' for srr in DEFAULT_FIXTURE['srrs']]
 
                 assert mock_sqs.send_message_batch.call_count == 1
 

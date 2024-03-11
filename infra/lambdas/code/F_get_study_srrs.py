@@ -86,7 +86,7 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
         statement = f'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
         row = database_holder.execute_read_statement(statement, parameters)
-        return row[0][0]
+        return row[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
