@@ -1,6 +1,8 @@
 import os
 import random
 import string
+import sys
+from unittest.mock import Mock
 
 import jaydebeapi
 import urllib3
@@ -8,7 +10,7 @@ import urllib3
 http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-
+DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522', 'srrs': ['SRR22873806', 'SRR22873807']}
 
 def _provide_random_request_id():
     return ''.join(random.choice(CHARACTERS) for char in range(20))
@@ -86,3 +88,55 @@ def _get_customized_input_from_sqs(bodies: [str]) -> dict:
     }
 
     return {'Records': [{**sqs_message_without_body, 'body': body} for body in bodies]}
+
+
+def _check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
+    _, database_cursor = database_holder
+    ncbi_study_ids_for_sql_in = ', '.join([f'{ncbi_study_id}' for ncbi_study_id in ncbi_study_ids])
+    database_cursor.execute(f"""select count(*) from geo_study_sra_project_link
+                                join geo_study on geo_study_id = id
+                                where ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
+    link_rows = database_cursor.fetchone()[0]
+    database_cursor.execute(f"""select count(distinct sp.id) from sra_project sp
+                                join geo_study_sra_project_link gsspl on gsspl.sra_project_id = sp.id
+                                join geo_study gs on gsspl.geo_study_id = gs.id
+                                where srp='{srp}' and ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
+    srp_rows = database_cursor.fetchone()[0]
+    return link_rows, srp_rows
+
+
+def _mock_eutils(method, url, *args, **kwargs):
+    eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
+
+    if method == 'GET':
+        if url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=1':
+            with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
+                return Mock(data=response.read())
+        elif url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=500&retstart=0&usehistory=y':
+            with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
+                return Mock(data=response.read())
+        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=200126815': #TODO unificar este tipo de identificadores a nacbi_id ???
+            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
+                return Mock(data=response.read())
+        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=100019750':
+            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gpl.json') as response:
+                return Mock(data=response.read())
+        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=3268':
+            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gds.json') as response:
+                return Mock(data=response.read())
+        elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=305668979':
+            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gsm.json') as response:
+                return Mock(data=response.read())
+        else:
+            sys.exit(f'Cannot mock unexpected call to eutils with url {url}')
+    else:
+        sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
+
+
+def _mock_pysradb(entity, *args, **kwargs):
+    if entity == DEFAULT_FIXTURE['gse']:
+        return {'study_accession': [DEFAULT_FIXTURE['srp']]}
+    elif entity == DEFAULT_FIXTURE['srp']:
+        return {'run_accession': DEFAULT_FIXTURE['srrs']}
+    else:
+        sys.exit(f'Cannot mock unexpected call to eutils with method {method}')

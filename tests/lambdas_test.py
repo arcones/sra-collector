@@ -15,6 +15,11 @@ from utils_test import _store_test_sra_project
 from utils_test import _stores_test_ncbi_study
 from utils_test import H2ConnectionManager
 
+from tests.utils_test import _check_link_and_srp_rows
+from tests.utils_test import _mock_eutils
+from tests.utils_test import _mock_pysradb
+from tests.utils_test import DEFAULT_FIXTURE
+
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
 import B_get_query_pages
@@ -24,8 +29,6 @@ import E_get_study_srp
 import F_get_study_srrs
 
 os.environ['ENV'] = 'test'
-
-DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522'}
 
 
 def test_a_get_user_query():
@@ -56,7 +59,7 @@ def test_a_get_user_query():
 
 def test_b_get_query_pages():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
-        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_esearch):
+        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_eutils):
             with H2ConnectionManager() as (database_connection, database_cursor):
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -91,7 +94,7 @@ def test_b_get_query_pages():
 
 def test_b_get_query_pages_skip_already_processed_study_id():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
-        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_esearch):
+        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_eutils):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -118,17 +121,9 @@ def test_b_get_query_pages_skip_already_processed_study_id():
                 assert mock_sqs.send_message.call_count == 0
 
 
-def _mock_esearch(method, url, *args, **kwargs): # TODO aqui me quede. usar esto para hacer mas especificos todos los mocks de request y de pysradb
-    if method == 'GET' and url == 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=1':
-        with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
-            return Mock(data=response.read())
-    else:
-        sys.exit(f'Unexpected call to http.request with method {method} and url {url}')
-
-
 def test_c_get_study_ids():
     with patch.object(C_get_study_ids, 'sqs') as mock_sqs:
-        with patch.object(C_get_study_ids.http, 'request') as mock_http_request:
+        with patch.object(C_get_study_ids.http, 'request', side_effect=_mock_eutils):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -136,8 +131,6 @@ def test_c_get_study_ids():
                 _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
 
                 mock_sqs.send_message_batch = Mock()
-                with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
-                    mock_http_request.return_value.data = response.read()
 
                 input_body = json.dumps({'request_id': request_id, 'retstart': 0, 'retmax': 500})
 
@@ -172,7 +165,7 @@ def test_c_get_study_ids():
 def test_d_get_study_geos_gse():
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
-            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+            with patch.object(D_get_study_geo.http, 'request', side_effect=_mock_eutils):
                 with H2ConnectionManager() as database_holder:
                     # GIVEN
                     request_id = _provide_random_request_id()
@@ -182,8 +175,8 @@ def test_d_get_study_geos_gse():
 
                     mock_sqs.send_message = Mock()
                     mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
-                    with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
-                        mock_http_request.return_value.data = response.read()
+                    # with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
+                    #     mock_http_request.return_value.data = response.read()
 
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
@@ -214,7 +207,7 @@ def test_d_get_study_geos_gse():
 def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture):
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
-            with patch.object(D_get_study_geo.http, 'request') as mock_http_request:
+            with patch.object(D_get_study_geo.http, 'request', side_effect=_mock_eutils):
                 with H2ConnectionManager() as database_holder:
                     # GIVEN
                     request_id = _provide_random_request_id()
@@ -224,8 +217,8 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
 
                     mock_sqs.send_message = Mock()
                     mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
-                    with open(f'tests/fixtures/{geo_fixture}') as response:
-                        mock_http_request.return_value.data = response.read()
+                    # with open(f'tests/fixtures/{geo_fixture}') as response:
+                    #     mock_http_request.return_value.data = response.read()
 
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
@@ -244,7 +237,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
 
 def test_e_get_study_srp_ok():
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=_mock_pysradb): ## todo aquimequede, parcheando guay el pysradb
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -254,7 +247,6 @@ def test_e_get_study_srp_ok():
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
 
                 mock_sqs.send_message = Mock()
-                mock_sra_web_gse_to_srp.return_value = {'study_accession': [DEFAULT_FIXTURE['srp']]}
 
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
@@ -334,7 +326,7 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
 
 def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
     with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp') as mock_sra_web_gse_to_srp:
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=_mock_pysradb):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
@@ -349,7 +341,6 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
                 sra_project_id = _store_test_sra_project(database_holder, geo_study_id_1, DEFAULT_FIXTURE['srp'])
 
                 mock_sqs.send_message = Mock()
-                mock_sra_web_gse_to_srp.return_value = {'study_accession': [DEFAULT_FIXTURE['srp']]}
 
                 input_body = json.dumps({'geo_entity_id': geo_study_id_2})
 
@@ -374,21 +365,6 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
                     QueueUrl=E_get_study_srp.output_sqs,
                     MessageBody=json.dumps({'sra_project_id': sra_project_id})
                 )
-
-
-def _check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
-    _, database_cursor = database_holder
-    ncbi_study_ids_for_sql_in = ', '.join([f'{ncbi_study_id}' for ncbi_study_id in ncbi_study_ids])
-    database_cursor.execute(f"""select count(*) from geo_study_sra_project_link
-                                join geo_study on geo_study_id = id
-                                where ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
-    link_rows = database_cursor.fetchone()[0]
-    database_cursor.execute(f"""select count(distinct sp.id) from sra_project sp
-                                join geo_study_sra_project_link gsspl on gsspl.sra_project_id = sp.id
-                                join geo_study gs on gsspl.geo_study_id = gs.id
-                                where srp='{srp}' and ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
-    srp_rows = database_cursor.fetchone()[0]
-    return link_rows, srp_rows
 
 
 def test_e_get_study_srp_skip_unexpected_results():
@@ -432,19 +408,16 @@ def test_e_get_study_srp_skip_unexpected_results():
 
 def test_f_get_study_srrs_ok():
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
+        with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr', side_effect=_mock_pysradb):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
-                srrs = ['SRR22873806', 'SRR22873807']
-
                 _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
                 inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
 
                 mock_sqs.send_message_batch = Mock()
-                mock_sra_web_srp_to_srr.return_value = {'run_accession': srrs}
 
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
