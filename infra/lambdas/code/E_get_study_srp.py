@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 
 import boto3
-from postgres_connection import postgres_connection
+from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
@@ -21,9 +21,7 @@ output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
 
 
 def handler(event, context):
-    schema = postgres_connection.schema_for_env()
     if event:
-
         logging.info(f'Received {len(event["Records"])} records event {event}')
 
         batch_item_failures = []
@@ -31,14 +29,14 @@ def handler(event, context):
 
         for record in event['Records']:
             try:
-                request_body = json.loads(record['body'])
+                with DBConnectionManager() as database_holder:
+                    request_body = json.loads(record['body'])
 
-                logging.info(f'Processing record {request_body}')
+                    logging.info(f'Processing record {request_body}')
 
-                request_id = request_body['request_id']
-                gse = request_body['gse']
+                    geo_entity_id = int(request_body['geo_entity_id'])
+                    gse = get_gse_geo_study(database_holder, geo_entity_id)
 
-                if is_geo_pending_to_be_processed(schema, request_id, gse):
                     try:
                         raw_pysradb_response = SRAweb().gse_to_srp(gse)
                         srp = raw_pysradb_response['study_accession'][0]
@@ -46,26 +44,24 @@ def handler(event, context):
                         if srp:
                             if srp.startswith('SRP'):
                                 logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb, pushing message to study summaries queue')
-                                response = json.dumps({'request_id': request_id, 'srp': srp})
-                                store_srp_in_db(schema, request_id, gse, srp)
+                                sra_project_id = store_srp_in_db(database_holder, geo_entity_id, srp)
+                                response = json.dumps({'sra_project_id': sra_project_id})
                                 sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
                                 logging.info(f'Sent event to {output_sqs} with body {response}')
                             else:
                                 logging.info(f'For GSE {gse}, SRP {srp} is not compliant, skipping it.')
                         else:
                             logging.info(f'No SRP for {gse} found via pysradb')
-                            store_missing_srp_in_db(schema, request_id, srp, PysradbError.NOT_FOUND, 'No SRP found')
+                            store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.NOT_FOUND, 'No SRP found')
                     except AttributeError as attribute_error:
                         logging.info(f'For {gse}, pysradb produced attribute error with name {attribute_error.name}')
-                        store_missing_srp_in_db(schema, request_id, gse, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                        store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                     except ValueError as value_error:
                         logging.info(f'For {gse}, pysradb produced value error: {value_error}')
-                        store_missing_srp_in_db(schema, request_id, gse, PysradbError.VALUE_ERROR, str(value_error))
+                        store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.VALUE_ERROR, str(value_error))
                     except KeyError as key_error:
                         logging.info(f'For {gse}, pysradb produced key error: {key_error}')
-                        store_missing_srp_in_db(schema, request_id, gse, PysradbError.KEY_ERROR, str(key_error))
-                else:
-                    logging.info(f'The record with {request_id} and {gse} has already been processed')
+                        store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.KEY_ERROR, str(key_error))
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred: {str(exception)}')
@@ -73,72 +69,56 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def store_srp_in_db(schema: str, request_id: str, gse: str, srp: str):
+def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
     try:
-        sra_project_id = get_id_sra_project(schema, srp)
+        sra_project_id = get_id_sra_project(database_holder, srp)
         if not sra_project_id:
-            statement = f'insert into {schema}.sra_project (srp) values (%s) returning id;'
-            parameters = (srp,)
-            sra_project_id = postgres_connection.execute_write_statement_returning(statement, parameters)
-        geo_study_id = get_id_geo_study(schema, request_id, gse)
-        statement = f'insert into {schema}.geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s);'
-        parameters = (geo_study_id, sra_project_id)
-        postgres_connection.execute_write_statement(statement, parameters)
+            statement = f'insert into sra_project (srp) values (%s) on conflict do nothing returning id;'
+            sra_project_id = database_holder.execute_write_statement(statement, (srp,))[0]
+        statement = f'insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s) on conflict do nothing;'
+        parameters = (geo_entity_id, sra_project_id)
+        database_holder.execute_write_statement(statement, parameters)
+        return sra_project_id
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def get_id_sra_project(schema: str, srp: str) -> int:
+def get_id_sra_project(database_holder, srp: str) -> int:
     try:
-        statement = f'select id from {schema}.sra_project where srp=%s;'
-        parameters = (srp,)
-        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
+        statement = f'select max(id) from sra_project where srp=%s;'
+        return database_holder.execute_read_statement(statement, (srp,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def store_missing_srp_in_db(schema: str, request_id: str, gse: str, pysradb_error: PysradbError, details: str):
+def get_gse_geo_study(database_holder, geo_entity_id: int) -> str:
     try:
-        geo_study_id = get_id_geo_study(schema, request_id, gse)
-        pysradb_error_reference_id = get_pysradb_error_reference(schema, pysradb_error)
-        statement = f'insert into {schema}.sra_project_missing (geo_study_id, pysradb_error_reference_id, details) values (%s, %s, %s);'
-        parameters = (geo_study_id, pysradb_error_reference_id, details)
-        postgres_connection.execute_write_statement(statement, parameters)
+        statement = f'select gse from geo_study where id=%s;'
+        return database_holder.execute_read_statement(statement, (geo_entity_id,))[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def get_id_geo_study(schema: str, request_id: str, gse: str) -> int:
+def store_missing_srp_in_db(database_holder, geo_entity_id: int, pysradb_error: PysradbError, details: str):
     try:
-        statement = f'select id from {schema}.geo_study where request_id=%s and gse=%s;'
-        parameters = (request_id, gse)
-        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
+        pysradb_error_reference_id = get_pysradb_error_reference(database_holder, pysradb_error)
+        statement = f'''insert into sra_project_missing (geo_study_id, pysradb_error_reference_id, details)
+                        values (%s, %s, %s) on conflict do nothing;'''
+        parameters = (geo_entity_id, pysradb_error_reference_id, details)
+        database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
 
 
-def get_pysradb_error_reference(schema: str, pysradb_error: PysradbError) -> int:
+def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) -> int:
     try:
-        statement = f"select id from {schema}.pysradb_error_reference where name=%s and operation='gse_to_srp';"
+        statement = f"select id from pysradb_error_reference where name=%s and operation='gse_to_srp';"
         parameters = (pysradb_error.value,)
-        return postgres_connection.execute_read_statement_for_primary_key(statement, parameters)
-    except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
-        raise exception
-
-
-def is_geo_pending_to_be_processed(schema: str, request_id: str, gse: str) -> bool:
-    try:
-        geo_study_id = get_id_geo_study(schema, request_id, gse)
-        statement = f'''select sra_project_id from {schema}.geo_study_sra_project_link where geo_study_id=%s
-                        union
-                        select id from {schema}.sra_project_missing where geo_study_id=%s;'''
-        parameters = (geo_study_id, geo_study_id)
-        return not postgres_connection.is_row_present(statement, parameters)
+        return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception
