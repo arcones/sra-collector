@@ -10,15 +10,17 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 
 > 📢 **Best Effort Design**
 >
-> NCBI data is sometimes not consistent, therefore, **sra-collector** implements _best effort_ approach, fetching all possible SRA metadata but not giving any guarantees.
+> NCBI data is sometimes not consistent, therefore, **sra-collector** implements _best effort_ approach, fetching all
+> possible SRA metadata but not giving any guarantees.
 >
 > Users will be able to check failure reports of each query.
 
-
 ## Infra Diagram
+
 ![alt text](./infra/diagram.png "Infrastructure diagram")
 
 ## Database Diagram
+
 ![alt text](./db/diagram.png "Database diagram")
 
 ## Tech Stack
@@ -27,6 +29,7 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/Python-blue?logo=python&logoColor=yellow)
 ![Static Badge](https://img.shields.io/badge/Terraform-lavender?logo=terraform)
 ![Static Badge](https://img.shields.io/badge/PostgreSQL-yellow?logo=postgresql)
+![Static Badge](https://img.shields.io/badge/H2-violet?logo=adminer)
 ![Static Badge](https://img.shields.io/badge/docker-white?logo=docker)
 ![Static Badge](https://img.shields.io/badge/git-moccasin?logo=git)
 ![Static Badge](https://img.shields.io/badge/GHActions-black?logo=githubactions)
@@ -41,9 +44,10 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 ![Static Badge](https://img.shields.io/badge/make-indigo?logo=cmake)
 ![Static Badge](https://img.shields.io/badge/SamCLI-orange?logo=amazonaws)
 ![Static Badge](https://img.shields.io/badge/bash-black?logo=gnubash&logoColor=chartreuse)
-![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=maroon)
+![Static Badge](https://img.shields.io/badge/Pytest-gold?logo=pytest&logoColor=black)
 
 ## Style Patterns & Techniques
+
 - Cloud Native
 - Infrastructure As Code
 - Asynchronous Communication

@@ -1,40 +1,42 @@
 {
-    "header": {
-        "type": "esummary",
-        "version": "0.3"
-    },
-    "result": {
-        "uids": ["100019750"],
-        "100019750": {
-            "uid": "100019750",
-            "accession": "GPL19750",
-            "gds": "",
-            "title": "Agilent-032611 Shirasu-JK001 [Probe Name Version]",
-            "summary": "The sequences used to design the probes for this array came from an RNA-Seq study of Phtheirospermum japonicum. The sample used for RNA-Seq is accessioned in NCBI's BioSample database: SAMN03271814. Protocol: see manufacturer's web site at http://www.agilent.com/",
-            "gpl": "19750",
-            "gse": "65723",
-            "taxon": "Phtheirospermum japonicum",
-            "entrytype": "GPL",
-            "gdstype": "",
-            "ptechtype": "in situ oligonucleotide",
-            "valtype": "",
-            "ssinfo": "",
-            "subsetinfo": "",
-            "pdat": "2015/05/30",
-            "suppfile": "TXT",
-            "samples": [],
-            "relations": [],
-            "extrelations": [],
-            "n_samples": 16,
-            "seriestitle": "",
-            "platformtitle": "",
-            "platformtaxa": "",
-            "samplestaxa": "",
-            "pubmedids": [],
-            "projects": [],
-            "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL19nnn/GPL19750/",
-            "geo2r": "",
-            "bioproject": ""
-        }
+  "header": {
+    "type": "esummary",
+    "version": "0.3"
+  },
+  "result": {
+    "uids": [
+      "100019750"
+    ],
+    "100019750": {
+      "uid": "100019750",
+      "accession": "GPL19750",
+      "gds": "",
+      "title": "Agilent-032611 Shirasu-JK001 [Probe Name Version]",
+      "summary": "The sequences used to design the probes for this array came from an RNA-Seq study of Phtheirospermum japonicum. The sample used for RNA-Seq is accessioned in NCBI's BioSample database: SAMN03271814. Protocol: see manufacturer's web site at http://www.agilent.com/",
+      "gpl": "19750",
+      "gse": "65723",
+      "taxon": "Phtheirospermum japonicum",
+      "entrytype": "GPL",
+      "gdstype": "",
+      "ptechtype": "in situ oligonucleotide",
+      "valtype": "",
+      "ssinfo": "",
+      "subsetinfo": "",
+      "pdat": "2015/05/30",
+      "suppfile": "TXT",
+      "samples": [],
+      "relations": [],
+      "extrelations": [],
+      "n_samples": 16,
+      "seriestitle": "",
+      "platformtitle": "",
+      "platformtaxa": "",
+      "samplestaxa": "",
+      "pubmedids": [],
+      "projects": [],
+      "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL19nnn/GPL19750/",
+      "geo2r": "",
+      "bioproject": ""
     }
+  }
 }

@@ -1,46 +1,48 @@
 {
-    "header": {
-        "type": "esummary",
-        "version": "0.3"
-    },
-    "result": {
-        "uids": ["305668979"],
-        "305668979": {
-            "uid": "305668979",
-            "accession": "GSM5668979",
-            "gds": "",
-            "title": "polyA plus RNA-seq from IgD-negative memory B cell (ENCLB083OJW)",
-            "summary": "Homo sapiens IgD-negative memory B primary cell with multiple sclerosis, preserved by cryopreservation",
-            "gpl": "20301",
-            "gse": "187586",
-            "taxon": "Homo sapiens",
-            "entrytype": "GSM",
-            "gdstype": "",
-            "ptechtype": "",
-            "valtype": "",
-            "ssinfo": "",
-            "subsetinfo": "",
-            "pdat": "2021/11/04",
-            "suppfile": "BIGWIG, TSV, TXT",
-            "samples": [],
-            "relations": [],
-            "extrelations": [
-                {
-                    "relationtype": "SRA",
-                    "targetobject": "SRX13008040",
-                    "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByExp/sra/SRX/SRX130/SRX13008040/"
-                }
-            ],
-            "n_samples": "",
-            "seriestitle": "",
-            "platformtitle": "",
-            "platformtaxa": "",
-            "samplestaxa": "",
-            "pubmedids": [],
-            "projects": [],
-            "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM5668nnn/GSM5668979/",
-            "geo2r": "",
-            "bioproject": ""
+  "header": {
+    "type": "esummary",
+    "version": "0.3"
+  },
+  "result": {
+    "uids": [
+      "305668979"
+    ],
+    "305668979": {
+      "uid": "305668979",
+      "accession": "GSM5668979",
+      "gds": "",
+      "title": "polyA plus RNA-seq from IgD-negative memory B cell (ENCLB083OJW)",
+      "summary": "Homo sapiens IgD-negative memory B primary cell with multiple sclerosis, preserved by cryopreservation",
+      "gpl": "20301",
+      "gse": "187586",
+      "taxon": "Homo sapiens",
+      "entrytype": "GSM",
+      "gdstype": "",
+      "ptechtype": "",
+      "valtype": "",
+      "ssinfo": "",
+      "subsetinfo": "",
+      "pdat": "2021/11/04",
+      "suppfile": "BIGWIG, TSV, TXT",
+      "samples": [],
+      "relations": [],
+      "extrelations": [
+        {
+          "relationtype": "SRA",
+          "targetobject": "SRX13008040",
+          "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByExp/sra/SRX/SRX130/SRX13008040/"
         }
+      ],
+      "n_samples": "",
+      "seriestitle": "",
+      "platformtitle": "",
+      "platformtaxa": "",
+      "samplestaxa": "",
+      "pubmedids": [],
+      "projects": [],
+      "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM5668nnn/GSM5668979/",
+      "geo2r": "",
+      "bioproject": ""
     }
+  }
 }
