@@ -7,18 +7,17 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+from utils_test import _check_link_and_srp_rows
 from utils_test import _get_customized_input_from_sqs
+from utils_test import _mock_eutils
+from utils_test import _mock_pysradb
 from utils_test import _provide_random_request_id
 from utils_test import _store_test_geo_study
 from utils_test import _store_test_request
 from utils_test import _store_test_sra_project
 from utils_test import _stores_test_ncbi_study
+from utils_test import DEFAULT_FIXTURE
 from utils_test import H2ConnectionManager
-
-from tests.utils_test import _check_link_and_srp_rows
-from tests.utils_test import _mock_eutils
-from tests.utils_test import _mock_pysradb
-from tests.utils_test import DEFAULT_FIXTURE
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
