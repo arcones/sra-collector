@@ -9,7 +9,8 @@ import urllib3
 http = urllib3.PoolManager()
 
 CHARACTERS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522', 'srrs': ['SRR22873806', 'SRR22873807']}
+DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522',
+                   'srrs': ['SRR22873806', 'SRR22873807']}
 
 
 def _provide_random_request_id():
