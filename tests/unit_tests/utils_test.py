@@ -111,22 +111,22 @@ def _mock_eutils(method, url, *args, **kwargs):
 
     if method == 'GET':
         if url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=1':
-            with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
+            with open('tests/unit_tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=500&retstart=0&usehistory=y':
-            with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
+            with open('tests/unit_tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=200126815':
-            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
+            with open('tests/unit_tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=100019750':
-            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gpl.json') as response:
+            with open('tests/unit_tests/fixtures/D_get_study_geo_mocked_esummary_gpl.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=3268':
-            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gds.json') as response:
+            with open('tests/unit_tests/fixtures/D_get_study_geo_mocked_esummary_gds.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=305668979':
-            with open('tests/fixtures/D_get_study_geo_mocked_esummary_gsm.json') as response:
+            with open('tests/unit_tests/fixtures/D_get_study_geo_mocked_esummary_gsm.json') as response:
                 return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')

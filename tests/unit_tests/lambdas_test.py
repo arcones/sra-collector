@@ -39,7 +39,7 @@ def test_a_get_user_query():
 
         input_body = json.dumps({'ncbi_query': DEFAULT_FIXTURE['query']})
 
-        with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
+        with open(f'tests/unit_tests/fixtures/A_get_user_query_input.json') as json_data:
             payload = json.load(json_data)
             payload['requestContext']['requestId'] = request_id
             payload['body'] = input_body
@@ -174,8 +174,6 @@ def test_d_get_study_geos_gse():
 
                     mock_sqs.send_message = Mock()
                     mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
-                    # with open('tests/fixtures/D_get_study_geo_mocked_esummary_gse.json') as response:
-                    #     mock_http_request.return_value.data = response.read()
 
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
