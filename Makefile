@@ -118,6 +118,6 @@ max-2-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "rna" }'
 
-build-integration-tests-dependencies: db-migrations-test
+build-tests-dependencies: db-migrations-test
 	cd tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall
