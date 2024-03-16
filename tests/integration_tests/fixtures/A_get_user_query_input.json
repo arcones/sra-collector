@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /query-submit",
+  "rawPath": "/api/query-submit",
+  "rawQueryString": "",
+  "headers": {
+    "accept": "*/*",
+    "content-length": "77",
+    "content-type": "application/json",
+    "host": "sra-collector.martaarcones.net",
+    "user-agent": "curl/7.81.0",
+    "x-amzn-trace-id": "Root=1-65b7dc01-74f78fa30ea5ec172f69488d",
+    "x-forwarded-for": "79.116.183.88",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  },
+  "requestContext": {
+    "accountId": "120715685161",
+    "apiId": "fmm4bjahvb",
+    "domainName": "sra-collector.martaarcones.net",
+    "domainPrefix": "sra-collector",
+    "http": {
+      "method": "POST",
+      "path": "/api/query-submit",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "79.116.183.88",
+      "userAgent": "curl/7.81.0"
+    },
+    "requestId": "",
+    "routeKey": "POST /query-submit",
+    "stage": "api",
+    "time": "29/Jan/2024:17:10:25 +0000",
+    "timeEpoch": 1706548225832
+  },
+  "body": "",
+  "isBase64Encoded": false
+}

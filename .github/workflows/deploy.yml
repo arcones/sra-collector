@@ -1,4 +1,4 @@
-name: cicd
+name: deploy
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -30,25 +30,3 @@ jobs:
           cache: 'pip'
       - name: Infra Clean & Deploy
         run: make init-infra build-infra
-  db-schema:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Flyway Migration
-        run: make db-migrations-prod
-  db-diagram:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Generate diagram
-        run: make update-diagram
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-          message: 🔄 Update database diagram

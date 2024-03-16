@@ -121,3 +121,7 @@ max-2-sra-collector-request:
 build-unit-tests-dependencies: db-migrations-test
 	cd tests/unit_tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall
+
+integration-tests-server: build-lambda-dependencies
+	cd tests/integration_tests && pip install -r requirements.txt
+	cd infra && sam local start-lambda --debug --skip-pull-image --warm-containers LAZY --hook-name terraform --env-vars ../tests/integration_tests/environments.json
