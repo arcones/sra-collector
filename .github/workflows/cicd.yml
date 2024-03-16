@@ -20,7 +20,7 @@ jobs:
         run: make build-integration-tests-dependencies && pytest -s
   infra:
     needs:
-      - tests
+      - unit-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
