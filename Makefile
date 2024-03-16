@@ -4,17 +4,14 @@ FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!d
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 DB_CONNECTION_LIB_VERSION=0.0.5
 
-db-clean-migrations-prod:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway clean migrate
+db-migrations-integration-test:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-integration-test:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway clean migrate
 
 db-migrations-prod:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway migrate
 
-repair-migrations-prod:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-prod:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway repair
-
-db-migrations-test:
-	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-test:/flyway/conf -v $(shell pwd)/tmp/test-db:/db  flyway/flyway clean migrate
+db-migrations-unit-test:
+	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-unit-test:/flyway/conf -v $(shell pwd)/tmp/test-db:/db  flyway/flyway clean migrate
 	sudo chown $(shell whoami):$(shell whoami) tmp/test-db/test.db.mv.db
 
 update-diagram:
@@ -22,7 +19,7 @@ update-diagram:
 	docker run -v $(shell pwd)/tmp/diagrams:/output -v $(shell pwd)/schemaspy.properties:/schemaspy.properties schemaspy/schemaspy -p $(FLYWAY_PASSWORD) && \
 	cp tmp/diagrams/diagrams/summary/relationships.real.large.png db/diagram.png
 
-clean-queues:
+purge-queues:
 	cd utils/purge_queues && \
 	pip install -r requirements.txt && \
 	python ./purge-queues.py
@@ -47,7 +44,7 @@ build-lambda-dependencies: clean-builds
 	docker cp deps:dependencies.zip .. && \
 	docker rm deps
 
-init-infra: clean-queues reset-alarms
+init-infra: purge-queues reset-alarms
 	cd infra && terraform init -upgrade; cd ..
 
 plan-infra:
@@ -118,7 +115,7 @@ max-2-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "rna" }'
 
-build-unit-tests-dependencies: db-migrations-test
+build-unit-tests-dependencies: db-migrations-unit-test
 	cd tests/unit_tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall
 

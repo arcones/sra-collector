@@ -7,17 +7,18 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from utils_test import _check_link_and_srp_rows
-from utils_test import _get_customized_input_from_sqs
-from utils_test import _mock_eutils
-from utils_test import _mock_pysradb
-from utils_test import _provide_random_request_id
-from utils_test import _store_test_geo_study
-from utils_test import _store_test_request
-from utils_test import _store_test_sra_project
-from utils_test import _stores_test_ncbi_study
-from utils_test import DEFAULT_FIXTURE
-from utils_test import H2ConnectionManager
+from utils_unit_test import _check_link_and_srp_rows
+from utils_unit_test import _mock_eutils
+from utils_unit_test import _mock_pysradb
+from utils_unit_test import _provide_random_request_id
+from utils_unit_test import _store_test_geo_study
+from utils_unit_test import _store_test_request
+from utils_unit_test import _store_test_sra_project
+from utils_unit_test import _stores_test_ncbi_study
+from utils_unit_test import DEFAULT_FIXTURE
+from utils_unit_test import H2ConnectionManager
+
+from tests.utils_test import _sqs_wrap
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -27,7 +28,7 @@ import D_get_study_geo
 import E_get_study_srp
 import F_get_study_srrs
 
-os.environ['ENV'] = 'test'
+os.environ['ENV'] = 'unit-test'
 
 
 def test_a_get_user_query():
@@ -37,15 +38,15 @@ def test_a_get_user_query():
 
         mock_sqs.send_message = Mock()
 
-        input_body = json.dumps({'ncbi_query': DEFAULT_FIXTURE['query']})
+        payload = json.dumps({'ncbi_query': DEFAULT_FIXTURE['query']})
 
-        with open(f'tests/unit_tests/fixtures/A_get_user_query_input.json') as json_data:
-            payload = json.load(json_data)
-            payload['requestContext']['requestId'] = request_id
-            payload['body'] = input_body
+        with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
+            input_body = json.load(json_data)
+            input_body['requestContext']['requestId'] = request_id
+            input_body['body'] = payload
 
         # WHEN
-        actual_result = A_get_user_query.handler(payload, 'a context')
+        actual_result = A_get_user_query.handler(input_body, 'a context')
 
         # THEN REGARDING LAMBDA
         assert actual_result['statusCode'] == 201
@@ -68,7 +69,7 @@ def test_b_get_query_pages():
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
 
                 # WHEN
-                actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -105,7 +106,7 @@ def test_b_get_query_pages_skip_already_processed_study_id():
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
 
                 # WHEN
-                actual_result = B_get_query_pages.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -134,7 +135,7 @@ def test_c_get_study_ids():
                 input_body = json.dumps({'request_id': request_id, 'retstart': 0, 'retmax': 500})
 
                 # WHEN
-                actual_result = C_get_study_ids.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = C_get_study_ids.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -178,7 +179,7 @@ def test_d_get_study_geos_gse():
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                    D_get_study_geo.handler(_sqs_wrap([input_body]), 'a context')
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
@@ -218,7 +219,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    D_get_study_geo.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                    D_get_study_geo.handler(_sqs_wrap([input_body]), 'a context')
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
@@ -246,7 +247,7 @@ def test_e_get_study_srp_ok():
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -294,7 +295,7 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -344,7 +345,7 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
                 assert srp_rows_before == 1
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -380,7 +381,7 @@ def test_e_get_study_srp_skip_unexpected_results():
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -417,7 +418,7 @@ def test_f_get_study_srrs_ok():
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
                 # WHEN
-                actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -468,7 +469,7 @@ def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
                 # WHEN
-                actual_result = F_get_study_srrs.handler(_get_customized_input_from_sqs([input_body]), 'a context')
+                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), 'a context')
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
