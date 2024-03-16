@@ -5,13 +5,8 @@ import re
 import time
 
 import boto3
-import jaydebeapi
-import psycopg2
-from psycopg2 import OperationalError
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
-
-MAX_TRIES = 5
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
@@ -26,33 +21,40 @@ class DBConnectionManager:
             self.password = json.loads(self.database_credentials['SecretString'])['password']
             self.host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
             self.connection_string = f"host={self.host} dbname='sracollector' user='{self.username}' password='{self.password}'"
+            self.database_connection = None
+            self.database_cursor = None
+            self.connection_attempts = 0
+            self.MAX_TRIES = 5
         else:
             self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
             self.jar_path = './db/h2-2.2.224.jar'
             self.driver = 'org.h2.Driver'
             self.credentials = ['', '']
+            self.database_connection = None
+            self.database_cursor = None
 
     def __enter__(self):
         if os.environ['ENV'] == 'prod':
-            database_connection = None
-            connection_attempts = 0
+            import psycopg2
+            from psycopg2 import OperationalError
 
-            while database_connection is None:
+            while self.database_connection is None:
                 try:
                     self.database_connection = psycopg2.connect(self.connection_string)
-                    logger.info(f'Successfully connected with database in attempt #{connection_attempts}')
+                    logger.info(f'Successfully connected with database in attempt #{self.connection_attempts}')
                 except OperationalError as operationalError:
-                    if connection_attempts == MAX_TRIES:
-                        logger.error(f'Not able to connect with database after {connection_attempts} attempts')
+                    if self.connection_attempts == self.MAX_TRIES:
+                        logger.error(f'Not able to connect with database after {self.connection_attempts} attempts')
                         logger.error(str(operationalError))
                         raise operationalError
                     else:
-                        logger.warning(f'Not able to connect with database in attempt #{connection_attempts}')
+                        logger.warning(f'Not able to connect with database in attempt #{self.connection_attempts}')
                         logger.warning(str(operationalError))
-                        connection_attempts += 1
+                        self.connection_attempts += 1
                         time.sleep(1)
             self.database_cursor = self.database_connection.cursor()
         else:
+            import jaydebeapi
             self.database_connection = jaydebeapi.connect(self.driver, self.url, self.credentials, self.jar_path)
             self.database_cursor = self.database_connection.cursor()
 
@@ -100,7 +102,8 @@ class DBConnectionManager:
         result = None
         if os.environ['ENV'] == 'prod':
             self.database_cursor.execute(statement, parameters)
-            result = self.database_cursor.fetchone()
+            if self.database_cursor.rowcount > 0:
+                result = self.database_cursor.fetchone()
         else:
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameters in statement_2_parameters.items():

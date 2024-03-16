@@ -51,7 +51,10 @@ function transform(payload) {
 
     payload.logEvents.forEach(function(logEvent) {
         var source = buildSource(logEvent.message, logEvent.extractedFields);
+
         addLogMetadata(payload, source, logOffset)
+
+        console.log(`source -> ${JSON.stringify(source)}`)
 
         if (source.message) {
             bulkRequestBody += addMetaFieldsAndStringify(indexNameApp, logEvent, source)
@@ -66,9 +69,7 @@ function transform(payload) {
 
             bulkRequestBody += addMetaFieldsAndStringify(indexNameAccess, logEvent, source)
         } else {
-            console.error("Error: logEvent structure is not expected, please check!!!")
-            console.error("logEvent:")
-            console.error(logEvent)
+            console.error(`Error: source structure is not expected, please check!!! -> source: ${JSON.stringify(source)}`)
         }
 
         logOffset++
