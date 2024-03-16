@@ -20,7 +20,7 @@ jobs:
         run: make build-unit-tests-dependencies && pytest tests/unit_tests/lambdas_test.py
   infra:
     needs:
-      - unit_tests
+      - unit-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
