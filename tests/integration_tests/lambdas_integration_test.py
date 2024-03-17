@@ -6,7 +6,9 @@ import pytest
 
 from ..utils_test import _provide_random_request_id
 from ..utils_test import _sqs_wrap
+from .utils_integration_test import _store_test_geo_study
 from .utils_integration_test import _store_test_request
+from .utils_integration_test import _store_test_sra_project
 from .utils_integration_test import _stores_test_ncbi_study
 from .utils_integration_test import _wait_test_server_readiness
 from .utils_integration_test import PostgreConnectionManager
@@ -16,7 +18,7 @@ from .utils_integration_test import PostgreConnectionManager
 def init_tests():
     _wait_test_server_readiness()
 
-# todo OTRO VALOR AÑADIDO DE ESTOS TESTS ES METERLE AQUI VARIOS MENSAJES DE ENTRADA
+# todo OTRO VALOR AÑADIDO DE ESTOS TESTS ES METERLE AQUI VARIOS MENSAJES DE ENTRADA -> aquimequede, doing the todos
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -101,11 +103,46 @@ def test_d_get_study_geo(lambda_client):
 
         assert lambda_response is None or 'errorMessage' not in lambda_response
         assert lambda_response is None or 'errorType' not in lambda_response
-#
-#
-# def test_e_get_study_srp():
-#     pass
-#
-#
-# def test_f_get_study_srrs():
-#     pass
+
+
+def test_e_get_study_srp(lambda_client):
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = _provide_random_request_id()
+        _store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id = _stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
+        geo_entity_id = _store_test_geo_study((database_connection, database_cursor),ncbi_study_id, 'GSE126815')
+        input_body = json.dumps({'geo_entity_id': geo_entity_id})
+
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='E_get_study_srp', Payload=_sqs_wrap([input_body], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
+
+        assert lambda_response['batchItemFailures'] == []
+
+
+def test_f_get_study_srrs(lambda_client):
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = _provide_random_request_id()
+        _store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id = _stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
+        geo_entity_id = _store_test_geo_study((database_connection, database_cursor), ncbi_study_id, 'GSE126815')
+        sra_project_id = _store_test_sra_project((database_connection, database_cursor), geo_entity_id, 'SRP185522')
+        input_body = json.dumps({'sra_project_id': sra_project_id})
+
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=_sqs_wrap([input_body], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
+
+        assert lambda_response['batchItemFailures'] == []

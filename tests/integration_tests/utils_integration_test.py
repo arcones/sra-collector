@@ -62,3 +62,20 @@ def _stores_test_ncbi_study(database_holder, request_id, ncbi_id):
     database_cursor.execute('insert into ncbi_study (request_id, ncbi_id) values (%s, %s) returning id;', (request_id, ncbi_id))
     database_connection.commit()
     return database_cursor.fetchone()[0]
+
+
+def _store_test_geo_study(database_holder, study_id, gse):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute('insert into geo_study (ncbi_study_id, gse) values (%s, %s) returning id;', (study_id, gse))
+    database_connection.commit()
+    return database_cursor.fetchone()[0]
+
+
+def _store_test_sra_project(database_holder, geo_study_id, srp):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute('insert into sra_project (srp) values (%s) returning id;', (srp,))
+    inserted_sra_project_id = database_cursor.fetchone()[0]
+    database_connection.commit()
+    database_cursor.execute('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s);', (geo_study_id, inserted_sra_project_id))
+    database_connection.commit()
+    return inserted_sra_project_id
