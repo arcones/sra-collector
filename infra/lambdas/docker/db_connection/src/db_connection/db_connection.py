@@ -5,6 +5,8 @@ import re
 import time
 
 import boto3
+import psycopg2
+from psycopg2 import OperationalError
 from psycopg2 import ProgrammingError
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
@@ -49,8 +51,6 @@ class DBConnectionManager:
         return self
 
     def initialize_postgres(self):
-        import psycopg2
-        from psycopg2 import OperationalError
         while self.database_connection is None:
             try:
                 self.database_connection = psycopg2.connect(self.connection_string)
