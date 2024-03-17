@@ -22,4 +22,4 @@ jobs:
           make integration-tests-server &
           sleep 120
       - name: Run Integration Tests
-        run: pytest tests/integration_tests/lambdas_integration_test.py
+        run: pytest tests/integration_tests

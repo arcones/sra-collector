@@ -1,5 +1,3 @@
-import random
-import string
 import sys
 from unittest.mock import Mock
 

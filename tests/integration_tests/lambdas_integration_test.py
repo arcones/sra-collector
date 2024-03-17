@@ -3,12 +3,12 @@ import json
 import boto3
 import botocore
 import pytest
-from utils_integration_test import _store_test_request
-from utils_integration_test import _wait_test_server_readiness
-from utils_integration_test import PostgreConnectionManager
 
-from tests.utils_test import _provide_random_request_id
-from tests.utils_test import _sqs_wrap
+from ..utils_test import _provide_random_request_id
+from ..utils_test import _sqs_wrap
+from .utils_integration_test import _store_test_request
+from .utils_integration_test import _wait_test_server_readiness
+from .utils_integration_test import PostgreConnectionManager
 
 
 @pytest.fixture(scope='session', autouse=True)

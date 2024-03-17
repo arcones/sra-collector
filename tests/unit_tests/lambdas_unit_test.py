@@ -7,18 +7,18 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from utils_unit_test import _check_link_and_srp_rows
-from utils_unit_test import _mock_eutils
-from utils_unit_test import _mock_pysradb
-from utils_unit_test import _store_test_geo_study
-from utils_unit_test import _store_test_request
-from utils_unit_test import _store_test_sra_project
-from utils_unit_test import _stores_test_ncbi_study
-from utils_unit_test import DEFAULT_FIXTURE
-from utils_unit_test import H2ConnectionManager
 
-from tests.utils_test import _provide_random_request_id
-from tests.utils_test import _sqs_wrap
+from ..utils_test import _provide_random_request_id
+from ..utils_test import _sqs_wrap
+from .utils_unit_test import _check_link_and_srp_rows
+from .utils_unit_test import _mock_eutils
+from .utils_unit_test import _mock_pysradb
+from .utils_unit_test import _store_test_geo_study
+from .utils_unit_test import _store_test_request
+from .utils_unit_test import _store_test_sra_project
+from .utils_unit_test import _stores_test_ncbi_study
+from .utils_unit_test import DEFAULT_FIXTURE
+from .utils_unit_test import H2ConnectionManager
 
 os.environ['ENV'] = 'unit-test'
 
