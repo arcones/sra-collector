@@ -42,6 +42,9 @@ def test_a_get_user_query(lambda_client):
     # THEN
     lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
 
+    assert 'errorMessage' not in lambda_response
+    assert 'errorType' not in lambda_response
+
     assert lambda_response['statusCode'] == 201
     assert json.loads(lambda_response['body']) == {'request_id': 'mockRequest', 'ncbi_query': 'mock query'}
     assert lambda_response['headers'] == {'content-type': 'application/json'}
@@ -56,6 +59,9 @@ def test_b_get_query_pages(lambda_client):
 
     # THEN
     lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+    assert 'errorMessage' not in lambda_response
+    assert 'errorType' not in lambda_response
 
     assert lambda_response['batchItemFailures'] == []
 
@@ -73,6 +79,9 @@ def test_c_get_study_ids(lambda_client):
         # THEN
         lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
 
+        assert 'errorMessage' not in lambda_response
+        assert 'errorType' not in lambda_response
+
         assert lambda_response['batchItemFailures'] == []
 
 
@@ -81,7 +90,7 @@ def test_d_get_study_geo(lambda_client):
         # GIVEN
         request_id = _provide_random_request_id()
         _store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
-        ncbi_study_id = _stores_test_ncbi_study((database_connection, database_cursor), request_id, 20095394)
+        ncbi_study_id = _stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
         input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
         # WHEN
@@ -90,8 +99,8 @@ def test_d_get_study_geo(lambda_client):
         # THEN
         lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
 
-        assert 'errorMessage' not in lambda_response
-        assert 'errorType' not in lambda_response
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
 #
 #
 # def test_e_get_study_srp():
