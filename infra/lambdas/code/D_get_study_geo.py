@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from enum import Enum
 
 import boto3
@@ -14,7 +15,12 @@ FORMAT = '%(funcName)s %(message)s'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/D_geos'
+
+if os.environ['ENV'] == 'prod':
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/D_geos'
+else:
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
+
 
 all_http_codes_but_200 = list(range(100, 200)) + list(range(300, 600))
 retries = urllib3.Retry(status_forcelist=all_http_codes_but_200, backoff_factor=0.5)

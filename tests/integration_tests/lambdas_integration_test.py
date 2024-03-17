@@ -18,7 +18,7 @@ from .utils_integration_test import PostgreConnectionManager
 def init_tests():
     _wait_test_server_readiness()
 
-# todo OTRO VALOR AÑADIDO DE ESTOS TESTS ES METERLE AQUI VARIOS MENSAJES DE ENTRADA -> aquimequede, doing the todos
+# todo OTRO VALOR AÑADIDO DE ESTOS TESTS ES METERLE AQUI VARIOS MENSAJES DE ENTRADA
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -85,6 +85,8 @@ def test_c_get_study_ids(lambda_client):
         assert 'errorType' not in lambda_response
 
         assert lambda_response['batchItemFailures'] == []
+
+        # aquimequede pq el test se come q la C aun no tiene permisos desplegados para RDS...
 
 
 def test_d_get_study_geo(lambda_client):
