@@ -1,3 +1,13 @@
+import json
+import random
+import string
+
+
+def _provide_random_request_id():
+    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    return ''.join(random.choice(chars) for _ in range(20))
+
+
 def _sqs_wrap(bodies: [str], dumps: bool = False) -> dict:
     sqs_message_without_body = {
         'messageId': 'fe1e0334-c5c1-4e76-975a-832c16dd4c1c',
@@ -22,6 +32,3 @@ def _sqs_wrap(bodies: [str], dumps: bool = False) -> dict:
         sqs_records = json.dumps(sqs_records)
 
     return sqs_records
-
-
-import json

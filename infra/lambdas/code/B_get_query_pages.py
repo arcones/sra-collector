@@ -90,7 +90,6 @@ def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study
         statement = f'insert into request (id, query, geo_count) values (%s, %s, %s) on conflict do nothing;'
         parameters = (request_id, ncbi_query, study_count)
         database_holder.execute_write_statement(statement, parameters)
-        print('terminé')
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')
         raise exception

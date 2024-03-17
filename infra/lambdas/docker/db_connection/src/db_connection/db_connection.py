@@ -112,7 +112,7 @@ class DBConnectionManager:
             try:
                 result = self.database_cursor.fetchone()
             except ProgrammingError:
-                result = None
+                pass
         elif os.environ['ENV'] == 'unit-test':
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameters in statement_2_parameters.items():
@@ -126,8 +126,10 @@ class DBConnectionManager:
     def _cursor_execute_multiple_and_return(self, statement, parameters) -> [tuple]:
         result = []
         if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
-            self.database_cursor.execute(statement, parameters)
-            result.append(self.database_cursor.fetchall())
+            for parameter in parameters:
+                self.database_cursor.execute(statement, parameter)
+                inserted_id = self.database_cursor.fetchone()
+                result.append(inserted_id)
         elif os.environ['ENV'] == 'unit-test':
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameter_groups in statement_2_parameters.items():
