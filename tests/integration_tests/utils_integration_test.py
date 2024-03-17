@@ -55,3 +55,10 @@ def _store_test_request(database_holder, request_id, ncbi_query):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into request (id, query, geo_count) values (%s, %s, %s);', (request_id, ncbi_query, 1))
     database_connection.commit()
+
+
+def _stores_test_ncbi_study(database_holder, request_id, ncbi_id):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute('insert into ncbi_study (request_id, ncbi_id) values (%s, %s) returning id;', (request_id, ncbi_id))
+    database_connection.commit()
+    return database_cursor.fetchone()[0]

@@ -20,7 +20,7 @@ http = urllib3.PoolManager()
 page_size = 500
 
 
-def handler(event, context):
+def handler(event, _):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 

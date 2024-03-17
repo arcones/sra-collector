@@ -7,6 +7,7 @@ import pytest
 from ..utils_test import _provide_random_request_id
 from ..utils_test import _sqs_wrap
 from .utils_integration_test import _store_test_request
+from .utils_integration_test import _stores_test_ncbi_study
 from .utils_integration_test import _wait_test_server_readiness
 from .utils_integration_test import PostgreConnectionManager
 
@@ -75,9 +76,22 @@ def test_c_get_study_ids(lambda_client):
         assert lambda_response['batchItemFailures'] == []
 
 
+def test_d_get_study_geo(lambda_client):
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = _provide_random_request_id()
+        _store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id = _stores_test_ncbi_study((database_connection, database_cursor), request_id, 20095394)
+        input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
-# def test_d_get_study_geo():
-#     pass
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='D_get_study_geo', Payload=_sqs_wrap([input_body], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert 'errorMessage' not in lambda_response
+        assert 'errorType' not in lambda_response
 #
 #
 # def test_e_get_study_srp():

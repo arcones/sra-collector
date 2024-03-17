@@ -20,7 +20,7 @@ else:
 http = urllib3.PoolManager()
 
 
-def handler(event, context):
+def handler(event, _):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 

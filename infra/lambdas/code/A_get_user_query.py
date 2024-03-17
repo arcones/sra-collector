@@ -15,7 +15,7 @@ else:
     output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
-def handler(event, context):
+def handler(event, _):
     try:
         logging.info(f'Received event {event}')
 
