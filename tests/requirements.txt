@@ -1,4 +1,4 @@
-boto3==1.34.59
+boto3==1.34.64
 botocore==1.34.59
 pytest==8.1.1
 pytest-logging==2015.11.4
