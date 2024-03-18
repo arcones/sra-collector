@@ -49,6 +49,8 @@ module "C_get_study_ids_lambda" {
     output_sqs_arn = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
     dlq_arn        = var.queues.B_DLQ_query_pages_2_study_ids_arn
   }
+  rds_kms_key_arn                       = var.rds_kms_key_arn
+  rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout - 10
   memory_size                           = 128
@@ -111,6 +113,6 @@ module "F_get_study_srrs_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 1024
-  batch_size                            = 80
+  batch_size                            = 50
   batch_size_window                     = 1
 }

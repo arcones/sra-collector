@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from enum import Enum
 
 import boto3
@@ -17,7 +18,11 @@ class PysradbError(Enum):
 
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
+
+if os.environ['ENV'] == 'prod':
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
+else:
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
 def handler(event, context):

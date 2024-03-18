@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 
 import boto3
@@ -9,13 +10,17 @@ from db_connection.db_connection import DBConnectionManager
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/B_query_pages'
+
+if os.environ['ENV'] == 'prod':
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/B_query_pages'
+else:
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 http = urllib3.PoolManager()
 page_size = 500
 
 
-def handler(event, context):
+def handler(event, _):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 

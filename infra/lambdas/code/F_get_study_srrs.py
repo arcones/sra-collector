@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 from enum import Enum
 
@@ -10,7 +11,11 @@ from pysradb import SRAweb
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/F_srrs'
+
+if os.environ['ENV'] == 'prod':
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/F_srrs'
+else:
+    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
 class PysradbError(Enum):
@@ -78,7 +83,6 @@ def handler(event, context):
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
-        logging.info(f'Tuples to insert {srr_and_sra_id_tuples}')
         database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred: {str(exception)}')

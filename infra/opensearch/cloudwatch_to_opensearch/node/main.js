@@ -66,9 +66,7 @@ function transform(payload) {
 
             bulkRequestBody += addMetaFieldsAndStringify(indexNameAccess, logEvent, source)
         } else {
-            console.error("Error: logEvent structure is not expected, please check!!!")
-            console.error("logEvent:")
-            console.error(logEvent)
+            console.error(`Error: source structure is not expected, please check!!! -> source: ${JSON.stringify(source)}`)
         }
 
         logOffset++
