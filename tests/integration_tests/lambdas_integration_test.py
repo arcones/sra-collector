@@ -86,8 +86,6 @@ def test_c_get_study_ids(lambda_client):
 
         assert lambda_response['batchItemFailures'] == []
 
-        # aquimequede pq el test se come q la C aun no tiene permisos desplegados para RDS...
-
 
 def test_d_get_study_geo(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):

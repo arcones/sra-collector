@@ -128,8 +128,11 @@ class DBConnectionManager:
         if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             for parameter in parameters:
                 self.database_cursor.execute(statement, parameter)
-                inserted_id = self.database_cursor.fetchone()
-                result.append(inserted_id)
+                try:
+                    inserted_id = self.database_cursor.fetchone()
+                    result.append(inserted_id)
+                except ProgrammingError:
+                    pass
         elif os.environ['ENV'] == 'unit-test':
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameter_groups in statement_2_parameters.items():
