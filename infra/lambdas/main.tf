@@ -113,6 +113,6 @@ module "F_get_study_srrs_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 1024
-  batch_size                            = 80
+  batch_size                            = 50
   batch_size_window                     = 1
 }

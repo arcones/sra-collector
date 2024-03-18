@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from ..utils_test import _apigateway_wrap
 from ..utils_test import _provide_random_request_id
 from ..utils_test import _sqs_wrap
 from .utils_unit_test import _check_link_and_srp_rows
@@ -38,12 +39,7 @@ def test_a_get_user_query():
 
         mock_sqs.send_message = Mock()
 
-        payload = json.dumps({'ncbi_query': DEFAULT_FIXTURE['query']})
-
-        with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
-            input_body = json.load(json_data)
-            input_body['requestContext']['requestId'] = request_id
-            input_body['body'] = payload
+        input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query']})
 
         # WHEN
         actual_result = A_get_user_query.handler(input_body, 'a context')
