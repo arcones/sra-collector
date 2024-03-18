@@ -67,3 +67,7 @@ resource "aws_sqs_queue" "E_DLQ_srps_2_srrs" {
 resource "aws_sqs_queue" "F_srrs" {
   name = "F_srrs"
 }
+
+resource "aws_sqs_queue" "integration_tests_sqs" {
+  name = "integration_test_queue"
+}

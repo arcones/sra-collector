@@ -1,20 +1,20 @@
 {
   "ModuleLambdasModuleAGetUserQueryLambdaAwsLambdaFunctionFunction3F2F422E": {
-    "ENV": "test"
+    "ENV": "integration-test"
   },
   "ModuleLambdasModuleBGetQueryPagesLambdaAwsLambdaFunctionFunction484783F5": {
-    "ENV": "test"
+    "ENV": "integration-test"
   },
   "ModuleLambdasModuleCGetStudyIdsLambdaAwsLambdaFunctionFunctionF611E0FF": {
-    "ENV": "test"
+    "ENV": "integration-test"
   },
   "ModuleLambdasModuleDGetStudyGeoLambdaAwsLambdaFunctionFunction08B41A52": {
-    "ENV": "test"
+    "ENV": "integration-test"
   },
   "ModuleLambdasModuleEGetStudySrpLambdaAwsLambdaFunctionFunction93810F1C": {
-    "ENV": "test"
+    "ENV": "integration-test"
   },
   "ModuleLambdasModuleFGetStudySrrsLambdaAwsLambdaFunctionFunctionE863B903": {
-    "ENV": "test"
+    "ENV": "integration-test"
   }
 }

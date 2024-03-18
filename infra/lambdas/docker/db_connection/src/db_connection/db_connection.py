@@ -5,13 +5,11 @@ import re
 import time
 
 import boto3
-import jaydebeapi
 import psycopg2
 from psycopg2 import OperationalError
+from psycopg2 import ProgrammingError
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
-
-MAX_TRIES = 5
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
@@ -20,43 +18,54 @@ logger = logging.getLogger(__name__)
 
 class DBConnectionManager:
     def __init__(self):
-        if os.environ['ENV'] == 'prod':
+        if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             self.database_credentials = secrets.get_secret_value(SecretId='rds!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6')
             self.username = json.loads(self.database_credentials['SecretString'])['username']
             self.password = json.loads(self.database_credentials['SecretString'])['password']
             self.host = 'sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com'
             self.connection_string = f"host={self.host} dbname='sracollector' user='{self.username}' password='{self.password}'"
-        else:
+            self.database_connection = None
+            self.database_cursor = None
+            self.connection_attempts = 0
+            self.MAX_TRIES = 5
+        elif os.environ['ENV'] == 'unit-test':
             self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
             self.jar_path = './db/h2-2.2.224.jar'
             self.driver = 'org.h2.Driver'
             self.credentials = ['', '']
+            self.database_connection = None
+            self.database_cursor = None
 
     def __enter__(self):
         if os.environ['ENV'] == 'prod':
-            database_connection = None
-            connection_attempts = 0
-
-            while database_connection is None:
-                try:
-                    self.database_connection = psycopg2.connect(self.connection_string)
-                    logger.info(f'Successfully connected with database in attempt #{connection_attempts}')
-                except OperationalError as operationalError:
-                    if connection_attempts == MAX_TRIES:
-                        logger.error(f'Not able to connect with database after {connection_attempts} attempts')
-                        logger.error(str(operationalError))
-                        raise operationalError
-                    else:
-                        logger.warning(f'Not able to connect with database in attempt #{connection_attempts}')
-                        logger.warning(str(operationalError))
-                        connection_attempts += 1
-                        time.sleep(1)
-            self.database_cursor = self.database_connection.cursor()
-        else:
+            self.initialize_postgres()
+            self.database_cursor.execute("SET search_path TO 'sracollector'")
+        elif os.environ['ENV'] == 'integration-test':
+            self.initialize_postgres()
+            self.database_cursor.execute("SET search_path TO 'sracollector-dev'")
+        elif os.environ['ENV'] == 'unit-test':
+            import jaydebeapi
             self.database_connection = jaydebeapi.connect(self.driver, self.url, self.credentials, self.jar_path)
             self.database_cursor = self.database_connection.cursor()
 
         return self
+
+    def initialize_postgres(self):
+        while self.database_connection is None:
+            try:
+                self.database_connection = psycopg2.connect(self.connection_string)
+                logger.info(f'Successfully connected with database in attempt #{self.connection_attempts}')
+            except OperationalError as operationalError:
+                if self.connection_attempts == self.MAX_TRIES:
+                    logger.error(f'Not able to connect with database after {self.connection_attempts} attempts')
+                    logger.error(str(operationalError))
+                    raise operationalError
+                else:
+                    logger.warning(f'Not able to connect with database in attempt #{self.connection_attempts}')
+                    logger.warning(str(operationalError))
+                    self.connection_attempts += 1
+                    time.sleep(1)
+        self.database_cursor = self.database_connection.cursor()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.database_cursor:
@@ -98,10 +107,13 @@ class DBConnectionManager:
 
     def _cursor_execute_single_and_return(self, statement, parameters) -> None | tuple:
         result = None
-        if os.environ['ENV'] == 'prod':
+        if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             self.database_cursor.execute(statement, parameters)
-            result = self.database_cursor.fetchone()
-        else:
+            try:
+                result = self.database_cursor.fetchone()
+            except ProgrammingError:
+                pass
+        elif os.environ['ENV'] == 'unit-test':
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameters in statement_2_parameters.items():
                 if _is_select(statement):
@@ -113,10 +125,12 @@ class DBConnectionManager:
 
     def _cursor_execute_multiple_and_return(self, statement, parameters) -> [tuple]:
         result = []
-        if os.environ['ENV'] == 'prod':
-            self.database_cursor.execute(statement, parameters)
-            result.append(self.database_cursor.fetchall())
-        else:
+        if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
+            for parameter in parameters:
+                self.database_cursor.execute(statement, parameter)
+                inserted_id = self.database_cursor.fetchone()
+                result.append(inserted_id)
+        elif os.environ['ENV'] == 'unit-test':
             statement_2_parameters = _adapt_statement_to_env(statement, parameters)
             for statement, parameter_groups in statement_2_parameters.items():
                 if _is_select(statement):
