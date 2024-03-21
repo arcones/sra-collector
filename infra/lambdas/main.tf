@@ -24,10 +24,11 @@ module "A_get_user_query_lambda" {
 }
 
 module "B_get_query_pages_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "B_get_query_pages"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "B_get_query_pages"
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn  = var.queues.A_user_query_sqs.A_user_query_sqs_arn
     output_sqs_arn = var.queues.B_query_pages_sqs.B_query_pages_sqs_arn
@@ -40,10 +41,11 @@ module "B_get_query_pages_lambda" {
 }
 
 module "C_get_study_ids_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "C_get_study_ids"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "C_get_study_ids"
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn  = var.queues.B_query_pages_sqs.B_query_pages_sqs_arn
     output_sqs_arn = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
@@ -82,7 +84,7 @@ module "E_get_study_srp_lambda" {
   code_path                      = "${path.module}/code"
   common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                  = "E_get_study_srp"
-  reserved_concurrent_executions = 450
+  reserved_concurrent_executions = 150
   queues = {
     input_sqs_arn  = var.queues.D_geos_sqs.D_geos_sqs_arn
     output_sqs_arn = var.queues.E_srps_sqs.E_srps_sqs_arn
@@ -93,7 +95,7 @@ module "E_get_study_srp_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout - 10
   memory_size                           = 320
-  batch_size                            = 90
+  batch_size                            = 50
   batch_size_window                     = 1
 }
 
@@ -102,7 +104,7 @@ module "F_get_study_srrs_lambda" {
   code_path                      = "${path.module}/code"
   common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                  = "F_get_study_srrs"
-  reserved_concurrent_executions = 450
+  reserved_concurrent_executions = 150
   queues = {
     input_sqs_arn  = var.queues.E_srps_sqs.E_srps_sqs_arn
     output_sqs_arn = var.queues.F_srrs_sqs.F_srrs_sqs_arn
@@ -113,6 +115,6 @@ module "F_get_study_srrs_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 1024
-  batch_size                            = 50
+  batch_size                            = 30
   batch_size_window                     = 1
 }

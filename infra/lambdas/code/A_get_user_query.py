@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 import os
@@ -31,5 +32,5 @@ def handler(event, _):
 
         return {'statusCode': 201, 'body': json.dumps(request_info), 'headers': {'content-type': 'application/json'}}
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception

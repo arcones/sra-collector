@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 import os
@@ -70,7 +71,7 @@ def handler(event, context):
                     ncbi_study_id = request_body['ncbi_study_id']
                     ncbi_study_id_2_ncbi_id_list.append({'ncbi_study_id': ncbi_study_id, 'ncbi_id': get_ncbi_id(database_holder, ncbi_study_id)})
                 except Exception as exception:
-                    logging.error(f'An exception has occurred: {str(exception)}')
+                    logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
                     raise exception
 
             base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
@@ -101,7 +102,7 @@ def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: 
             logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:
         if exception is not SystemError:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {summary_process.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -117,7 +118,7 @@ def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
             logging.warning(message)
     except Exception as exception:
         if exception is not ValueError:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {extract_geo_entity_from_summaries.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -127,7 +128,7 @@ def get_ncbi_id(database_holder, ncbi_study_id: int) -> int:
         parameters = (ncbi_study_id,)
         return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_ncbi_id.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -139,5 +140,5 @@ def store_geo_entity_in_db(database_holder, ncbi_study_id: int, geo_entity: GeoE
         parameters = (ncbi_study_id, geo_entity.identifier)
         return database_holder.execute_write_statement(statement, parameters)[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_geo_entity_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
