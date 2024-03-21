@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 import os
@@ -62,7 +63,7 @@ def handler(event, _):
                     logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
-                logging.error(f'An exception has occurred: {str(exception)}')
+                logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
 
@@ -77,7 +78,7 @@ def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[i
         logging.info(f"Entity list contains: {','.join(entities_list)}")
         return list(map(int, entities_list))
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {esearch_entities_list.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -88,7 +89,7 @@ def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
         ncbi_study_id_tuples = database_holder.execute_bulk_write_statement(statement, parameters)
         return [ncbi_study_id_tuple[0] for ncbi_study_id_tuple in ncbi_study_id_tuples]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_study_ids_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -97,5 +98,5 @@ def get_query(database_holder, request_id: str):
         statement = f'select query from request where id=%s;'
         return database_holder.execute_read_statement(statement, (request_id,))[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_query.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception

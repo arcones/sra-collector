@@ -13,7 +13,7 @@ resource "aws_sqs_queue" "A_DLQ_user_query_2_query_pages" {
 
 resource "aws_sqs_queue" "B_query_pages" {
   name                       = "B_query_pages"
-  visibility_timeout_seconds = 40
+  visibility_timeout_seconds = 130
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.B_DLQ_query_pages_2_study_ids.arn,
     maxReceiveCount     = 2

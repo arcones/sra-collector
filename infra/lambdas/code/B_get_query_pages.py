@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 import os
@@ -67,7 +68,7 @@ def handler(event, _):
                         logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
-                logging.error(f'An exception has occurred: {str(exception)}')
+                logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
 
@@ -81,7 +82,7 @@ def get_study_count(ncbi_query: str) -> int:
         logging.info(f'Done get study count for keyword {ncbi_query}. There are {study_count} studies')
         return int(study_count)
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_study_count.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -91,7 +92,7 @@ def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study
         parameters = (request_id, ncbi_query, study_count)
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_request_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
 
 
@@ -101,5 +102,5 @@ def is_request_pending_to_be_processed(database_holder, request_id: str, ncbi_qu
         parameters = (request_id, ncbi_query)
         return database_holder.execute_read_statement(statement, parameters) is None
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {is_request_pending_to_be_processed.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception
