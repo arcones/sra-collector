@@ -18,7 +18,8 @@ locals {
     (module.lambdas.get_study_ids_function_name)               = 5,
     (module.lambdas.get_study_geo_function_name)               = 5,
     (module.lambdas.get_study_srp_function_name)               = 10,
-    (module.lambdas.get_study_srrs_function_name)              = 10
+    (module.lambdas.get_study_srrs_function_name)              = 10,
+    (module.lambdas.get_srr_metadata_function_name)            = 1
   }
   dlqs = [
     aws_sqs_queue.A_DLQ_user_query_2_query_pages.name,
@@ -26,6 +27,7 @@ locals {
     aws_sqs_queue.C_DLQ_study_ids_2_geos.name,
     aws_sqs_queue.D_DLQ_geos_2_srps.name,
     aws_sqs_queue.E_DLQ_srps_2_srrs.name,
+    aws_sqs_queue.F_DLQ_srrs_2_metadata.name,
   ]
 }
 

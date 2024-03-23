@@ -37,6 +37,7 @@ variable "queues" {
       F_srrs_sqs_arn                = string
       F_srrs_sqs_visibility_timeout = number
     }),
+    F_DLQ_srrs_2_metadata = string
   })
 }
 

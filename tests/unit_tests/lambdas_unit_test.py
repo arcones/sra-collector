@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sys
+from unittest.mock import ANY
 from unittest.mock import call
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -18,6 +19,7 @@ from .utils_unit_test import _store_test_geo_study
 from .utils_unit_test import _store_test_request
 from .utils_unit_test import _store_test_sra_project
 from .utils_unit_test import _stores_test_ncbi_study
+from .utils_unit_test import Context
 from .utils_unit_test import DEFAULT_FIXTURE
 from .utils_unit_test import H2ConnectionManager
 
@@ -42,7 +44,7 @@ def test_a_get_user_query():
         input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query']})
 
         # WHEN
-        actual_result = A_get_user_query.handler(input_body, 'a context')
+        actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
 
         # THEN REGARDING LAMBDA
         assert actual_result['statusCode'] == 201
@@ -50,22 +52,22 @@ def test_a_get_user_query():
 
         # THEN REGARDING MESSAGES
         assert mock_sqs.send_message.call_count == 1
-        mock_sqs.send_message.assert_called_with(QueueUrl=A_get_user_query.output_sqs, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']}))
+        mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']}))
 
 
 def test_b_get_query_pages():
-    with patch.object(B_get_query_pages, 'sqs') as mock_sqs_send:
+    with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
         with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_eutils):
             with H2ConnectionManager() as (database_connection, database_cursor):
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                mock_sqs_send.send_message_batch = Mock()
+                mock_sqs.send_message_batch = Mock()
 
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
 
                 # WHEN
-                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), Context('B_get_query_pages'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -77,15 +79,12 @@ def test_b_get_query_pages():
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
-                expected_calls = [f'{{"request_id": "{request_id}", "retstart": 0, "retmax": 500}}',
-                                  f'{{"request_id": "{request_id}", "retstart": 500, "retmax": 500}}',
-                                  f'{{"request_id": "{request_id}", "retstart": 1000, "retmax": 500}}']
+                assert mock_sqs.send_message_batch.call_count == 1
 
-                assert mock_sqs_send.send_message_batch.call_count == 1
-
-                actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs_send.send_message_batch.call_args_list]
-                actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
-                assert expected_calls == actual_calls_message_bodies
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
+                assert {message_body['request_id'] for message_body in actual_message_bodies} == {request_id}
+                assert {message_body['retmax'] for message_body in actual_message_bodies} == {500}
+                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500, 1000}
 
 
 def test_b_get_query_pages_skip_already_processed_study_id():
@@ -102,7 +101,7 @@ def test_b_get_query_pages_skip_already_processed_study_id():
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
 
                 # WHEN
-                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), Context('B_get_query_pages'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -131,7 +130,7 @@ def test_c_get_study_ids():
                 input_body = json.dumps({'request_id': request_id, 'retstart': 0, 'retmax': 500})
 
                 # WHEN
-                actual_result = C_get_study_ids.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = C_get_study_ids.handler(_sqs_wrap([input_body]), Context('C_get_study_ids'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -146,16 +145,14 @@ def test_c_get_study_ids():
                 # THEN REGARDING MESSAGES
                 database_cursor.execute(f"select id from ncbi_study where request_id='{request_id}'")
                 ncbi_study_ids = database_cursor.fetchall()
-                expected_call = [f'{{"ncbi_study_id": {ncbi_study_id[0]}}}' for ncbi_study_id in ncbi_study_ids]
-                expected_call.sort()
 
                 assert mock_sqs.send_message_batch.call_count == 1
 
-                actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
-                actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
-                actual_calls_message_bodies.sort()
-
-                assert expected_call == actual_calls_message_bodies
+                expected_call = [f'{{"ncbi_study_id": {ncbi_study_id[0]}}}' for ncbi_study_id in ncbi_study_ids]
+                expected_call.sort()
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
+                actual_message_bodies.sort()
+                assert expected_call == actual_message_bodies
 
 
 def test_d_get_study_geos_gse():
@@ -484,3 +481,9 @@ def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message_batch.call_count == 0
+
+#
+# def test_g_get_srr_metadata_ok():
+#     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
+#         with patch.object(G_get_srr_metadata.http, 'request', side_effect=_mock_eutils):
+#             with H2ConnectionManager() as database_holder:

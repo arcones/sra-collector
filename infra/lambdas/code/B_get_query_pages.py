@@ -1,27 +1,21 @@
 import inspect
 import json
 import logging
-import os
-import time
 
 import boto3
 import urllib3
 from db_connection.db_connection import DBConnectionManager
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/B_query_pages'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
-
 http = urllib3.PoolManager()
 page_size = 500
 
 
-def handler(event, _):
+def handler(event, context):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 
@@ -40,32 +34,27 @@ def handler(event, _):
 
                     study_count = get_study_count(ncbi_query)
 
+                    # if study_count < 500:
                     if is_request_pending_to_be_processed(database_holder, request_id, ncbi_query):
                         store_request_in_db(database_holder, request_id, ncbi_query, study_count)
 
                         retstart = 0
-                        messages = []
+                        message_bodies = []
 
                         while retstart <= study_count:
                             if retstart > study_count:
                                 retstart = study_count
                                 continue
 
-                            messages.append({
-                                'Id': str(time.time()).replace('.', ''),
-                                'MessageBody': json.dumps({'request_id': request_id, 'retstart': retstart, 'retmax': page_size})
-                            })
+                            message_bodies.append({'request_id': request_id, 'retstart': retstart, 'retmax': page_size})
 
                             retstart = retstart + page_size
 
-                        message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-
-                        for message_batch in message_batches:
-                            sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-
-                        logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                        SQSHelper(context.function_name, sqs).send(message_bodies=message_bodies)
                     else:
                         logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
+                    # else:
+                    #     print('TODO: Queries bigger than 500 results cannot be processed as they are super expensive') # TODO polish and send message to last queue or SNS
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')

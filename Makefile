@@ -3,6 +3,7 @@ SHELL=/bin/bash
 FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!db-3ce19e76-772e-4b32-b2b1-fc3e6d54c7f6 --region eu-central-1 --output json | jq -r .SecretString | jq -r .password)'
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 DB_CONNECTION_LIB_VERSION=0.0.5
+SQS_HELPER_LIB_VERSION=0.0.1
 
 db-migrations-integration-test:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-integration-test:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway clean migrate
@@ -90,34 +91,12 @@ xl-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "multiple sclerosis AND rna seq" }'
 
-2xl-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "rna seq and homo sapiens and myeloid and leukemia" }'
-
-3xl-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "multiple sclerosis" }'
-
-10xl-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "rna seq" }'
-
-max-1-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "cancer" }'
-
-max-2-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "rna" }'
 
 build-unit-tests-dependencies: db-migrations-unit-test
 	cd tests/unit_tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall
+	cd infra/lambdas/docker/sqs_helper && python -m build && pip install dist/sqs_helper-$(SQS_HELPER_LIB_VERSION)-py3-none-any.whl --force-reinstall
+
 
 integration-tests-server: build-lambda-dependencies
 	cd tests/integration_tests && pip install -r requirements.txt

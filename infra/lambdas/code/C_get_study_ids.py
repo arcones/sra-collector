@@ -1,27 +1,20 @@
 import inspect
 import json
 import logging
-import os
-import time
 
 import boto3
 import urllib3
 from db_connection.db_connection import DBConnectionManager
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/C_study_ids'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
-
-
 http = urllib3.PoolManager()
 
 
-def handler(event, _):
+def handler(event, context):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 
@@ -47,20 +40,12 @@ def handler(event, _):
 
                     ncbi_study_id_list = store_study_ids_in_db(database_holder, request_id, study_list)
 
-                    messages = []
+                    message_bodies = []
 
                     for ncbi_study_id in ncbi_study_id_list:
-                        messages.append({
-                            'Id': str(time.time()).replace('.', ''),
-                            'MessageBody': json.dumps({'ncbi_study_id': ncbi_study_id})
-                        })
+                        message_bodies.append({'ncbi_study_id': ncbi_study_id})
 
-                    message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-
-                    for message_batch in message_batches:
-                        sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-
-                    logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
+                    SQSHelper(context.function_name, sqs).send(message_bodies=message_bodies)
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')

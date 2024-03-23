@@ -11,6 +11,11 @@ DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia',
                    'srrs': ['SRR22873806', 'SRR22873807']}
 
 
+class Context:
+    def __init__(self, function_name: str):
+        self.function_name = function_name
+
+
 class H2ConnectionManager:
     def __init__(self):
         self.url = 'jdbc:h2:./tmp/test-db/test.db;MODE=PostgreSQL'
@@ -114,3 +119,7 @@ def _mock_pysradb(entity, *args, **kwargs):
         return {'run_accession': DEFAULT_FIXTURE['srrs']}
     else:
         sys.exit(f'Cannot mock unexpected call to pysradb with entity {entity}')
+
+#
+# def _mock_sqs(message, *args, **kwargs):
+#     return f"jola --> {message}"

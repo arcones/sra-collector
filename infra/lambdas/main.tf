@@ -118,3 +118,22 @@ module "F_get_study_srrs_lambda" {
   batch_size                            = 30
   batch_size_window                     = 1
 }
+
+module "G_get_srr_metadata_lambda" {
+  source                = "./infra"
+  code_path             = "${path.module}/code"
+  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name         = "G_get_srr_metadata"
+  queues = {
+    input_sqs_arn  = var.queues.F_srrs_sqs.F_srrs_sqs_arn
+    output_sqs_arn = null
+    dlq_arn        = var.queues.F_DLQ_srrs_2_metadata
+  }
+  rds_kms_key_arn                       = var.rds_kms_key_arn
+  rds_secret_arn                        = local.rds_secret_arn
+  cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.F_srrs_sqs.F_srrs_sqs_visibility_timeout - 10
+  memory_size                           = 128
+  batch_size                            = 100
+  batch_size_window                     = 1
+}
