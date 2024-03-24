@@ -90,8 +90,7 @@ def summary_process(database_holder, function_name: str, ncbi_study_id: int, ncb
             geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message_body = {'geo_entity_id': geo_entity_id}
-                SQSHelper(function_name, sqs).send(message_body=message_body)
+                SQSHelper(function_name, sqs).send(message_body={'geo_entity_id': geo_entity_id})
         else:
             logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:

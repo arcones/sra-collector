@@ -8,15 +8,11 @@ from enum import Enum
 import boto3
 from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/F_srrs'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
 class PysradbError(Enum):
@@ -49,22 +45,15 @@ def handler(event, context):
 
                         if srrs:
                             logging.info(f'For {srp}, SRRs are {srrs}')
+                            sra_run_id = store_srrs_in_db(database_holder, srrs, sra_project_id)
 
-                            messages = []
+                            message_bodies = []
 
-                            for srr in srrs:
-                                messages.append({
-                                    'Id': str(time.time()).replace('.', ''),
-                                    'MessageBody': json.dumps({'srr': srr})
-                                })
+                            for sra_run_id in sra_run_id:
+                                message_bodies.append({'sra_run_id': sra_run_id}) ## TODO deberia enviar el SRR id?
 
-                            store_srrs_in_db(database_holder, srrs, sra_project_id)
+                            SQSHelper(context.function_name, sqs).send(message_bodies=message_bodies)
 
-                            message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-                            for message_batch in message_batches:
-                                sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-
-                            logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                         else:
                             logging.info(f'No SRR for {srp} found via pysradb')
                             store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')
@@ -84,7 +73,8 @@ def handler(event, context):
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
-        database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
+        srr_tuples = database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;', srr_and_sra_id_tuples)
+        return [srr_tuple[0] for srr_tuple in srr_tuples] # TODO esta operación se podría meter en la librería
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srrs_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception

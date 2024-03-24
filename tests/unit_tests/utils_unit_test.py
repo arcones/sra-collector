@@ -119,7 +119,3 @@ def _mock_pysradb(entity, *args, **kwargs):
         return {'run_accession': DEFAULT_FIXTURE['srrs']}
     else:
         sys.exit(f'Cannot mock unexpected call to pysradb with entity {entity}')
-
-#
-# def _mock_sqs(message, *args, **kwargs):
-#     return f"jola --> {message}"

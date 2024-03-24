@@ -1,14 +1,16 @@
 import inspect
 import json
 import logging
-import os
 from enum import Enum
 
 import boto3
 from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
+
+sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 class PysradbError(Enum):
@@ -16,14 +18,6 @@ class PysradbError(Enum):
     VALUE_ERROR = 'VALUE_ERROR'
     KEY_ERROR = 'KEY_ERROR'
     NOT_FOUND = 'NOT_FOUND'
-
-
-sqs = boto3.client('sqs', region_name='eu-central-1')
-
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/E_srps'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
 def handler(event, context):
@@ -51,9 +45,7 @@ def handler(event, context):
                             if srp.startswith('SRP'):
                                 logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb, pushing message to study summaries queue')
                                 sra_project_id = store_srp_in_db(database_holder, geo_entity_id, srp)
-                                response = json.dumps({'sra_project_id': sra_project_id})
-                                sqs.send_message(QueueUrl=output_sqs, MessageBody=response)
-                                logging.info(f'Sent event to {output_sqs} with body {response}')
+                                SQSHelper(context.function_name, sqs).send(message_body={'sra_project_id': sra_project_id})
                             else:
                                 logging.info(f'For GSE {gse}, SRP {srp} is not compliant, skipping it.')
                         else:

@@ -148,11 +148,9 @@ def test_c_get_study_ids():
 
                 assert mock_sqs.send_message_batch.call_count == 1
 
-                expected_call = [{'ncbi_study_id': ncbi_study_id[0]} for ncbi_study_id in ncbi_study_ids]
-                # expected_call.sort() TODO remove the sorts?
+                expected_message_bodies = [{'ncbi_study_id': ncbi_study_id[0]} for ncbi_study_id in ncbi_study_ids]
                 actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
-                # actual_message_bodies.sort()
-                assert expected_call == actual_message_bodies
+                assert actual_message_bodies == expected_message_bodies
 
 
 def test_d_get_study_geos_gse():
@@ -184,10 +182,7 @@ def test_d_get_study_geos_gse():
                     database_cursor.execute(f"select id from geo_study where ncbi_study_id='{ncbi_study_id}'")
                     geo_study_id = database_cursor.fetchall()[0][0]
                     assert mock_sqs.send_message.call_count == 1
-                    mock_sqs.send_message.assert_called_with(
-                        QueueUrl=ANY,
-                        MessageBody=json.dumps({'geo_entity_id': geo_study_id})
-                    )
+                    mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'geo_entity_id': geo_study_id}))
 
 
 @pytest.mark.parametrize('ncbi_study_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture', [
@@ -240,7 +235,7 @@ def test_e_get_study_srp_ok():
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), Context('E_get_study_srp'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -260,7 +255,7 @@ def test_e_get_study_srp_ok():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                expected_calls = [call(QueueUrl=E_get_study_srp.output_sqs, MessageBody=json.dumps({'sra_project_id': sra_project_id}))]
+                expected_calls = [call(QueueUrl=ANY, MessageBody=json.dumps({'sra_project_id': sra_project_id}))]
                 actual_calls = mock_sqs.send_message.call_args_list
 
                 assert expected_calls == actual_calls
@@ -288,7 +283,7 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), Context('E_get_study_srp'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -338,7 +333,7 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
                 assert srp_rows_before == 1
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), Context('E_get_study_srp'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -350,10 +345,7 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                mock_sqs.send_message.assert_called_with(
-                    QueueUrl=E_get_study_srp.output_sqs,
-                    MessageBody=json.dumps({'sra_project_id': sra_project_id})
-                )
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'sra_project_id': sra_project_id}))
 
 
 def test_e_get_study_srp_skip_unexpected_results():
@@ -374,7 +366,7 @@ def test_e_get_study_srp_skip_unexpected_results():
                 input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
 
                 # WHEN
-                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = E_get_study_srp.handler(_sqs_wrap([input_body]), Context('E_get_study_srp'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
@@ -411,33 +403,29 @@ def test_f_get_study_srrs_ok():
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
                 # WHEN
-                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), Context('F_get_study_srrs'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f'select srr from sra_run where sra_project_id={inserted_sra_project_id}')
+                database_cursor.execute(f'select * from sra_run where sra_project_id={inserted_sra_project_id}')
                 actual_ok_rows = database_cursor.fetchall()
-                actual_ok_rows = actual_ok_rows.sort()
-                expected_rows = [(srr,) for srr in DEFAULT_FIXTURE['srrs']]
-                expected_rows = expected_rows.sort()
-                assert actual_ok_rows == expected_rows
+                actual_srrs = [actual_ok_row[1] for actual_ok_row in actual_ok_rows]
+                assert actual_srrs == DEFAULT_FIXTURE['srrs']
 
                 database_cursor.execute(f'select * from sra_run_missing where sra_project_id={inserted_sra_project_id}')
                 actual_ko_rows = database_cursor.fetchall()
                 assert actual_ko_rows == []
 
                 # THEN REGARDING MESSAGES
-                expected_calls = [f'{{"srr": "{srr}"}}' for srr in DEFAULT_FIXTURE['srrs']]
-
                 assert mock_sqs.send_message_batch.call_count == 1
 
-                actual_calls_entries = [arg.kwargs['Entries'] for arg in mock_sqs.send_message_batch.call_args_list]
-                actual_calls_message_bodies = [item['MessageBody'] for sublist in actual_calls_entries for item in sublist]
+                expected_message_bodies = [{'sra_run_id': srr_row[0]} for srr_row in actual_ok_rows]
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
 
-                assert expected_calls == actual_calls_message_bodies
+                assert actual_message_bodies == expected_message_bodies
 
 
 @pytest.mark.parametrize('pysradb_exception, pysradb_exception_info, pysradb_exception_name', [
@@ -462,7 +450,7 @@ def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_
                 input_body = json.dumps({'sra_project_id': inserted_sra_project_id})
 
                 # WHEN
-                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), 'a context')
+                actual_result = F_get_study_srrs.handler(_sqs_wrap([input_body]), Context('F_get_study_srrs'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}

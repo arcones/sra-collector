@@ -14,10 +14,11 @@ def handler(event, context):
     try:
         logging.info(f'Received event {event}')
 
+        request_id = event['requestContext']['requestId']
+
         request_body = json.loads(event['body'])
         ncbi_query = request_body['ncbi_query']
 
-        request_id = event['requestContext']['requestId']
         message_body = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
         SQSHelper(context.function_name, sqs).send(message_body=message_body)
