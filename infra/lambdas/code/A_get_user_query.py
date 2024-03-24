@@ -18,11 +18,11 @@ def handler(event, context):
         ncbi_query = request_body['ncbi_query']
 
         request_id = event['requestContext']['requestId']
-        request_info = {'request_id': request_id, 'ncbi_query': ncbi_query}
+        message_body = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
-        SQSHelper(context.function_name, sqs).send(message_body=request_info)
+        SQSHelper(context.function_name, sqs).send(message_body=message_body)
 
-        return {'statusCode': 201, 'body': json.dumps(request_info), 'headers': {'content-type': 'application/json'}}
+        return {'statusCode': 201, 'body': json.dumps(message_body), 'headers': {'content-type': 'application/json'}}
     except Exception as exception:
         logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
         raise exception

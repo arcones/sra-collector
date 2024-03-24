@@ -1,12 +1,12 @@
 import inspect
 import json
 import logging
-import os
 from enum import Enum
 
 import boto3
 import urllib3
 from db_connection.db_connection import DBConnectionManager
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 urllib3_logger = logging.getLogger('urllib3')
@@ -16,12 +16,6 @@ FORMAT = '%(funcName)s %(message)s'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
-
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/D_geos'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
-
 
 all_http_codes_but_200 = list(range(100, 200)) + list(range(300, 600))
 retries = urllib3.Retry(status_forcelist=all_http_codes_but_200, backoff_factor=0.5)
@@ -81,11 +75,12 @@ def handler(event, context):
 
             for parsed_response_item in parsed_response:
                 if parsed_response_item in ncbi_ids_as_strs:
-                    ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
-                    summary_process(database_holder, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
+                    ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][
+                        0]
+                    summary_process(database_holder, context.function_name, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
 
 
-def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: str):
+def summary_process(database_holder, function_name: str, ncbi_study_id: int, ncbi_id: int, summary: str):
     try:
         logging.debug(f'Study summary from study {ncbi_id} is {summary}')
         geo_entity = extract_geo_entity_from_summaries(summary)
@@ -95,9 +90,8 @@ def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: 
             geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'geo_entity_id': geo_entity_id}
-                sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
-                logging.info(f'Sent message {message} for study {ncbi_id}')
+                message_body = {'geo_entity_id': geo_entity_id}
+                SQSHelper(function_name, sqs).send(message_body=message_body)
         else:
             logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:

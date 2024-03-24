@@ -34,7 +34,7 @@ def handler(event, context):
 
                     study_count = get_study_count(ncbi_query)
 
-                    # if study_count < 500:
+                    # if study_count < 500: # TODO
                     if is_request_pending_to_be_processed(database_holder, request_id, ncbi_query):
                         store_request_in_db(database_holder, request_id, ncbi_query, study_count)
 

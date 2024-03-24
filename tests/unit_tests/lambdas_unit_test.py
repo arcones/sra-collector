@@ -148,10 +148,10 @@ def test_c_get_study_ids():
 
                 assert mock_sqs.send_message_batch.call_count == 1
 
-                expected_call = [f'{{"ncbi_study_id": {ncbi_study_id[0]}}}' for ncbi_study_id in ncbi_study_ids]
-                expected_call.sort()
+                expected_call = [{'ncbi_study_id': ncbi_study_id[0]} for ncbi_study_id in ncbi_study_ids]
+                # expected_call.sort() TODO remove the sorts?
                 actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
-                actual_message_bodies.sort()
+                # actual_message_bodies.sort()
                 assert expected_call == actual_message_bodies
 
 
@@ -172,7 +172,7 @@ def test_d_get_study_geos_gse():
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    D_get_study_geo.handler(_sqs_wrap([input_body]), 'a context')
+                    D_get_study_geo.handler(_sqs_wrap([input_body]), Context('D_get_study_geo'))
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
@@ -185,7 +185,7 @@ def test_d_get_study_geos_gse():
                     geo_study_id = database_cursor.fetchall()[0][0]
                     assert mock_sqs.send_message.call_count == 1
                     mock_sqs.send_message.assert_called_with(
-                        QueueUrl=D_get_study_geo.output_sqs,
+                        QueueUrl=ANY,
                         MessageBody=json.dumps({'geo_entity_id': geo_study_id})
                     )
 
@@ -212,7 +212,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
                     input_body = json.dumps({'ncbi_study_id': ncbi_study_id})
 
                     # WHEN
-                    D_get_study_geo.handler(_sqs_wrap([input_body]), 'a context')
+                    D_get_study_geo.handler(_sqs_wrap([input_body]), Context('D_get_study_geo'))
 
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
