@@ -1,4 +1,3 @@
-import inspect
 import json
 import logging
 from enum import Enum
@@ -45,7 +44,7 @@ def handler(event, context):
                             if srp.startswith('SRP'):
                                 logging.info(f'SRP {srp} for GSE {gse} retrieved via pysradb, pushing message to study summaries queue')
                                 sra_project_id = store_srp_in_db(database_holder, geo_entity_id, srp)
-                                SQSHelper(context.function_name, sqs).send(message_body={'sra_project_id': sra_project_id})
+                                SQSHelper(sqs, context.function_name).send(message_body={'sra_project_id': sra_project_id})
                             else:
                                 logging.info(f'For GSE {gse}, SRP {srp} is not compliant, skipping it.')
                         else:
@@ -62,7 +61,7 @@ def handler(event, context):
                         store_missing_srp_in_db(database_holder, geo_entity_id, PysradbError.KEY_ERROR, str(key_error))
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
-                logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+                logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
 
@@ -78,7 +77,7 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
         database_holder.execute_write_statement(statement, parameters)
         return sra_project_id
     except Exception as exception:
-        logging.error(f'An exception has occurred in {store_srp_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_srp_in_db.__name__}: {str(exception)}')
         raise exception
 
 
@@ -87,7 +86,7 @@ def get_id_sra_project(database_holder, srp: str) -> int:
         statement = f'select max(id) from sra_project where srp=%s;'
         return database_holder.execute_read_statement(statement, (srp,))[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred in {get_id_sra_project.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_id_sra_project.__name__}: {str(exception)}')
         raise exception
 
 
@@ -96,7 +95,7 @@ def get_gse_geo_study(database_holder, geo_entity_id: int) -> str:
         statement = f'select gse from geo_study where id=%s;'
         return database_holder.execute_read_statement(statement, (geo_entity_id,))[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred in {get_gse_geo_study.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_gse_geo_study.__name__}: {str(exception)}')
         raise exception
 
 
@@ -108,7 +107,7 @@ def store_missing_srp_in_db(database_holder, geo_entity_id: int, pysradb_error: 
         parameters = (geo_entity_id, pysradb_error_reference_id, details)
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
-        logging.error(f'An exception has occurred in {store_missing_srp_in_db.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_missing_srp_in_db.__name__}: {str(exception)}')
         raise exception
 
 
@@ -118,5 +117,5 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
         parameters = (pysradb_error.value,)
         return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred in {get_pysradb_error_reference.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_pysradb_error_reference.__name__}: {str(exception)}')
         raise exception

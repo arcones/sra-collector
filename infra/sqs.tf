@@ -2,26 +2,26 @@ resource "aws_sqs_queue" "A_user_query" {
   name                       = "A_user_query"
   visibility_timeout_seconds = 40
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.A_DLQ_user_query_2_query_pages.arn,
+    deadLetterTargetArn = aws_sqs_queue.A_to_B_DLQ.arn,
     maxReceiveCount     = 2
   })
 }
 
-resource "aws_sqs_queue" "A_DLQ_user_query_2_query_pages" {
-  name = "A_DLQ_user_query_2_query_pages"
+resource "aws_sqs_queue" "A_to_B_DLQ" {
+  name = "A_to_B_DLQ"
 }
 
 resource "aws_sqs_queue" "B_query_pages" {
   name                       = "B_query_pages"
   visibility_timeout_seconds = 130
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.B_DLQ_query_pages_2_study_ids.arn,
+    deadLetterTargetArn = aws_sqs_queue.B_to_C_DLQ.arn,
     maxReceiveCount     = 2
   })
 }
 
-resource "aws_sqs_queue" "B_DLQ_query_pages_2_study_ids" {
-  name = "B_DLQ_query_pages_2_study_ids"
+resource "aws_sqs_queue" "B_to_C_DLQ" {
+  name = "B_to_C_DLQ"
 }
 
 resource "aws_sqs_queue" "C_study_ids" {
@@ -29,56 +29,77 @@ resource "aws_sqs_queue" "C_study_ids" {
   visibility_timeout_seconds = 910
   delay_seconds              = 10
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.C_DLQ_study_ids_2_geos.arn,
+    deadLetterTargetArn = aws_sqs_queue.C_to_D_DLQ.arn,
     maxReceiveCount     = 5
   })
 }
 
-resource "aws_sqs_queue" "C_DLQ_study_ids_2_geos" {
-  name = "C_DLQ_study_ids_2_geos"
+resource "aws_sqs_queue" "C_to_D_DLQ" {
+  name = "C_to_D_DLQ"
 }
 
 resource "aws_sqs_queue" "D_geos" {
   name                       = "D_geos"
   visibility_timeout_seconds = 910
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.D_DLQ_geos_2_srps.arn,
+    deadLetterTargetArn = aws_sqs_queue.D_to_E_DLQ.arn,
     maxReceiveCount     = 5
   })
 }
 
-resource "aws_sqs_queue" "D_DLQ_geos_2_srps" {
-  name = "D_DLQ_geos_2_srps"
+resource "aws_sqs_queue" "D_to_E_DLQ" {
+  name = "D_to_E_DLQ"
 }
 
 resource "aws_sqs_queue" "E_srps" {
   name                       = "E_srps"
   visibility_timeout_seconds = 910
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.E_DLQ_srps_2_srrs.arn,
+    deadLetterTargetArn = aws_sqs_queue.E_to_F_DLQ.arn,
     maxReceiveCount     = 5
   })
 }
 
-resource "aws_sqs_queue" "E_DLQ_srps_2_srrs" {
-  name = "E_DLQ_srps_2_srrs"
+resource "aws_sqs_queue" "E_to_F_DLQ" {
+  name = "E_to_F_DLQ"
 }
 
 resource "aws_sqs_queue" "F_srrs" {
   name                       = "F_srrs"
   visibility_timeout_seconds = 910
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.F_DLQ_srrs_2_metadata.arn,
+    deadLetterTargetArn = aws_sqs_queue.F_to_G_DLQ.arn,
     maxReceiveCount     = 2
   })
 }
 
-resource "aws_sqs_queue" "F_DLQ_srrs_2_metadata" {
-  name = "F_DLQ_srrs_2_metadata"
+resource "aws_sqs_queue" "F_to_G_DLQ" {
+  name = "F_to_G_DLQ"
 }
 
 resource "aws_sqs_queue" "G_srr_metadata" {
   name = "G_srr_metadata"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.G_to_H_DLQ.arn,
+    maxReceiveCount     = 2
+  })
+}
+
+resource "aws_sqs_queue" "G_to_H_DLQ" {
+  name = "G_to_H_DLQ"
+}
+
+resource "aws_sqs_queue" "H_user_feedback" {
+  name                       = "H_user_feedback"
+  visibility_timeout_seconds = 40
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.H_to_SNS_DLQ.arn,
+    maxReceiveCount     = 2
+  })
+}
+
+resource "aws_sqs_queue" "H_to_SNS_DLQ" {
+  name = "H_to_SNS_DLQ"
 }
 
 resource "aws_sqs_queue" "integration_tests_sqs" {

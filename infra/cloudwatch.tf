@@ -22,12 +22,12 @@ locals {
     (module.lambdas.get_srr_metadata_function_name)            = 1
   }
   dlqs = [
-    aws_sqs_queue.A_DLQ_user_query_2_query_pages.name,
-    aws_sqs_queue.B_DLQ_query_pages_2_study_ids.name,
-    aws_sqs_queue.C_DLQ_study_ids_2_geos.name,
-    aws_sqs_queue.D_DLQ_geos_2_srps.name,
-    aws_sqs_queue.E_DLQ_srps_2_srrs.name,
-    aws_sqs_queue.F_DLQ_srrs_2_metadata.name,
+    aws_sqs_queue.A_to_B_DLQ.name,
+    aws_sqs_queue.B_to_C_DLQ.name,
+    aws_sqs_queue.C_to_D_DLQ.name,
+    aws_sqs_queue.D_to_E_DLQ.name,
+    aws_sqs_queue.E_to_F_DLQ.name,
+    aws_sqs_queue.F_to_G_DLQ.name,
   ]
 }
 

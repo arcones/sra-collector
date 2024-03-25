@@ -6,9 +6,16 @@ import urllib3
 
 http = urllib3.PoolManager()
 
-
-DEFAULT_FIXTURE = {'query': 'rna seq and homo sapiens and myeloid and leukemia', 'results': 1096, 'ncbi_id': 200126815, 'gse': 'GSE126815', 'srp': 'SRP185522',
-                   'srrs': ['SRR22873806', 'SRR22873807']}
+DEFAULT_FIXTURE = {
+    'query_+500': 'cancer AND mus musculus AND children',
+    'query_<20': 'rna seq and homo sapiens and myeloid and leukemia',
+    'query_over_limit': 'cancer',
+    'results': 687,
+    'ncbi_id': 200126815,
+    'gse': 'GSE126815',
+    'srp': 'SRP185522',
+    'srrs': ['SRR22873806', 'SRR22873807']
+}
 
 
 class Context:
@@ -88,10 +95,13 @@ def _mock_eutils(method, url, *args, **kwargs):
     eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 
     if method == 'GET':
-        if url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=1':
+        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_+500']}&retmax=1":
             with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
                 return Mock(data=response.read())
-        elif url == f'{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term=rna seq and homo sapiens and myeloid and leukemia&retmax=500&retstart=0&usehistory=y':
+        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_over_limit']}&retmax=1":
+            with open('tests/fixtures/B_get_query_pages_mock_esearch_over_limit.json') as response:
+                return Mock(data=response.read())
+        elif url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_<20']}&retmax=500&retstart=0&usehistory=y":
             with open('tests/fixtures/C_get_study_ids_mocked_esearch.json') as response:
                 return Mock(data=response.read())
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=200126815':

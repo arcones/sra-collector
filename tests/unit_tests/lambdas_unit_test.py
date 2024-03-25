@@ -41,18 +41,18 @@ def test_a_get_user_query():
 
         mock_sqs.send_message = Mock()
 
-        input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query']})
+        input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']})
 
         # WHEN
         actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
 
         # THEN REGARDING LAMBDA
         assert actual_result['statusCode'] == 201
-        assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query"]}"}}'
+        assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query_<20"]}"}}'
 
         # THEN REGARDING MESSAGES
         assert mock_sqs.send_message.call_count == 1
-        mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']}))
+        mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_<20']}))
 
 
 def test_b_get_query_pages():
@@ -64,7 +64,7 @@ def test_b_get_query_pages():
 
                 mock_sqs.send_message_batch = Mock()
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -75,7 +75,7 @@ def test_b_get_query_pages():
                 # THEN REGARDING DATA
                 database_cursor.execute(f"select id, query, geo_count from request where id='{request_id}'")
                 actual_rows = database_cursor.fetchall()
-                expected_row = [(request_id, DEFAULT_FIXTURE['query'], DEFAULT_FIXTURE['results'])]
+                expected_row = [(request_id, DEFAULT_FIXTURE['query_+500'], DEFAULT_FIXTURE['results'])]
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
@@ -84,7 +84,7 @@ def test_b_get_query_pages():
                 actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
                 assert {message_body['request_id'] for message_body in actual_message_bodies} == {request_id}
                 assert {message_body['retmax'] for message_body in actual_message_bodies} == {500}
-                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500, 1000}
+                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500}
 
 
 def test_b_get_query_pages_skip_already_processed_study_id():
@@ -96,9 +96,9 @@ def test_b_get_query_pages_skip_already_processed_study_id():
 
                 mock_sqs.send_message_batch = Mock()
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+500'])
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -116,6 +116,39 @@ def test_b_get_query_pages_skip_already_processed_study_id():
                 assert mock_sqs.send_message.call_count == 0
 
 
+def test_b_get_query_pages_stop_expensive_queries():
+    with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
+        with patch.object(B_get_query_pages.http, 'request', side_effect=_mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = _provide_random_request_id()
+
+                mock_sqs.send_message = Mock()
+
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
+
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_over_limit']})
+
+                # WHEN
+                actual_result = B_get_query_pages.handler(_sqs_wrap([input_body]), Context('B_get_query_pages'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f"select id from request where id='{request_id}'")
+                actual_rows = database_cursor.fetchall()
+                assert actual_rows == [(request_id,)]
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.'
+                                   f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}"
+                                   'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'result': 'FAILURE', 'reason': expected_reason}))
+
+
 def test_c_get_study_ids():
     with patch.object(C_get_study_ids, 'sqs') as mock_sqs:
         with patch.object(C_get_study_ids.http, 'request', side_effect=_mock_eutils):
@@ -123,7 +156,7 @@ def test_c_get_study_ids():
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
 
                 mock_sqs.send_message_batch = Mock()
 
@@ -161,7 +194,7 @@ def test_d_get_study_geos_gse():
                     # GIVEN
                     request_id = _provide_random_request_id()
 
-                    _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                    _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                     ncbi_study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
 
                     mock_sqs.send_message = Mock()
@@ -198,7 +231,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
                     # GIVEN
                     request_id = _provide_random_request_id()
 
-                    _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                    _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                     ncbi_study_id = _stores_test_ncbi_study(database_holder, request_id, ncbi_study_id)
 
                     mock_sqs.send_message = Mock()
@@ -226,7 +259,7 @@ def test_e_get_study_srp_ok():
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
 
@@ -273,7 +306,7 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
 
@@ -317,7 +350,7 @@ def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
                 additional_study_id = 200456456
                 additional_gse = str(additional_study_id).replace('200', 'GSE', 3)
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 ncbi_study_id_1 = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 geo_study_id_1 = _store_test_geo_study(database_holder, ncbi_study_id_1, DEFAULT_FIXTURE['gse'])
                 ncbi_study_id_2 = _stores_test_ncbi_study(database_holder, request_id, additional_study_id)
@@ -356,7 +389,7 @@ def test_e_get_study_srp_skip_unexpected_results():
                 request_id = _provide_random_request_id()
                 unexpected_srp = 'DRP010911'
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
 
@@ -393,7 +426,7 @@ def test_f_get_study_srrs_ok():
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = _provide_random_request_id()
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
                 inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
@@ -439,7 +472,7 @@ def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_
                 # GIVEN
                 request_id = _provide_random_request_id()
 
-                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query'])
+                _store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
                 study_id = _stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
                 inserted_geo_study_id = _store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
                 inserted_sra_project_id = _store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])

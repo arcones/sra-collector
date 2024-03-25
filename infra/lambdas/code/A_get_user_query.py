@@ -1,4 +1,3 @@
-import inspect
 import json
 import logging
 
@@ -21,9 +20,9 @@ def handler(event, context):
 
         message_body = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
-        SQSHelper(context.function_name, sqs).send(message_body=message_body)
+        SQSHelper(sqs, context.function_name).send(message_body=message_body)
 
         return {'statusCode': 201, 'body': json.dumps(message_body), 'headers': {'content-type': 'application/json'}}
     except Exception as exception:
-        logging.error(f'An exception has occurred in {handler.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+        logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
         raise exception
