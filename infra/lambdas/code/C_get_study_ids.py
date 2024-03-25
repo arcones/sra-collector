@@ -70,8 +70,7 @@ def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
     try:
         statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict do nothing returning id;'
         parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
-        ncbi_study_id_tuples = database_holder.execute_bulk_write_statement(statement, parameters)
-        return [ncbi_study_id_tuple[0] for ncbi_study_id_tuple in ncbi_study_id_tuples]  # TODO operacion a la lib
+        return database_holder.execute_bulk_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_study_ids_in_db.__name__}: {str(exception)}')
         raise exception

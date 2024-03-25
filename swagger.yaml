@@ -3,7 +3,7 @@ info:
   title: SRA Collector
   description: Using [NIH NCBI](https://www.ncbi.nlm.nih.gov/gds), this API collects SRA metadata of several GEO studies in one search.
   contact:
-    email: marta.arcones@alumnos.upm.es
+    email: marta.arcones@gmail.com
   version: 1.0.0
 externalDocs:
   description: See project README for architecture & tech stack details

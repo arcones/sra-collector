@@ -30,7 +30,7 @@ resource "aws_sqs_queue" "C_study_ids" {
   delay_seconds              = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.C_to_D_DLQ.arn,
-    maxReceiveCount     = 5
+    maxReceiveCount     = 2
   })
 }
 
@@ -43,7 +43,7 @@ resource "aws_sqs_queue" "D_geos" {
   visibility_timeout_seconds = 910
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.D_to_E_DLQ.arn,
-    maxReceiveCount     = 5
+    maxReceiveCount     = 2
   })
 }
 
@@ -56,7 +56,7 @@ resource "aws_sqs_queue" "E_srps" {
   visibility_timeout_seconds = 910
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.E_to_F_DLQ.arn,
-    maxReceiveCount     = 5
+    maxReceiveCount     = 2
   })
 }
 

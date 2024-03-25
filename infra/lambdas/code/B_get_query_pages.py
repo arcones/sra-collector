@@ -62,10 +62,9 @@ def handler(event, context):
 
                         too_expensive_user_feedback_message = {'request_id': request_id, 'result': 'FAILURE', 'reason': too_expensive_halt_reason}
                         SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)
-            except Exception as exception:  # TODO add this in all lambdas with a for as it has no relation with the batch send
+            except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
-
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
 

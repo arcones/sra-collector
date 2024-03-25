@@ -49,7 +49,7 @@ def handler(event, context):
                             message_bodies = []
 
                             for sra_run_id in sra_run_id:
-                                message_bodies.append({'sra_run_id': sra_run_id}) ## TODO deberia enviar el SRR id?
+                                message_bodies.append({'sra_run_id': sra_run_id})
 
                             SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
 
@@ -72,8 +72,7 @@ def handler(event, context):
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
-        srr_tuples = database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;', srr_and_sra_id_tuples)
-        return [srr_tuple[0] for srr_tuple in srr_tuples] # TODO esta operación se podría meter en la librería
+        return database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;', srr_and_sra_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srrs_in_db.__name__}: {str(exception)}')
         raise exception

@@ -130,7 +130,7 @@ class DBConnectionManager:
             for parameter in parameters:
                 self.database_cursor.execute(statement, parameter)
                 try:
-                    inserted_id = self.database_cursor.fetchone()
+                    inserted_id = self.database_cursor.fetchone()[0]
                     result.append(inserted_id)
                 except ProgrammingError:
                     pass
@@ -140,7 +140,7 @@ class DBConnectionManager:
                 if _is_select(statement):
                     for parameter_group in parameter_groups:
                         self.database_cursor.execute(statement, parameter_group)
-                        result.append(self.database_cursor.fetchone())
+                        result.append(self.database_cursor.fetchone()[0])
                 else:
                     self.database_cursor.executemany(statement, parameter_groups)
         return result

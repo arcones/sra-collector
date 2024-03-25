@@ -4,7 +4,7 @@ setuptools.setup(
     name='sqs_helper',
     version='0.0.1',
     author='Marta Arcones',
-    author_email='marta.arcones@alumnos.upm.es',
+    author_email='marta.arcones@gmail.com',
     description='SQS utility functions',
     package_dir={'': 'src'},
     packages=setuptools.find_packages(where='src'),

@@ -4,8 +4,6 @@ import os
 import time
 
 
-# TODO hace falta boto en las deps?
-
 class SQSHelper:
     sqs_prefix = 'https://sqs.eu-central-1.amazonaws.com/120715685161'
 

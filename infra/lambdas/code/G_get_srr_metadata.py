@@ -1,9 +1,8 @@
+import json
 import logging
 
-from pysradb import SRAweb
 
-
-def handler(event, _):
+def handler(event, context):
     if event:
 
         logging.info(f'Received {len(event["Records"])} records event {event}')
@@ -12,6 +11,16 @@ def handler(event, _):
         sqs_batch_response = {}
 
         for record in event['Records']:
-            logging.info(f'Processing record {record}')
-            srr = 'SRR13790594'
-            raw_pysradb_data_frame = SRAweb().sra_metadata(srp=srr, detailed=True)
+            try:
+                request_body = json.loads(record['body'])
+
+                logging.info(f'Processing record {request_body}')
+
+                sra_run_id = request_body['sra_run_id']
+
+            except Exception as exception:
+                batch_item_failures.append({'itemIdentifier': record['messageId']})
+                logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
+
+        sqs_batch_response['batchItemFailures'] = batch_item_failures
+        return sqs_batch_response
