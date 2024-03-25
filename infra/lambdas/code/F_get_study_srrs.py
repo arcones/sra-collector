@@ -44,11 +44,11 @@ def handler(event, context):
 
                         if srrs:
                             logging.info(f'For {srp}, SRRs are {srrs}')
-                            sra_run_id = store_srrs_in_db(database_holder, srrs, sra_project_id)
+                            sra_run_ids = store_srrs_in_db(database_holder, srrs, sra_project_id)
 
                             message_bodies = []
 
-                            for sra_run_id in sra_run_id:
+                            for sra_run_id in sra_run_ids:
                                 message_bodies.append({'sra_run_id': sra_run_id})
 
                             SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
