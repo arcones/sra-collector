@@ -14,7 +14,15 @@ DEFAULT_FIXTURE = {
     'ncbi_id': 200126815,
     'gse': 'GSE126815',
     'srp': 'SRP185522',
-    'srrs': ['SRR22873806', 'SRR22873807']
+    'srrs': ['SRR22873806', 'SRR22873807'],
+    'metadata': {'spots': 342491658,
+                 'bases': 101957489026,
+                 'layout': 'SINGLE',
+                 'organism': 'human gammaherpesvirus 4',
+                 'phred': [(2, 2781953), (11, 3181387515), (25, 5012929637), (37, 93760389921)],
+                 'statistic_reads': {'nspots': 342491658,
+                                     'reads': [(0, 342491658, 148.87, 10.29),
+                                               (1, 342491658, 148.83, 10.41)]}}
 }
 
 
@@ -42,13 +50,13 @@ class H2ConnectionManager:
             self.database_connection.close()
 
 
-def _store_test_request(database_holder, request_id, ncbi_query):
+def store_test_request(database_holder, request_id, ncbi_query):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into request (id, query, geo_count) values (?, ?, ?);', [request_id, ncbi_query, 1])
     database_connection.commit()
 
 
-def _stores_test_ncbi_study(database_holder, request_id, ncbi_id):
+def stores_test_ncbi_study(database_holder, request_id, ncbi_id):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into ncbi_study (request_id, ncbi_id) values (?, ?);', [request_id, ncbi_id])
     database_connection.commit()
@@ -56,7 +64,7 @@ def _stores_test_ncbi_study(database_holder, request_id, ncbi_id):
     return database_cursor.fetchone()[0]
 
 
-def _store_test_geo_study(database_holder, study_id, gse):
+def store_test_geo_study(database_holder, study_id, gse):
     database_connection, database_cursor = database_holder
 
     database_cursor.execute('insert into geo_study (ncbi_study_id, gse) values (?, ?);', [study_id, gse])
@@ -65,7 +73,7 @@ def _store_test_geo_study(database_holder, study_id, gse):
     return database_cursor.fetchone()[0]
 
 
-def _store_test_sra_project(database_holder, geo_study_id, srp):
+def store_test_sra_project(database_holder, geo_study_id, srp):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into sra_project (srp) values (?);', [srp])
     database_connection.commit()
@@ -76,7 +84,15 @@ def _store_test_sra_project(database_holder, geo_study_id, srp):
     return inserted_sra_project_id
 
 
-def _check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
+def store_test_sra_run(database_holder, sra_project_id, srr):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute('insert into sra_run (sra_project_id, srr) values (?, ?);', [sra_project_id, srr])
+    database_connection.commit()
+    database_cursor.execute('select id from sra_run where sra_project_id=? and srr=?;', [sra_project_id, srr])
+    return database_cursor.fetchone()[0]
+
+
+def check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
     _, database_cursor = database_holder
     ncbi_study_ids_for_sql_in = ', '.join([f'{ncbi_study_id}' for ncbi_study_id in ncbi_study_ids])
     database_cursor.execute(f"""select count(*) from geo_study_sra_project_link
@@ -91,7 +107,7 @@ def _check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
     return link_rows, srp_rows
 
 
-def _mock_eutils(method, url, *args, **kwargs):
+def mock_eutils(method, url, *args, **kwargs):
     eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 
     if method == 'GET':
@@ -116,13 +132,16 @@ def _mock_eutils(method, url, *args, **kwargs):
         elif url == f'{eutils_base_url}/esummary.fcgi?db=gds&retmode=json&api_key=mockedSecret&id=305668979':
             with open('tests/fixtures/D_get_study_geo_mocked_esummary_gsm.json') as response:
                 return Mock(data=response.read())
+        elif url == f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={DEFAULT_FIXTURE['srrs'][0]}":
+            with open('tests/fixtures/G_get_srr_metadata.xml') as response:
+                return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')
     else:
         sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
 
 
-def _mock_pysradb(entity, *args, **kwargs):
+def mock_pysradb(entity, *args, **kwargs):
     if entity.startswith('GSE'):
         return {'study_accession': [DEFAULT_FIXTURE['srp']]}
     elif entity.startswith('SRP'):

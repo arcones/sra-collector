@@ -63,7 +63,6 @@ class SRRMetadata:  # TODO sample type: wild type, etc
 
 def handler(event, context):
     if event:
-
         logging.info(f'Received {len(event["Records"])} records event {event}')
 
         batch_item_failures = []
@@ -80,7 +79,7 @@ def handler(event, context):
                     srr = get_srr_sra_run(database_holder, sra_run_id)
                     srr_metadata = get_srr_metadata(srr)
                     srr_metadata_id = store_srr_metadata_in_db(database_holder, sra_run_id, srr_metadata)
-                    SQSHelper(sqs, context.function_name).send(message_bodies={'srr_metadata_id': srr_metadata_id})
+                    SQSHelper(sqs, context.function_name).send(message_body={'srr_metadata_id': srr_metadata_id})
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -93,7 +92,7 @@ def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRR
     try:
         sra_run_metadata_id = database_holder.execute_write_statement('insert into sra_run_metadata (sra_run_id, spots, bases, layout, organism) '
                                                                       'values (%s, %s, %s, %s, %s) on conflict do nothing returning id;',
-                                                                      sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.layout, srr_metadata.layout)
+                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.layout.value, srr_metadata.organism))[0]
         store_srr_metadata_phred(database_holder, sra_run_metadata_id, srr_metadata.phred)
         store_srr_statistic_reads(database_holder, sra_run_metadata_id, srr_metadata.statistic_read)
         return sra_run_metadata_id
@@ -104,7 +103,7 @@ def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRR
 
 def store_srr_metadata_phred(database_holder, sra_run_metadata_id: int, phred: dict):
     try:
-        phred_and_sra_run_metadata_id_tuples = [(sra_run_metadata_id, score, read_count) for score, read_count in phred]
+        phred_and_sra_run_metadata_id_tuples = [(sra_run_metadata_id, score, read_count) for score, read_count in phred.items()]
         return database_holder.execute_bulk_write_statement('insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) '
                                                             'values (%s, %s, %s) on conflict do nothing returning id;',
                                                             phred_and_sra_run_metadata_id_tuples)
@@ -117,7 +116,7 @@ def store_srr_statistic_reads(database_holder, sra_run_metadata_id: int, statist
     try:
         sra_run_metadata_statistic_read_id = database_holder.execute_write_statement('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots) '
                                                                                      'values (%s, %s) on conflict do nothing returning id;',
-                                                                                     sra_run_metadata_id, statistic_read.spots)
+                                                                                     (sra_run_metadata_id, statistic_read.spots))[0]
         store_srr_read(database_holder, sra_run_metadata_statistic_read_id, statistic_read.reads)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srr_metadata_phred.__name__}: {str(exception)}')
@@ -127,7 +126,7 @@ def store_srr_statistic_reads(database_holder, sra_run_metadata_id: int, statist
 def store_srr_read(database_holder, sra_run_metadata_statistic_read_id: int, reads: [Read]):
     try:
         read_and_sra_run_metadata_statistic_read_id_tuples = [(sra_run_metadata_statistic_read_id, read.index, read.count, read.average, read.stdev) for read in reads]
-        return database_holder.execute_bulk_write_statement('insert into sra_run_metadata_read (sra_run_metadata_statistic_read_id, index, count, average, stdev)'
+        return database_holder.execute_bulk_write_statement('insert into sra_run_metadata_read (sra_run_metadata_statistic_read_id, index, count, average, stdev) '
                                                             'values (%s, %s, %s, %s, %s) on conflict do nothing returning id;',
                                                             read_and_sra_run_metadata_statistic_read_id_tuples)
     except Exception as exception:
