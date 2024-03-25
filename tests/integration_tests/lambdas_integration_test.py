@@ -7,17 +7,18 @@ import pytest
 from ..utils_test import _apigateway_wrap
 from ..utils_test import provide_random_request_id
 from ..utils_test import sqs_wrap
-from .utils_integration_test import _store_test_geo_study
-from .utils_integration_test import _store_test_request
-from .utils_integration_test import _store_test_sra_project
-from .utils_integration_test import _stores_test_ncbi_study
-from .utils_integration_test import _wait_test_server_readiness
 from .utils_integration_test import PostgreConnectionManager
+from .utils_integration_test import store_test_geo_study
+from .utils_integration_test import store_test_request
+from .utils_integration_test import store_test_sra_project
+from .utils_integration_test import store_test_sra_run
+from .utils_integration_test import stores_test_ncbi_study
+from .utils_integration_test import wait_test_server_readiness
 
 
 @pytest.fixture(scope='session', autouse=True)
 def init_tests():
-    _wait_test_server_readiness()
+    wait_test_server_readiness()
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -68,11 +69,11 @@ def test_c_get_study_ids(lambda_client):
         # GIVEN
         request_id_1 = provide_random_request_id()
         input_body_1 = json.dumps({'request_id': request_id_1, 'retstart': 0, 'retmax': 500})
-        _store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
 
         request_id_2 = provide_random_request_id()
         input_body_2 = json.dumps({'request_id': request_id_2, 'retstart': 0, 'retmax': 500})
-        _store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
+        store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
 
         # WHEN
         invocation_result = lambda_client.invoke(FunctionName='C_get_study_ids', Payload=sqs_wrap([input_body_1, input_body_2], dumps=True))
@@ -90,13 +91,13 @@ def test_d_get_study_geo(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
         request_id_1 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
-        ncbi_study_id_1 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
+        store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id_1 = stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
         input_body_1 = json.dumps({'ncbi_study_id': ncbi_study_id_1})
 
         request_id_2 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
-        ncbi_study_id_2 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
+        store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
+        ncbi_study_id_2 = stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
         input_body_2 = json.dumps({'ncbi_study_id': ncbi_study_id_2})
 
         # WHEN
@@ -113,15 +114,15 @@ def test_e_get_study_srp(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
         request_id_1 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
-        ncbi_study_id_1 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
-        geo_entity_id_1 = _store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
+        store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id_1 = stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
+        geo_entity_id_1 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
         input_body_1 = json.dumps({'geo_entity_id': geo_entity_id_1})
 
         request_id_2 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
-        ncbi_study_id_2 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
-        geo_entity_id_2 = _store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
+        store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
+        ncbi_study_id_2 = stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
+        geo_entity_id_2 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
         input_body_2 = json.dumps({'geo_entity_id': geo_entity_id_2})
 
         # WHEN
@@ -140,21 +141,44 @@ def test_f_get_study_srrs(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
         request_id_1 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
-        ncbi_study_id_1 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
-        geo_entity_id_1 = _store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
-        sra_project_id_1 = _store_test_sra_project((database_connection, database_cursor), geo_entity_id_1, 'SRP185522')
+        store_test_request((database_connection, database_cursor), request_id_1, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id_1 = stores_test_ncbi_study((database_connection, database_cursor), request_id_1, 200126815)
+        geo_entity_id_1 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
+        sra_project_id_1 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_1, 'SRP185522')
         input_body_1 = json.dumps({'sra_project_id': sra_project_id_1})
 
         request_id_2 = provide_random_request_id()
-        _store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
-        ncbi_study_id_2 = _stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
-        geo_entity_id_2 = _store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
-        sra_project_id_2 = _store_test_sra_project((database_connection, database_cursor), geo_entity_id_2, 'SRP421048')
+        store_test_request((database_connection, database_cursor), request_id_2, 'stroke AND single cell rna seq AND musculus')
+        ncbi_study_id_2 = stores_test_ncbi_study((database_connection, database_cursor), request_id_2, 200069235)
+        geo_entity_id_2 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
+        sra_project_id_2 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_2, 'SRP421048')
         input_body_2 = json.dumps({'sra_project_id': sra_project_id_2})
 
         # WHEN
         invocation_result = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=sqs_wrap([input_body_1, input_body_2], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
+
+        assert lambda_response['batchItemFailures'] == []
+
+
+def test_g_get_srr_metadata(lambda_client):  # AQUIMEQUEDE, preparado, ejecutarlo!
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = provide_random_request_id()
+        store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+        ncbi_study_id = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
+        geo_entity_id = store_test_geo_study((database_connection, database_cursor), ncbi_study_id, 'GSE126815')
+        sra_project_id = store_test_sra_project((database_connection, database_cursor), geo_entity_id, 'SRP185522')
+        sra_run_id = store_test_sra_run((database_connection, database_cursor), sra_project_id, 'SRR22873806')  # TODO hacer la prueba con dos
+        input_body = json.dumps({'sra_run_id': sra_run_id})
+
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=sqs_wrap([input_body], dumps=True))
 
         # THEN
         lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
