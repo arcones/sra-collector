@@ -25,11 +25,17 @@ class StatisticRead:
     def __init__(self, spots: int, reads: [Read]):
         self.spots = spots
         self.reads = reads
+        self.layout = self.set_layout()
 
-
-class Layout(Enum):
-    PAIRED = 'PAIRED'
-    SINGLE = 'SINGLE'
+    def set_layout(self):
+        reads_count = 0
+        for read in self.reads:
+            if read.count > 0:
+                reads_count += 1
+        if reads_count == 1:
+            return 'SINGLE'
+        elif reads_count == 2:
+            return 'PAIRED'
 
 
 class SRRMetadata:  # TODO sample type: wild type, etc
@@ -39,7 +45,7 @@ class SRRMetadata:  # TODO sample type: wild type, etc
         self.bases = None
         self.phred = None
         self.statistic_read = None
-        self.layout = None
+        # self.layout = None
         self.organism = None
 
     def set_spots(self, spots: int):
@@ -54,8 +60,8 @@ class SRRMetadata:  # TODO sample type: wild type, etc
     def set_statistic_read(self, statistic_read: StatisticRead):
         self.statistic_read = statistic_read
 
-    def set_layout(self, layout: Layout):
-        self.layout = layout
+    # def set_layout(self, layout: Layout):
+    #    self.layout = layout
 
     def set_organism(self, organism: str):
         self.organism = organism
@@ -90,9 +96,9 @@ def handler(event, context):
 
 def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRRMetadata):
     try:
-        sra_run_metadata_id = database_holder.execute_write_statement('insert into sra_run_metadata (sra_run_id, spots, bases, layout, organism) '
-                                                                      'values (%s, %s, %s, %s, %s) on conflict do nothing returning id;',
-                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.layout.value, srr_metadata.organism))[0]
+        sra_run_metadata_id = database_holder.execute_write_statement('insert into sra_run_metadata (sra_run_id, spots, bases, organism) '
+                                                                      'values (%s, %s, %s, %s) on conflict do nothing returning id;',
+                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism))[0]
         store_srr_metadata_phred(database_holder, sra_run_metadata_id, srr_metadata.phred)
         store_srr_statistic_reads(database_holder, sra_run_metadata_id, srr_metadata.statistic_read)
         return sra_run_metadata_id
@@ -114,9 +120,9 @@ def store_srr_metadata_phred(database_holder, sra_run_metadata_id: int, phred: d
 
 def store_srr_statistic_reads(database_holder, sra_run_metadata_id: int, statistic_read: StatisticRead):
     try:
-        sra_run_metadata_statistic_read_id = database_holder.execute_write_statement('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots) '
-                                                                                     'values (%s, %s) on conflict do nothing returning id;',
-                                                                                     (sra_run_metadata_id, statistic_read.spots))[0]
+        sra_run_metadata_statistic_read_id = database_holder.execute_write_statement('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots, layout) '
+                                                                                     'values (%s, %s, %s) on conflict do nothing returning id;',
+                                                                                     (sra_run_metadata_id, statistic_read.spots, statistic_read.layout))[0]
         store_srr_read(database_holder, sra_run_metadata_statistic_read_id, statistic_read.reads)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srr_metadata_phred.__name__}: {str(exception)}')
@@ -194,10 +200,10 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
             member_element = member_node[0]
             srr_metadata.set_organism(member_element.get('organism'))
 
-        if root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/PAIRED') is not None:
-            srr_metadata.set_layout(Layout('PAIRED'))
-        elif root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/SINGLE') is not None:
-            srr_metadata.set_layout(Layout('SINGLE'))
+        ##if root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/PAIRED') is not None:
+        ##    srr_metadata.set_layout(Layout('PAIRED'))
+        ##elif root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/SINGLE') is not None:
+        ##    srr_metadata.set_layout(Layout('SINGLE'))
 
         return srr_metadata
     except Exception as exception:

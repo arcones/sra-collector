@@ -46,10 +46,7 @@ def handler(event, context):
                             logging.info(f'For {srp}, SRRs are {srrs}')
                             sra_run_ids = store_srrs_in_db(database_holder, srrs, sra_project_id)
 
-                            message_bodies = []
-
-                            for sra_run_id in sra_run_ids:
-                                message_bodies.append({'sra_run_id': sra_run_id})
+                            message_bodies = [{'sra_run_id': sra_run_id} for sra_run_id in sra_run_ids]
 
                             SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
 

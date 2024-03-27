@@ -17,12 +17,13 @@ DEFAULT_FIXTURE = {
     'srrs': ['SRR22873806', 'SRR22873807'],
     'metadata': {'spots': 342491658,
                  'bases': 101957489026,
-                 'layout': 'SINGLE',
                  'organism': 'human gammaherpesvirus 4',
                  'phred': [(2, 2781953), (11, 3181387515), (25, 5012929637), (37, 93760389921)],
                  'statistic_reads': {'nspots': 342491658,
                                      'reads': [(0, 342491658, 148.87, 10.29),
-                                               (1, 342491658, 148.83, 10.41)]}}
+                                               (1, 342491658, 148.83, 10.41)],
+                                     'layout': 'PAIRED'}
+                 }
 }
 
 

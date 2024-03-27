@@ -39,10 +39,7 @@ def handler(event, context):
 
                     ncbi_study_id_list = store_study_ids_in_db(database_holder, request_id, study_list)
 
-                    message_bodies = []
-
-                    for ncbi_study_id in ncbi_study_id_list:
-                        message_bodies.append({'ncbi_study_id': ncbi_study_id})
+                    message_bodies = [{'ncbi_study_id': ncbi_study_id} for ncbi_study_id in ncbi_study_id_list]
 
                     SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
             except Exception as exception:

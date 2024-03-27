@@ -89,7 +89,7 @@ class DBConnectionManager:
             logger.info(f'Executing: {statement} with parameters {parameters}...')
             result = self._cursor_execute_single_and_return(statement, parameters)
             logger.info(f'Executed {statement} with parameters {parameters}')
-            self.database_connection.commit()
+            self.database_connection.commit()  # TODO se podrian poner los commits en el __Exit__ o similar? me garantizaria atomicidad para los metadata y sus hijas
             return result
         except Exception as exception:
             logging.error(f'An exception has occurred in {self.execute_write_statement.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
@@ -111,7 +111,7 @@ class DBConnectionManager:
         if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             self.database_cursor.execute(statement, parameters)
             try:
-                result = self.database_cursor.fetchone()
+                result = self.database_cursor.fetchone()  ## TODO deberia ser fetchall().. para la select
             except ProgrammingError:
                 pass
         elif os.environ['ENV'] == 'unit-test':
@@ -119,7 +119,7 @@ class DBConnectionManager:
             for statement, parameters in statement_2_parameters.items():
                 if _is_select(statement):
                     self.database_cursor.execute(statement, parameters)
-                    result = self.database_cursor.fetchone()
+                    result = self.database_cursor.fetchone()  ## TODO deberia ser fetchall().. para la select
                 else:
                     self.database_cursor.execute(statement, parameters)
         return result

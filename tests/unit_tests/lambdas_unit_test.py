@@ -535,8 +535,7 @@ def test_g_get_srr_metadata_ok():
                 srr_metadata_id = actual_sra_run_metadata_rows[0]
                 assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadata']['spots']
                 assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadata']['bases']
-                assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadata']['layout']
-                assert actual_sra_run_metadata_rows[5] == DEFAULT_FIXTURE['metadata']['organism']
+                assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadata']['organism']
 
                 database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
                 actual_phred_rows = database_cursor.fetchall()
@@ -547,6 +546,7 @@ def test_g_get_srr_metadata_ok():
                 statistic_read = database_cursor.fetchone()
                 statistic_read_id = statistic_read[0]
                 assert statistic_read[2] == DEFAULT_FIXTURE['metadata']['statistic_reads']['nspots']
+                assert statistic_read[3] == DEFAULT_FIXTURE['metadata']['statistic_reads']['layout']
 
                 database_cursor.execute(f'select * from sra_run_metadata_read where sra_run_metadata_statistic_read_id={statistic_read_id}')
                 actual_read_rows = database_cursor.fetchall()
