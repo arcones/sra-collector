@@ -166,7 +166,7 @@ def test_f_get_study_srrs(lambda_client):
         assert lambda_response['batchItemFailures'] == []
 
 
-def test_g_get_srr_metadata(lambda_client):  # AQUIMEQUEDE, preparado, ejecutarlo!
+def test_g_get_srr_metadata(lambda_client):  # TODO hacerlo funcionar
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
         request_id = provide_random_request_id()

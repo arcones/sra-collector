@@ -20,8 +20,12 @@ DEFAULT_FIXTURE = {
                  'organism': 'human gammaherpesvirus 4',
                  'phred': [(2, 2781953), (11, 3181387515), (25, 5012929637), (37, 93760389921)],
                  'statistic_reads': {'nspots': 342491658,
-                                     'reads': [(0, 342491658, 148.87, 10.29),
-                                               (1, 342491658, 148.83, 10.41)],
+                                     'read_0_count': 342491658,
+                                     'read_0_average': 148.87,
+                                     'read_0_stdev': 10.29,
+                                     'read_1_count': 342491658,
+                                     'read_1_average': 148.83,
+                                     'read_1_stdev': 10.41,
                                      'layout': 'PAIRED'}
                  }
 }
@@ -57,9 +61,9 @@ def store_test_request(database_holder, request_id, ncbi_query):
     database_connection.commit()
 
 
-def stores_test_ncbi_study(database_holder, request_id, ncbi_id):
+def stores_test_ncbi_study(database_holder, request_id, ncbi_id, srr_count=None):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into ncbi_study (request_id, ncbi_id) values (?, ?);', [request_id, ncbi_id])
+    database_cursor.execute('insert into ncbi_study (request_id, ncbi_id, srr_count) values (?, ?, ?);', [request_id, ncbi_id, srr_count])
     database_connection.commit()
     database_cursor.execute('select id from ncbi_study where request_id=? and ncbi_id=?', [request_id, ncbi_id])
     return database_cursor.fetchone()[0]
@@ -76,13 +80,10 @@ def store_test_geo_study(database_holder, study_id, gse):
 
 def store_test_sra_project(database_holder, geo_study_id, srp):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into sra_project (srp) values (?);', [srp])
+    database_cursor.execute('insert into sra_project (geo_study_id, srp) values (?,?);', [geo_study_id, srp])
     database_connection.commit()
-    database_cursor.execute('select max(id) from sra_project where srp=?;', [srp])
-    inserted_sra_project_id = database_cursor.fetchone()[0]
-    database_cursor.execute('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (?, ?);', [geo_study_id, inserted_sra_project_id])
-    database_connection.commit()
-    return inserted_sra_project_id
+    database_cursor.execute('select id from sra_project where geo_study_id=? and srp=?;', [geo_study_id, srp])
+    return database_cursor.fetchone()[0]
 
 
 def store_test_sra_run(database_holder, sra_project_id, srr):
@@ -91,21 +92,6 @@ def store_test_sra_run(database_holder, sra_project_id, srr):
     database_connection.commit()
     database_cursor.execute('select id from sra_run where sra_project_id=? and srr=?;', [sra_project_id, srr])
     return database_cursor.fetchone()[0]
-
-
-def check_link_and_srp_rows(database_holder, ncbi_study_ids, srp):
-    _, database_cursor = database_holder
-    ncbi_study_ids_for_sql_in = ', '.join([f'{ncbi_study_id}' for ncbi_study_id in ncbi_study_ids])
-    database_cursor.execute(f"""select count(*) from geo_study_sra_project_link
-                                join geo_study on geo_study_id = id
-                                where ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
-    link_rows = database_cursor.fetchone()[0]
-    database_cursor.execute(f"""select count(distinct sp.id) from sra_project sp
-                                join geo_study_sra_project_link gsspl on gsspl.sra_project_id = sp.id
-                                join geo_study gs on gsspl.geo_study_id = gs.id
-                                where srp='{srp}' and ncbi_study_id in ({ncbi_study_ids_for_sql_in})""")
-    srp_rows = database_cursor.fetchone()[0]
-    return link_rows, srp_rows
 
 
 def mock_eutils(method, url, *args, **kwargs):

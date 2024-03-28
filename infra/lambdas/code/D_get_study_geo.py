@@ -74,8 +74,7 @@ def handler(event, context):
 
             for parsed_response_item in parsed_response:
                 if parsed_response_item in ncbi_ids_as_strs:
-                    ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][
-                        0]
+                    ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
                     summary_process(database_holder, context.function_name, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
 
 
@@ -90,6 +89,8 @@ def summary_process(database_holder, function_name: str, ncbi_study_id: int, ncb
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
                 SQSHelper(sqs, function_name).send(message_body={'geo_entity_id': geo_entity_id})
+            else:
+                update_ncbi_study_srr_count(database_holder, ncbi_study_id)
         else:
             logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:
@@ -133,4 +134,12 @@ def store_geo_entity_in_db(database_holder, ncbi_study_id: int, geo_entity: GeoE
         return database_holder.execute_write_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_geo_entity_in_db.__name__}: {str(exception)}')
+        raise exception
+
+
+def update_ncbi_study_srr_count(database_holder, ncbi_study_id: int):
+    try:
+        database_holder.execute_write_statement(f'update ncbi_study set srr_count=0 where id=%s', (ncbi_study_id,))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception

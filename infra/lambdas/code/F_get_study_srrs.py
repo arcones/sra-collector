@@ -44,7 +44,7 @@ def handler(event, context):
 
                         if srrs:
                             logging.info(f'For {srp}, SRRs are {srrs}')
-                            sra_run_ids = store_srrs_in_db(database_holder, srrs, sra_project_id)
+                            sra_run_ids = store_srrs_and_count(database_holder, srrs, sra_project_id)
 
                             message_bodies = [{'sra_run_id': sra_run_id} for sra_run_id in sra_run_ids]
 
@@ -52,18 +52,28 @@ def handler(event, context):
 
                         else:
                             logging.info(f'No SRR for {srp} found via pysradb')
-                            store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')
+                            store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')
                     except AttributeError as attribute_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced attribute error with name {attribute_error.name}')
-                        store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                        store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                     except TypeError as type_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced type error with name {type_error}')
-                        store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.TYPE_ERROR, str(type_error))
+                        store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.TYPE_ERROR, str(type_error))
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
+
+
+def store_srrs_and_count(database_holder, srrs: [str], sra_project_id: int):
+    try:
+        srr_and_sra_id_tuples = store_srrs_in_db(database_holder, srrs, sra_project_id)
+        update_ncbi_study_srr_count(database_holder, sra_project_id, len(srrs))
+        return srr_and_sra_id_tuples
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_srrs_and_count.__name__}: {str(exception)}')
+        raise exception
 
 
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
@@ -83,6 +93,28 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
         return row[0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_srp_sra_project.__name__}: {str(exception)}')
+        raise exception
+
+
+def store_missing_srr_and_count(database_holder, sra_project_id: int, pysradb_error: PysradbError, details: str):
+    try:
+        store_missing_srr_in_db(database_holder, sra_project_id, pysradb_error, details)
+        update_ncbi_study_srr_count(database_holder, sra_project_id, 0)
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_missing_srr_and_count.__name__}: {str(exception)}')
+        raise exception
+
+
+def update_ncbi_study_srr_count(database_holder, sra_project_id: int, srr_count: int):
+    try:
+        statement = ('update ncbi_study set srr_count=%s '
+                     'where id=('
+                     'select ncbi_study_id from geo_study gs '
+                     'join sra_project sp on sp.geo_study_id = gs.id '
+                     'where sp.id=%s)')
+        database_holder.execute_write_statement(statement, (srr_count, sra_project_id))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception
 
 

@@ -1,7 +1,6 @@
 import json
 import logging
 import xml.etree.ElementTree as ET
-from enum import Enum
 
 import boto3
 import urllib3
@@ -13,29 +12,22 @@ http = urllib3.PoolManager()
 sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
-class Read:
-    def __init__(self, index: int, count: int, average: float, stdev: float):
-        self.index = index
-        self.count = count
-        self.average = average
-        self.stdev = stdev
-
-
 class StatisticRead:
-    def __init__(self, spots: int, reads: [Read]):
-        self.spots = spots
-        self.reads = reads
+    def __init__(self, nspots: int, read_0_count: int, read_0_average: float, read_0_stdev: float, read_1_count: int, read_1_average: float, read_1_stdev: float):
+        self.nspots = nspots
+        self.read_0_count = read_0_count
+        self.read_0_average = read_0_average
+        self.read_0_stdev = read_0_stdev
+        self.read_1_count = read_1_count
+        self.read_1_average = read_1_average
+        self.read_1_stdev = read_1_stdev
         self.layout = self.set_layout()
 
     def set_layout(self):
-        reads_count = 0
-        for read in self.reads:
-            if read.count > 0:
-                reads_count += 1
-        if reads_count == 1:
-            return 'SINGLE'
-        elif reads_count == 2:
+        if self.read_0_count > 0 and self.read_1_count > 0:
             return 'PAIRED'
+        elif self.read_0_count > 0 or self.read_1_count > 0:
+            return 'SINGLE'
 
 
 class SRRMetadata:  # TODO sample type: wild type, etc
@@ -45,7 +37,6 @@ class SRRMetadata:  # TODO sample type: wild type, etc
         self.bases = None
         self.phred = None
         self.statistic_read = None
-        # self.layout = None
         self.organism = None
 
     def set_spots(self, spots: int):
@@ -59,9 +50,6 @@ class SRRMetadata:  # TODO sample type: wild type, etc
 
     def set_statistic_read(self, statistic_read: StatisticRead):
         self.statistic_read = statistic_read
-
-    # def set_layout(self, layout: Layout):
-    #    self.layout = layout
 
     def set_organism(self, organism: str):
         self.organism = organism
@@ -82,10 +70,17 @@ def handler(event, context):
                     logging.info(f'Processing record {request_body}')
 
                     sra_run_id = request_body['sra_run_id']
-                    srr = get_srr_sra_run(database_holder, sra_run_id)
+                    request_id, srr = get_request_id_and_srr(database_holder, sra_run_id)
                     srr_metadata = get_srr_metadata(srr)
-                    srr_metadata_id = store_srr_metadata_in_db(database_holder, sra_run_id, srr_metadata)
-                    SQSHelper(sqs, context.function_name).send(message_body={'srr_metadata_id': srr_metadata_id})
+
+                    store_srr_metadata_in_db(database_holder, sra_run_id, srr_metadata)
+
+                    if is_srr_count_ready(database_holder, request_id):
+                        expected_srr_metadatas = get_sum_srr_count_metadata(database_holder, request_id)
+                        actual_srr_metadatas = get_sum_actual_metadatas(database_holder, request_id)
+
+                        if expected_srr_metadatas == actual_srr_metadatas:
+                            SQSHelper(sqs, context.function_name).send(message_body={'request_id': request_id})
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -101,7 +96,6 @@ def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRR
                                                                       (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism))[0]
         store_srr_metadata_phred(database_holder, sra_run_metadata_id, srr_metadata.phred)
         store_srr_statistic_reads(database_holder, sra_run_metadata_id, srr_metadata.statistic_read)
-        return sra_run_metadata_id
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srr_metadata_in_db.__name__}: {str(exception)}')
         raise exception
@@ -120,34 +114,29 @@ def store_srr_metadata_phred(database_holder, sra_run_metadata_id: int, phred: d
 
 def store_srr_statistic_reads(database_holder, sra_run_metadata_id: int, statistic_read: StatisticRead):
     try:
-        sra_run_metadata_statistic_read_id = database_holder.execute_write_statement('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots, layout) '
-                                                                                     'values (%s, %s, %s) on conflict do nothing returning id;',
-                                                                                     (sra_run_metadata_id, statistic_read.spots, statistic_read.layout))[0]
-        store_srr_read(database_holder, sra_run_metadata_statistic_read_id, statistic_read.reads)
+        statement = ('insert into sra_run_metadata_statistic_read '
+                     '(sra_run_metadata_id, nspots, layout, read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
+                     'values (%s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing returning id;')
+        parameters = (sra_run_metadata_id, statistic_read.nspots, statistic_read.layout, statistic_read.read_0_count, statistic_read.read_0_average,
+                      statistic_read.read_0_stdev, statistic_read.read_1_count, statistic_read.read_1_average, statistic_read.read_1_stdev)
+        sra_run_metadata_statistic_read_id = database_holder.execute_write_statement(statement, parameters)[0]
     except Exception as exception:
-        logging.error(f'An exception has occurred in {store_srr_metadata_phred.__name__}: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_srr_statistic_reads.__name__}: {str(exception)}')
         raise exception
 
 
-def store_srr_read(database_holder, sra_run_metadata_statistic_read_id: int, reads: [Read]):
+def get_request_id_and_srr(database_holder, sra_run_id: int) -> (str, str):
     try:
-        read_and_sra_run_metadata_statistic_read_id_tuples = [(sra_run_metadata_statistic_read_id, read.index, read.count, read.average, read.stdev) for read in reads]
-        return database_holder.execute_bulk_write_statement('insert into sra_run_metadata_read (sra_run_metadata_statistic_read_id, index, count, average, stdev) '
-                                                            'values (%s, %s, %s, %s, %s) on conflict do nothing returning id;',
-                                                            read_and_sra_run_metadata_statistic_read_id_tuples)
-    except Exception as exception:
-        logging.error(f'An exception has occurred in {store_srr_metadata_phred.__name__}: {str(exception)}')
-        raise exception
-
-
-def get_srr_sra_run(database_holder, sra_run_id: int) -> str:
-    try:
-        statement = f'select srr from sra_run where id=%s'
+        statement = ('select r.id, sr.srr from request r '
+                     'join ncbi_study ns on r.id = ns.request_id '
+                     'join geo_study gs on ns.id = gs.ncbi_study_id '
+                     'join sra_project sp on gs.id = sp.geo_study_id '
+                     'join sra_run sr on sp.id = sr.sra_project_id '
+                     'where sr.id=%s;')
         parameters = (sra_run_id,)
-        row = database_holder.execute_read_statement(statement, parameters)
-        return row[0]
+        return database_holder.execute_read_statement(statement, parameters)
     except Exception as exception:
-        logging.error(f'An exception has occurred in {get_srr_sra_run.__name__}: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_request_id_and_srr.__name__}: {str(exception)}')
         raise exception
 
 
@@ -181,17 +170,26 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
         statistics_node = root.findall('.//RUN/Statistics')
         if len(statistics_node) > 0:
             statistics_element = root.findall('.//RUN/Statistics')[0]
-            reads = []
-            for read_element in statistics_element:
-                index = int(read_element.get('index'))
-                count = int(read_element.get('count'))
-                average = float(read_element.get('average'))
-                stdev = float(read_element.get('stdev'))
 
-                reads.append(Read(index, count, average, stdev))
+            read_0_count = 0
+            read_0_average = 0
+            read_0_stdev = 0
+            read_1_count = 0
+            read_1_average = 0
+            read_1_stdev = 0
+
+            for read_element in statistics_element:
+                if int(read_element.get('index')) == 0:
+                    read_0_count = int(read_element.get('count'))
+                    read_0_average = float(read_element.get('average'))
+                    read_0_stdev = float(read_element.get('stdev'))
+                elif int(read_element.get('index')) == 1:
+                    read_1_count = int(read_element.get('count'))
+                    read_1_average = float(read_element.get('average'))
+                    read_1_stdev = float(read_element.get('stdev'))
 
             nspots = int(statistics_element.get('nspots')) if statistics_element.get('nspots') is not None and statistics_element.get('nspots').isdigit() else None
-            statistic_read = StatisticRead(nspots, reads)
+            statistic_read = StatisticRead(nspots, read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev)
 
             srr_metadata.set_statistic_read(statistic_read)
 
@@ -200,12 +198,44 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
             member_element = member_node[0]
             srr_metadata.set_organism(member_element.get('organism'))
 
-        ##if root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/PAIRED') is not None:
-        ##    srr_metadata.set_layout(Layout('PAIRED'))
-        ##elif root.find('.//EXPERIMENT/DESIGN/LIBRARY_DESCRIPTOR/LIBRARY_LAYOUT/SINGLE') is not None:
-        ##    srr_metadata.set_layout(Layout('SINGLE'))
-
         return srr_metadata
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_srr_metadata.__name__}: {str(exception)}')
+        raise exception
+
+
+def is_srr_count_ready(database_holder, request_id: str) -> bool:
+    try:
+        statement = ('select 1 from ncbi_study ns '
+                     'join request r on r.id = ns.request_id '
+                     'where r.id=%s and srr_count is null;')
+        return not database_holder.execute_read_statement(statement, (request_id,))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {is_srr_count_ready.__name__}: {str(exception)}')
+        raise exception
+
+
+def get_sum_srr_count_metadata(database_holder, request_id: str) -> bool:
+    try:
+        statement = ('select sum(srr_count) from ncbi_study ns '
+                     'join request r on r.id = ns.request_id '
+                     'where r.id=%s;')
+        return not database_holder.execute_read_statement(statement, (request_id,))[0]
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {get_sum_srr_count_metadata.__name__}: {str(exception)}')
+        raise exception
+
+
+def get_sum_actual_metadatas(database_holder, request_id: str) -> bool:
+    try:
+        statement = ('select count(srm.id) from sra_run_metadata srm '
+                     'join sra_run sr on sr.id = srm.sra_run_id '
+                     'join sra_project sp on sp.id = sr.sra_project_id '
+                     'join geo_study gs on gs.id = sp.geo_study_id '
+                     'join ncbi_study ns on ns.id = gs.ncbi_study_id '
+                     'join request r on r.id = ns.request_id '
+                     'where r.id=%s;')
+        return not database_holder.execute_read_statement(statement, (request_id,))[0]
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {get_sum_actual_metadatas.__name__}: {str(exception)}')
         raise exception

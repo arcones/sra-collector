@@ -12,7 +12,6 @@ import pytest
 from ..utils_test import _apigateway_wrap
 from ..utils_test import provide_random_request_id
 from ..utils_test import sqs_wrap
-from .utils_unit_test import check_link_and_srp_rows
 from .utils_unit_test import Context
 from .utils_unit_test import DEFAULT_FIXTURE
 from .utils_unit_test import H2ConnectionManager
@@ -172,10 +171,10 @@ def test_c_get_study_ids():
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f"select ncbi_id, request_id from ncbi_study where request_id='{request_id}'")
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}' order by ncbi_id")
                 actual_rows = database_cursor.fetchall()
                 expected_study_ids = [200126815, 200150644, 200167593, 200174574, 200189432, 200207275, 200247102, 200247391]
-                assert actual_rows == [(study_id, request_id) for study_id in expected_study_ids]
+                assert actual_rows == [(study_id, request_id, None) for study_id in expected_study_ids]
 
                 # THEN REGARDING MESSAGES
                 database_cursor.execute(f"select id from ncbi_study where request_id='{request_id}'")
@@ -210,8 +209,12 @@ def test_d_get_study_geos_gse():
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
                     database_cursor.execute(f"select ncbi_study_id, gse from geo_study where ncbi_study_id='{ncbi_study_id}'")
-                    actual_row = database_cursor.fetchall()
-                    assert actual_row == [(ncbi_study_id, DEFAULT_FIXTURE['gse'])]
+                    actual_geo_study_row = database_cursor.fetchall()
+                    assert actual_geo_study_row == [(ncbi_study_id, DEFAULT_FIXTURE['gse'])]
+
+                    database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                    actual_ncbi_study_row = database_cursor.fetchall()
+                    assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, None)]
 
                     # THEN REGARDING MESSAGES
                     database_cursor.execute(f"select id from geo_study where ncbi_study_id='{ncbi_study_id}'")
@@ -220,12 +223,12 @@ def test_d_get_study_geos_gse():
                     mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'geo_entity_id': geo_study_id}))
 
 
-@pytest.mark.parametrize('ncbi_study_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture', [
+@pytest.mark.parametrize('ncbi_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture', [
     (305668979, 'geo_experiment', 'gsm', 'GSM5668979', 'D_get_study_geo_mocked_esummary_gsm.json'),
     (100019750, 'geo_platform', 'gpl', 'GPL19750', 'D_get_study_geo_mocked_esummary_gpl.json'),
     (3268, 'geo_data_set', 'gds', 'GDS3268', 'D_get_study_geo_mocked_esummary_gds.json'),
 ])
-def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture):
+def test_d_get_study_geos_not_gse(ncbi_id, geo_table, geo_entity_name, geo_entity_value, geo_fixture):
     with patch.object(D_get_study_geo, 'sqs') as mock_sqs:
         with patch.object(D_get_study_geo.secrets, 'get_secret_value') as mock_secrets_get_secret_value:
             with patch.object(D_get_study_geo.http, 'request', side_effect=mock_eutils):
@@ -234,7 +237,7 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
                     request_id = provide_random_request_id()
 
                     store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
-                    ncbi_study_id = stores_test_ncbi_study(database_holder, request_id, ncbi_study_id)
+                    ncbi_study_id = stores_test_ncbi_study(database_holder, request_id, ncbi_id)
 
                     mock_sqs.send_message = Mock()
                     mock_secrets_get_secret_value.return_value = {'SecretString': '{"value":"mockedSecret"}'}
@@ -247,8 +250,12 @@ def test_d_get_study_geos_not_gse(ncbi_study_id, geo_table, geo_entity_name, geo
                     # THEN REGARDING DATA
                     _, database_cursor = database_holder
                     database_cursor.execute(f"select ncbi_study_id, {geo_entity_name} from {geo_table} where ncbi_study_id='{ncbi_study_id}'")
-                    actual_row = database_cursor.fetchall()
-                    assert actual_row == [(ncbi_study_id, geo_entity_value)]
+                    actual_geo_entity_row = database_cursor.fetchall()
+                    assert actual_geo_entity_row == [(ncbi_study_id, geo_entity_value)]
+
+                    database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                    actual_ncbi_study_row = database_cursor.fetchall()
+                    assert actual_ncbi_study_row == [(ncbi_id, request_id, 0)]
 
                     # THEN REGARDING MESSAGES
                     assert mock_sqs.send_message.call_count == 0
@@ -277,12 +284,14 @@ def test_e_get_study_srp_ok():
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f'''select sp.* from sra_project sp
-                                            join geo_study_sra_project_link on id = sra_project_id
-                                            where geo_study_id={inserted_geo_study_id}''')
-                actual_ok_rows = database_cursor.fetchall()
-                sra_project_id = actual_ok_rows[0][0]
-                assert actual_ok_rows[0][1] == DEFAULT_FIXTURE['srp']
+                database_cursor.execute(f'select sp.* from sra_project sp where geo_study_id={inserted_geo_study_id}')
+                actual_srp_rows = database_cursor.fetchall()
+                sra_project_id = actual_srp_rows[0][0]
+                assert actual_srp_rows[0][1] == DEFAULT_FIXTURE['srp']
+
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, None)]
 
                 database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
                 actual_ko_rows = database_cursor.fetchall()
@@ -325,9 +334,7 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f'''select srp from sra_project
-                                            join geo_study_sra_project_link on id = sra_project_id
-                                            where geo_study_id={inserted_geo_study_id}''')
+                database_cursor.execute(f'select srp from sra_project where geo_study_id={inserted_geo_study_id}')
                 actual_ok_rows = database_cursor.fetchall()
                 assert actual_ok_rows == []
 
@@ -339,48 +346,12 @@ def test_e_get_study_srp_known_error(pysradb_exception, pysradb_exception_info, 
                 assert actual_ko_rows[0] == pysradb_error_reference_id
                 assert re.match(rf"'?{pysradb_exception_info}'?", actual_ko_rows[1])
 
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, 0)]
+
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 0
-
-
-def test_e_get_study_srp_just_link_with_no_new_srp_on_new_gse_with_same_srp():
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=mock_pysradb):
-            with H2ConnectionManager() as database_holder:
-                # GIVEN
-                request_id = provide_random_request_id()
-                additional_study_id = 200456456
-                additional_gse = str(additional_study_id).replace('200', 'GSE', 3)
-
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
-                ncbi_study_id_1 = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
-                geo_study_id_1 = store_test_geo_study(database_holder, ncbi_study_id_1, DEFAULT_FIXTURE['gse'])
-                ncbi_study_id_2 = stores_test_ncbi_study(database_holder, request_id, additional_study_id)
-                geo_study_id_2 = store_test_geo_study(database_holder, ncbi_study_id_2, additional_gse)
-                sra_project_id = store_test_sra_project(database_holder, geo_study_id_1, DEFAULT_FIXTURE['srp'])
-
-                mock_sqs.send_message = Mock()
-
-                input_body = json.dumps({'geo_entity_id': geo_study_id_2})
-
-                link_rows_before, srp_rows_before = check_link_and_srp_rows(database_holder, [ncbi_study_id_1, ncbi_study_id_2], DEFAULT_FIXTURE['srp'])
-                assert link_rows_before == 1
-                assert srp_rows_before == 1
-
-                # WHEN
-                actual_result = E_get_study_srp.handler(sqs_wrap([input_body]), Context('E_get_study_srp'))
-
-                # THEN REGARDING LAMBDA
-                assert actual_result == {'batchItemFailures': []}
-
-                # THEN REGARDING DATA
-                link_rows_after, srp_rows_after = check_link_and_srp_rows(database_holder, [ncbi_study_id_1, ncbi_study_id_2], DEFAULT_FIXTURE['srp'])
-                assert link_rows_after == 2
-                assert srp_rows_after == 1
-
-                # THEN REGARDING MESSAGES
-                assert mock_sqs.send_message.call_count == 1
-                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'sra_project_id': sra_project_id}))
 
 
 def test_e_get_study_srp_skip_unexpected_results():
@@ -408,15 +379,17 @@ def test_e_get_study_srp_skip_unexpected_results():
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f'''select srp from sra_project
-                                            join geo_study_sra_project_link on id = sra_project_id
-                                            where geo_study_id={inserted_geo_study_id}''')
+                database_cursor.execute(f'select srp from sra_project where geo_study_id={inserted_geo_study_id}')
                 actual_ok_rows = database_cursor.fetchall()
                 assert actual_ok_rows == []
 
                 database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
                 actual_ko_rows = database_cursor.fetchall()
                 assert actual_ko_rows == []
+
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, 0)]
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 0
@@ -453,6 +426,10 @@ def test_f_get_study_srrs_ok():
                 database_cursor.execute(f'select * from sra_run_missing where sra_project_id={inserted_sra_project_id}')
                 actual_ko_rows = database_cursor.fetchall()
                 assert actual_ko_rows == []
+
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, 2)]
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message_batch.call_count == 1
@@ -502,11 +479,15 @@ def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_
                 pysradb_error_reference_id = database_cursor.fetchone()[0]
                 assert actual_ko_rows == [(pysradb_error_reference_id, pysradb_exception_info)]
 
+                database_cursor.execute(f"select ncbi_id, request_id, srr_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, 0)]
+
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message_batch.call_count == 0
 
 
-def test_g_get_srr_metadata_ok():
+def test_g_get_srr_metadata_start():
     with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
         with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
             with H2ConnectionManager() as database_holder:
@@ -547,12 +528,119 @@ def test_g_get_srr_metadata_ok():
                 statistic_read_id = statistic_read[0]
                 assert statistic_read[2] == DEFAULT_FIXTURE['metadata']['statistic_reads']['nspots']
                 assert statistic_read[3] == DEFAULT_FIXTURE['metadata']['statistic_reads']['layout']
+                assert statistic_read[4] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_count']
+                assert statistic_read[5] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_average']
+                assert statistic_read[6] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_stdev']
+                assert statistic_read[7] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_count']
+                assert statistic_read[8] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_average']
+                assert statistic_read[9] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_stdev']
 
-                database_cursor.execute(f'select * from sra_run_metadata_read where sra_run_metadata_statistic_read_id={statistic_read_id}')
-                actual_read_rows = database_cursor.fetchall()
-                actual_phred_rows_payload = [(actual_read_row[2], actual_read_row[3], actual_read_row[4], actual_read_row[5]) for actual_read_row in actual_read_rows]
-                assert actual_phred_rows_payload == DEFAULT_FIXTURE['metadata']['statistic_reads']['reads']
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 0
+
+
+def test_g_get_srr_metadata_finish():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 1)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+                actual_sra_run_metadata_rows = database_cursor.fetchone()
+                srr_metadata_id = actual_sra_run_metadata_rows[0]
+                assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadata']['spots']
+                assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadata']['bases']
+                assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadata']['organism']
+
+                database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+                actual_phred_rows = database_cursor.fetchall()
+                actual_phred_rows_payload = [(actual_phred_row[2], actual_phred_row[3]) for actual_phred_row in actual_phred_rows]
+                assert actual_phred_rows_payload == DEFAULT_FIXTURE['metadata']['phred']
+
+                database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+                statistic_read = database_cursor.fetchone()
+                statistic_read_id = statistic_read[0]
+                assert statistic_read[2] == DEFAULT_FIXTURE['metadata']['statistic_reads']['nspots']
+                assert statistic_read[3] == DEFAULT_FIXTURE['metadata']['statistic_reads']['layout']
+                assert statistic_read[4] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_count']
+                assert statistic_read[5] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_average']
+                assert statistic_read[6] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_stdev']
+                assert statistic_read[7] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_count']
+                assert statistic_read[8] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_average']
+                assert statistic_read[9] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_stdev']
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'srr_metadata_id': srr_metadata_id}))
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+# def test_h_generate_report():
+#     with patch.object(G_get_srr_metadata, 'S3') as mock_sqs:
+#         with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+#             with H2ConnectionManager() as database_holder:
+#                 # GIVEN
+#                 request_id = provide_random_request_id()
+#                 store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+#                 study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
+#                 inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+#                 inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+#                 inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
+#
+#                 mock_sqs.send_message = Mock()
+#
+#                 input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+#
+#                 # WHEN
+#                 actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+#
+#                 # THEN REGARDING LAMBDA
+#                 assert actual_result == {'batchItemFailures': []}
+#
+#                 # THEN REGARDING DATA
+#                 _, database_cursor = database_holder
+#                 database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+#                 actual_sra_run_metadata_rows = database_cursor.fetchone()
+#                 srr_metadata_id = actual_sra_run_metadata_rows[0]
+#                 assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadata']['spots']
+#                 assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadata']['bases']
+#                 assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadata']['organism']
+#
+#                 database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+#                 actual_phred_rows = database_cursor.fetchall()
+#                 actual_phred_rows_payload = [(actual_phred_row[2], actual_phred_row[3]) for actual_phred_row in actual_phred_rows]
+#                 assert actual_phred_rows_payload == DEFAULT_FIXTURE['metadata']['phred']
+#
+#                 database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+#                 statistic_read = database_cursor.fetchone()
+#                 statistic_read_id = statistic_read[0]
+#                 assert statistic_read[2] == DEFAULT_FIXTURE['metadata']['statistic_reads']['nspots']
+#                 assert statistic_read[3] == DEFAULT_FIXTURE['metadata']['statistic_reads']['layout']
+#                 assert statistic_read[4] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_count']
+#                 assert statistic_read[5] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_average']
+#                 assert statistic_read[6] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_0_stdev']
+#                 assert statistic_read[7] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_count']
+#                 assert statistic_read[8] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_average']
+#                 assert statistic_read[9] == DEFAULT_FIXTURE['metadata']['statistic_reads']['read_1_stdev']
+#
+#                 # THEN REGARDING MESSAGES
+#                 assert mock_sqs.send_message.call_count == 1
+#                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'srr_metadata_id': srr_metadata_id}))
+## TODO AQUIMEQUEDE TEST UNITARIO DE H
