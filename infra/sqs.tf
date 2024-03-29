@@ -80,27 +80,20 @@ resource "aws_sqs_queue" "F_to_G_DLQ" {
 resource "aws_sqs_queue" "G_srr_metadata" {
   name = "G_srr_metadata"
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.G_to_H_DLQ.arn,
+    deadLetterTargetArn = aws_sqs_queue.G_to_S3_DLQ.arn,
     maxReceiveCount     = 2
   })
 }
 
-resource "aws_sqs_queue" "G_to_H_DLQ" {
-  name = "G_to_H_DLQ"
+resource "aws_sqs_queue" "G_to_S3_DLQ" {
+  name = "G_to_S3_DLQ"
 }
 
 resource "aws_sqs_queue" "H_user_feedback" {
   name                       = "H_user_feedback"
   visibility_timeout_seconds = 40
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.H_to_SNS_DLQ.arn,
-    maxReceiveCount     = 2
-  })
 }
 
-resource "aws_sqs_queue" "H_to_SNS_DLQ" {
-  name = "H_to_SNS_DLQ"
-}
 
 resource "aws_sqs_queue" "integration_tests_sqs" {
   name = "integration_test_queue"

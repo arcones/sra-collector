@@ -1,7 +1,7 @@
 module "lambdas" {
   source                             = "./lambdas"
   aws_apigatewayv2_api_execution_arn = aws_apigatewayv2_api.sra_collector_api.execution_arn
-  s3_bucket_id                       = aws_s3_bucket.lambdas.id
+  s3_bucket_id                       = aws_s3_bucket.sra-collector-lambdas.id
   queues = {
     A_user_query_sqs = {
       A_user_query_sqs_arn                = aws_sqs_queue.A_user_query.arn,
@@ -37,11 +37,11 @@ module "lambdas" {
       G_srr_metadata_arn                = aws_sqs_queue.G_srr_metadata.arn,
       G_srr_metadata_visibility_timeout = aws_sqs_queue.G_srr_metadata.visibility_timeout_seconds
     },
-    G_to_H_DLQ_arn = aws_sqs_queue.G_to_H_DLQ.arn
+    G_to_S3_DLQ_arn = aws_sqs_queue.G_to_S3_DLQ.arn,
     H_user_feedback = {
       H_user_feedback_arn                = aws_sqs_queue.H_user_feedback.arn,
       H_user_feedback_visibility_timeout = aws_sqs_queue.H_user_feedback.visibility_timeout_seconds
-    },
+    }
   }
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                       = aws_kms_key.db_kms_key.arn
@@ -58,6 +58,7 @@ module "opensearch" {
     "get_study_geo"     = module.lambdas.get_study_geo_log_group_arn,
     "get_study_srp"     = module.lambdas.get_study_srp_log_group_arn,
     "get_study_srr"     = module.lambdas.get_study_srrs_log_group_arn,
-    "get_srr_metadata"  = module.lambdas.get_srr_metadata_log_group_arn
+    "get_srr_metadata"  = module.lambdas.get_srr_metadata_log_group_arn,
+    "generate_report"   = module.lambdas.generate_report_log_group_arn
   }
 }

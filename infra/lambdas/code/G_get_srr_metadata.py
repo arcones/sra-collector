@@ -75,7 +75,7 @@ def handler(event, context):
 
                     store_srr_metadata_in_db(database_holder, sra_run_id, srr_metadata)
 
-                    if is_srr_count_ready(database_holder, request_id):
+                    if is_srr_metadata_count_ready(database_holder, request_id):
                         expected_srr_metadatas = get_sum_srr_count_metadata(database_holder, request_id)
                         actual_srr_metadatas = get_sum_actual_metadatas(database_holder, request_id)
 
@@ -204,14 +204,14 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
         raise exception
 
 
-def is_srr_count_ready(database_holder, request_id: str) -> bool:
+def is_srr_metadata_count_ready(database_holder, request_id: str) -> bool:
     try:
         statement = ('select 1 from ncbi_study ns '
                      'join request r on r.id = ns.request_id '
                      'where r.id=%s and srr_metadata_count is null;')
         return not database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:
-        logging.error(f'An exception has occurred in {is_srr_count_ready.__name__}: {str(exception)}')
+        logging.error(f'An exception has occurred in {is_srr_metadata_count_ready.__name__}: {str(exception)}')
         raise exception
 
 

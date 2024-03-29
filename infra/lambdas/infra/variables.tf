@@ -18,7 +18,7 @@ variable "aws_apigatewayv2_api_execution_arn" {
 variable "queues" {
   type = object({
     input_sqs_arn   = string,
-    output_sqs_arns = list(string),
+    output_sqs_arns = set(string),
     dlq_arn         = string,
   })
 }

@@ -30,7 +30,10 @@ def handler(event, context):
                         report = generate_report(database_holder, request_id)
                         filename = f'Report_{request_id}.csv'
                         with open(f'./{filename}', 'w', newline='') as csvfile:
-                            csv_writer = csv.writer(csvfile) ## TODO añadirle linea de encabezado al csv
+                            csv_writer = csv.writer(csvfile)
+                            csv_writer.writerows('REQUEST_ID, QUERY, NCBI_STUDY, GSE, SRP, SRR, SPOTS, BASES, ORGANISM'
+                                                 'NSPOTS, LAYOUT, PHRED_READ_OVER_37, READ_0_COUNT, READ_0_AVERAGE,'
+                                                 'READ_0_STDEV, READ_1_COUNT, READ_1_AVERAGE, READ_1_STDEV')
                             csv_writer.writerows(report)
                         s3.upload_file(f'./{filename}', 'sra-collector-reports', filename)
                         update_request_status(database_holder, request_id)

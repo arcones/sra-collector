@@ -137,3 +137,20 @@ module "G_get_srr_metadata_lambda" {
   batch_size                            = 100
   batch_size_window                     = 1
 }
+
+module "H_generate_report_lambda" {
+  source                = "./infra"
+  code_path             = "${path.module}/code"
+  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name         = "H_generate_report"
+  queues = {
+    input_sqs_arn   = var.queues.G_srr_metadata.G_srr_metadata_arn
+    output_sqs_arns = []
+    dlq_arn         = var.queues.G_to_S3_DLQ_arn
+  }
+  rds_kms_key_arn                       = var.rds_kms_key_arn
+  rds_secret_arn                        = local.rds_secret_arn
+  cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.G_srr_metadata.G_srr_metadata_visibility_timeout - 10
+  memory_size                           = 128
+}

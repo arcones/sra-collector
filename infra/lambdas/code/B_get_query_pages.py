@@ -61,7 +61,7 @@ def handler(event, context):
                                                      'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
 
                         too_expensive_user_feedback_message = {'request_id': request_id, 'result': 'FAILURE', 'reason': too_expensive_halt_reason}
-                        SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)
+                        SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)  # TODO reconciliar esto con el reporte en s3
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
