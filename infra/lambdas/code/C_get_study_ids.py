@@ -76,7 +76,7 @@ def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
 def get_query(database_holder, request_id: str):
     try:
         statement = f'select query from request where id=%s;'
-        return database_holder.execute_read_statement(statement, (request_id,))[0]
+        return database_holder.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_query.__name__}: {str(exception)}')
         raise exception

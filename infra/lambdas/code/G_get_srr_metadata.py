@@ -93,7 +93,7 @@ def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRR
     try:
         sra_run_metadata_id = database_holder.execute_write_statement('insert into sra_run_metadata (sra_run_id, spots, bases, organism) '
                                                                       'values (%s, %s, %s, %s) on conflict do nothing returning id;',
-                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism))[0]
+                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism))[0][0]
         store_srr_metadata_phred(database_holder, sra_run_metadata_id, srr_metadata.phred)
         store_srr_statistic_reads(database_holder, sra_run_metadata_id, srr_metadata.statistic_read)
     except Exception as exception:
@@ -134,7 +134,7 @@ def get_request_id_and_srr(database_holder, sra_run_id: int) -> (str, str):
                      'join sra_run sr on sp.id = sr.sra_project_id '
                      'where sr.id=%s;')
         parameters = (sra_run_id,)
-        return database_holder.execute_read_statement(statement, parameters)
+        return database_holder.execute_read_statement(statement, parameters)[0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_request_id_and_srr.__name__}: {str(exception)}')
         raise exception
@@ -208,7 +208,7 @@ def is_srr_count_ready(database_holder, request_id: str) -> bool:
     try:
         statement = ('select 1 from ncbi_study ns '
                      'join request r on r.id = ns.request_id '
-                     'where r.id=%s and srr_count is null;')
+                     'where r.id=%s and srr_metadata_count is null;')
         return not database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:
         logging.error(f'An exception has occurred in {is_srr_count_ready.__name__}: {str(exception)}')
@@ -217,10 +217,10 @@ def is_srr_count_ready(database_holder, request_id: str) -> bool:
 
 def get_sum_srr_count_metadata(database_holder, request_id: str) -> bool:
     try:
-        statement = ('select sum(srr_count) from ncbi_study ns '
+        statement = ('select sum(srr_metadata_count) from ncbi_study ns '
                      'join request r on r.id = ns.request_id '
                      'where r.id=%s;')
-        return not database_holder.execute_read_statement(statement, (request_id,))[0]
+        return not database_holder.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_sum_srr_count_metadata.__name__}: {str(exception)}')
         raise exception
@@ -235,7 +235,7 @@ def get_sum_actual_metadatas(database_holder, request_id: str) -> bool:
                      'join ncbi_study ns on ns.id = gs.ncbi_study_id '
                      'join request r on r.id = ns.request_id '
                      'where r.id=%s;')
-        return not database_holder.execute_read_statement(statement, (request_id,))[0]
+        return not database_holder.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_sum_actual_metadatas.__name__}: {str(exception)}')
         raise exception

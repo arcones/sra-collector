@@ -27,16 +27,15 @@ def handler(event, context):
                     request_status = get_request_status(database_holder, request_id)
 
                     if request_status == 'PENDING':
-
                         report = generate_report(database_holder, request_id)
                         filename = f'Report_{request_id}.csv'
                         with open(f'./{filename}', 'w', newline='') as csvfile:
-                            csv_writer = csv.writer(csvfile)
+                            csv_writer = csv.writer(csvfile) ## TODO añadirle linea de encabezado al csv
                             csv_writer.writerows(report)
                         s3.upload_file(f'./{filename}', 'sra-collector-reports', filename)
                         update_request_status(database_holder, request_id)
                     elif request_status == 'COMPLETED':
-                        logging.debug(f'For {request_id} the CSV was already generated')
+                        logging.info(f'For {request_id} the CSV was already generated')
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -49,7 +48,7 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
     try:
         statement = 'select status from request where id=%s'
         parameters = (request_id,)
-        rows = database_holder.execute_read_statement(statement, parameters)
+        rows = database_holder.execute_read_statement(statement, parameters)[0]
         return rows[0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_request_status.__name__}: {str(exception)}')
@@ -71,9 +70,9 @@ def generate_report(database_holder, request_id: str) -> [[]]:
                      'JOIN GEO_STUDY GS ON SP.GEO_STUDY_ID = GS.ID '
                      'JOIN NCBI_STUDY NS ON GS.NCBI_STUDY_ID = NS.ID '
                      'JOIN REQUEST R ON NS.REQUEST_ID = R.ID '
-                     "WHERE R.ID = '{request_id}'"
+                     'WHERE R.ID =%s '
                      'GROUP BY SRM.BASES; ')
-        return database_holder.execute_read_statement(statement, (request_id,)) ## todo AQUI HACE FALTA EL FETCHALL POR DEBAJO
+        return database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:
         logging.error(f'An exception has occurred in {generate_report.__name__}: {str(exception)}')
         raise exception
@@ -81,8 +80,8 @@ def generate_report(database_holder, request_id: str) -> [[]]:
 
 def update_request_status(database_holder, request_id: str):
     try:
-        statement = "UPDATE REQUEST SET STATUS='COMPLETED' WHERE ID='{request_id}'"
+        statement = "UPDATE REQUEST SET STATUS='COMPLETED' WHERE ID=%s"
         database_holder.execute_write_statement(statement, (request_id,))
     except Exception as exception:
-        logging.error(f'An exception has occurred in {generate_report.__name__}: {str(exception)}')
+        logging.error(f'An exception has occurred in {update_request_status.__name__}: {str(exception)}')
         raise exception

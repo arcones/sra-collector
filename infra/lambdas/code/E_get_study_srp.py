@@ -70,7 +70,7 @@ def handler(event, context):
 def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
     try:
         statement = f'insert into sra_project (geo_study_id, srp) values (%s, %s) on conflict do nothing returning id;'
-        return database_holder.execute_write_statement(statement, (geo_entity_id, srp))[0]
+        return database_holder.execute_write_statement(statement, (geo_entity_id, srp))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srp_in_db.__name__}: {str(exception)}')
         raise exception
@@ -79,7 +79,7 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
 def get_gse_geo_study(database_holder, geo_entity_id: int) -> str:
     try:
         statement = f'select gse from geo_study where id=%s;'
-        return database_holder.execute_read_statement(statement, (geo_entity_id,))[0]
+        return database_holder.execute_read_statement(statement, (geo_entity_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_gse_geo_study.__name__}: {str(exception)}')
         raise exception
@@ -89,7 +89,7 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='gse_to_srp';"
         parameters = (pysradb_error.value,)
-        return database_holder.execute_read_statement(statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_pysradb_error_reference.__name__}: {str(exception)}')
         raise exception
@@ -118,7 +118,7 @@ def store_missing_srp_in_db(database_holder, geo_entity_id: int, pysradb_error: 
 
 def update_ncbi_study_srr_count(database_holder, geo_entity_id: int):
     try:
-        statement = 'update ncbi_study set srr_count=0 where id=(select ncbi_study_id from geo_study where id=%s)'
+        statement = 'update ncbi_study set srr_metadata_count=0 where id=(select ncbi_study_id from geo_study where id=%s)'
         database_holder.execute_write_statement(statement, (geo_entity_id,))
     except Exception as exception:
         logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')

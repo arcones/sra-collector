@@ -96,7 +96,7 @@ def is_request_pending_to_be_processed(database_holder, request_id: str, ncbi_qu
     try:
         statement = f'select id from request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
-        return database_holder.execute_read_statement(statement, parameters) is None
+        return not database_holder.execute_read_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {is_request_pending_to_be_processed.__name__}: {str(exception)}')
         raise exception

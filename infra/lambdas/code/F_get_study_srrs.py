@@ -89,7 +89,7 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
         statement = f'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
-        row = database_holder.execute_read_statement(statement, parameters)
+        row = database_holder.execute_read_statement(statement, parameters)[0]
         return row[0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_srp_sra_project.__name__}: {str(exception)}')
@@ -105,14 +105,14 @@ def store_missing_srr_and_count(database_holder, sra_project_id: int, pysradb_er
         raise exception
 
 
-def update_ncbi_study_srr_count(database_holder, sra_project_id: int, srr_count: int):
+def update_ncbi_study_srr_count(database_holder, sra_project_id: int, srr_metadata_count: int):
     try:
-        statement = ('update ncbi_study set srr_count=%s '
+        statement = ('update ncbi_study set srr_metadata_count=%s '
                      'where id=('
                      'select ncbi_study_id from geo_study gs '
                      'join sra_project sp on sp.geo_study_id = gs.id '
                      'where sp.id=%s)')
-        database_holder.execute_write_statement(statement, (srr_count, sra_project_id))
+        database_holder.execute_write_statement(statement, (srr_metadata_count, sra_project_id))
     except Exception as exception:
         logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception
@@ -134,7 +134,7 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='srp_to_srr';"
         parameters = (pysradb_error.value,)
-        return database_holder.execute_read_statement(statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_pysradb_error_reference.__name__}: {str(exception)}')
         raise exception

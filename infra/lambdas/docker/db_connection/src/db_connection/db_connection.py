@@ -111,7 +111,7 @@ class DBConnectionManager:
         if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             self.database_cursor.execute(statement, parameters)
             try:
-                result = self.database_cursor.fetchone()  ## TODO deberia ser fetchall().. para la select
+                result = self.database_cursor.fetchall()
             except ProgrammingError:
                 pass
         elif os.environ['ENV'] == 'unit-test':
@@ -119,7 +119,7 @@ class DBConnectionManager:
             for statement, parameters in statement_2_parameters.items():
                 if _is_select(statement):
                     self.database_cursor.execute(statement, parameters)
-                    result = self.database_cursor.fetchone()  ## TODO deberia ser fetchall().. para la select
+                    result = self.database_cursor.fetchall()
                 else:
                     self.database_cursor.execute(statement, parameters)
         return result

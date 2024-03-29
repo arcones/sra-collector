@@ -15,19 +15,33 @@ DEFAULT_FIXTURE = {
     'gse': 'GSE126815',
     'srp': 'SRP185522',
     'srrs': ['SRR22873806', 'SRR22873807'],
-    'metadata': {'spots': 342491658,
-                 'bases': 101957489026,
-                 'organism': 'human gammaherpesvirus 4',
-                 'phred': [(2, 2781953), (11, 3181387515), (25, 5012929637), (37, 93760389921)],
-                 'statistic_reads': {'nspots': 342491658,
-                                     'read_0_count': 342491658,
-                                     'read_0_average': 148.87,
-                                     'read_0_stdev': 10.29,
-                                     'read_1_count': 342491658,
-                                     'read_1_average': 148.83,
-                                     'read_1_stdev': 10.41,
-                                     'layout': 'PAIRED'}
-                 }
+    'metadatas': [
+        {'spots': 342491658,
+         'bases': 101957489026,
+         'organism': 'human gammaherpesvirus 4',
+         'phred': [(2, 2781953), (11, 3181387515), (25, 5012929637), (37, 93760389921)],
+         'statistic_reads': {'nspots': 342491658,
+                             'read_0_count': 342491658,
+                             'read_0_average': 148.87,
+                             'read_0_stdev': 10.29,
+                             'read_1_count': 342491658,
+                             'read_1_average': 148.83,
+                             'read_1_stdev': 10.41,
+                             'layout': 'PAIRED'}
+         },
+        {'spots': 734983,
+         'bases': 3000000000,
+         'organism': 'drosophila',
+         'phred': [(18, 998736778), (30, 938398), (31, 324823), (38, 2000000000), (40, 1)],
+         'statistic_reads': {'nspots': 48243,
+                             'read_0_count': 26546,
+                             'read_0_average': 5654.44,
+                             'read_0_stdev': 45646.44,
+                             'read_1_count': 0,
+                             'read_1_average': 0,
+                             'read_1_stdev': 0,
+                             'layout': 'SINGLE'}
+         }]
 }
 
 
@@ -61,9 +75,9 @@ def store_test_request(database_holder, request_id, ncbi_query):
     database_connection.commit()
 
 
-def stores_test_ncbi_study(database_holder, request_id, ncbi_id, srr_count=None):
+def stores_test_ncbi_study(database_holder, request_id, ncbi_id, srr_metadata_count=None):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into ncbi_study (request_id, ncbi_id, srr_count) values (?, ?, ?);', [request_id, ncbi_id, srr_count])
+    database_cursor.execute('insert into ncbi_study (request_id, ncbi_id, srr_metadata_count) values (?, ?, ?);', [request_id, ncbi_id, srr_metadata_count])
     database_connection.commit()
     database_cursor.execute('select id from ncbi_study where request_id=? and ncbi_id=?', [request_id, ncbi_id])
     return database_cursor.fetchone()[0]
@@ -71,7 +85,6 @@ def stores_test_ncbi_study(database_holder, request_id, ncbi_id, srr_count=None)
 
 def store_test_geo_study(database_holder, study_id, gse):
     database_connection, database_cursor = database_holder
-
     database_cursor.execute('insert into geo_study (ncbi_study_id, gse) values (?, ?);', [study_id, gse])
     database_connection.commit()
     database_cursor.execute('select id from geo_study where ncbi_study_id=? and gse=?', [study_id, gse])
@@ -92,6 +105,30 @@ def store_test_sra_run(database_holder, sra_project_id, srr):
     database_connection.commit()
     database_cursor.execute('select id from sra_run where sra_project_id=? and srr=?;', [sra_project_id, srr])
     return database_cursor.fetchone()[0]
+
+
+def store_test_metadata(database_holder, sra_run_ids):
+    database_connection, database_cursor = database_holder
+    for sra_run_id, metadata in zip(sra_run_ids, DEFAULT_FIXTURE['metadatas']):
+        parameters = [sra_run_id, metadata['spots'], metadata['bases'], metadata['organism']]
+        database_cursor.execute('insert into sra_run_metadata (sra_run_id, spots, bases, organism) values (?, ?, ?, ?);', parameters)
+        database_connection.commit()
+
+        database_cursor.execute('select id from sra_run_metadata where sra_run_id=? and spots=? and bases=? and organism=?;', parameters)
+        sra_run_metadata_id = database_cursor.fetchone()[0]
+
+        statistic_read_parameters = [sra_run_metadata_id, metadata['statistic_reads']['nspots'], metadata['statistic_reads']['layout'],
+                                     metadata['statistic_reads']['read_0_count'], metadata['statistic_reads']['read_0_average'], metadata['statistic_reads']['read_0_stdev'],
+                                     metadata['statistic_reads']['read_1_count'], metadata['statistic_reads']['read_1_average'], metadata['statistic_reads']['read_1_stdev']]
+        database_cursor.execute('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots, layout, '
+                                'read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
+                                'values (?, ?, ?, ?, ?, ?, ?, ?, ?);', statistic_read_parameters)
+        database_connection.commit()
+
+        for phred_item in metadata['phred']:
+            database_cursor.execute('insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) values (?, ?, ?);',
+                                    [sra_run_metadata_id, phred_item[0], phred_item[1]])
+            database_connection.commit()
 
 
 def mock_eutils(method, url, *args, **kwargs):
