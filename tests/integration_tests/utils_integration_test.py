@@ -73,17 +73,14 @@ def store_test_geo_study(database_holder, study_id, gse):
 
 def store_test_sra_project(database_holder, geo_study_id, srp):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into sra_project (srp) values (%s) returning id;', (srp,))
+    database_cursor.execute('insert into sra_project (geo_study_id, srp) values (%s, %s) returning id;', (geo_study_id, srp))
     inserted_sra_project_id = database_cursor.fetchone()[0]
     database_connection.commit()
-    #database_cursor.execute('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s);', (geo_study_id, inserted_sra_project_id))
-    #database_connection.commit()
     return inserted_sra_project_id
 
 
 def store_test_sra_run(database_holder, sra_project_id, srr):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into sra_run (sra_project_id, srr) values (%s, %s) returning id;', (sra_project_id, srr))
-    inserted_sra_run_id = database_cursor.fetchone()[0]
     database_connection.commit()
-    return inserted_sra_run_id
+    return database_cursor.fetchone()[0]

@@ -166,7 +166,7 @@ def test_f_get_study_srrs(lambda_client):
         assert lambda_response['batchItemFailures'] == []
 
 
-def test_g_get_srr_metadata(lambda_client):  # TODO hacerlo funcionar
+def test_g_get_srr_metadata(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
         request_id = provide_random_request_id()
@@ -178,7 +178,7 @@ def test_g_get_srr_metadata(lambda_client):  # TODO hacerlo funcionar
         input_body = json.dumps({'sra_run_id': sra_run_id})
 
         # WHEN
-        invocation_result = lambda_client.invoke(FunctionName='F_get_study_srrs', Payload=sqs_wrap([input_body], dumps=True))
+        invocation_result = lambda_client.invoke(FunctionName='G_get_srr_metadata', Payload=sqs_wrap([input_body], dumps=True))
 
         # THEN
         lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
@@ -187,3 +187,7 @@ def test_g_get_srr_metadata(lambda_client):  # TODO hacerlo funcionar
         assert lambda_response is None or 'errorType' not in lambda_response
 
         assert lambda_response['batchItemFailures'] == []
+
+
+# def test_h_generate_report(lambda_client):  # TODO hacerlo funcionar
+#     with PostgreConnectionManager() as (database_connection, database_cursor):

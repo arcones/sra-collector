@@ -39,6 +39,7 @@ class SQSHelper:
                 self._batch_send(message_bodies)
         except Exception as exception:
             logging.error(f'An exception has occurred in {self.send.__name__}: {str(exception)}')
+            raise exception
 
     def _single_send(self, message_body: dict):
         try:
@@ -46,6 +47,7 @@ class SQSHelper:
             logging.info(f'Sent {message_body} message to {self.output_sqs}')
         except Exception as exception:
             logging.error(f'An exception has occurred in {self._single_send.__name__}: {str(exception)}')
+            raise exception
 
     def _batch_send(self, message_bodies: [dict]):
         try:
@@ -60,8 +62,9 @@ class SQSHelper:
             message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
 
             for message_batch in message_batches:
-                self.sqs.send_message_batch(QueueUrl=self.output_sqs, Entries=json.dumps(message_batch))
+                self.sqs.send_message_batch(QueueUrl=self.output_sqs, Entries=message_batch)
 
             logging.info(f'Sent {len(message_bodies)} messages to {self.output_sqs.split("/")[-1]}')
         except Exception as exception:
             logging.error(f'An exception has occurred in {self._batch_send.__name__}: {str(exception)}')
+            raise exception

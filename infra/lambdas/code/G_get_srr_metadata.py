@@ -1,6 +1,6 @@
 import json
 import logging
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ElementTree
 
 import boto3
 import urllib3
@@ -146,7 +146,7 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
 
         url = f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={srr_metadata.srr}'
         response = http.request('GET', url).data
-        root = ET.fromstring(response)
+        root = ElementTree.fromstring(response)
 
         run_node = root.findall('.//RUN')
         if len(run_node) > 0:

@@ -84,7 +84,7 @@ def test_b_get_query_pages():
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message_batch.call_count == 1
 
-                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries']]
                 assert {message_body['request_id'] for message_body in actual_message_bodies} == {request_id}
                 assert {message_body['retmax'] for message_body in actual_message_bodies} == {500}
                 assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500}
@@ -185,7 +185,7 @@ def test_c_get_study_ids():
                 assert mock_sqs.send_message_batch.call_count == 1
 
                 expected_message_bodies = [{'ncbi_study_id': ncbi_study_id[0]} for ncbi_study_id in ncbi_study_ids]
-                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries']]
                 assert actual_message_bodies == expected_message_bodies
 
 
@@ -437,7 +437,7 @@ def test_f_get_study_srrs_ok():
                 assert mock_sqs.send_message_batch.call_count == 1
 
                 expected_message_bodies = [{'sra_run_id': srr_row[0]} for srr_row in actual_ok_rows]
-                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in json.loads(mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries'])]
+                actual_message_bodies = [json.loads(entry['MessageBody']) for entry in mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries']]
 
                 assert actual_message_bodies == expected_message_bodies
 

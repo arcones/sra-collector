@@ -1,7 +1,5 @@
 import json
 import logging
-import os
-import time
 from enum import Enum
 
 import boto3
@@ -89,8 +87,7 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
         statement = f'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
-        row = database_holder.execute_read_statement(statement, parameters)[0]
-        return row[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_srp_sra_project.__name__}: {str(exception)}')
         raise exception
