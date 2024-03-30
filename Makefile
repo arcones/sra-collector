@@ -4,6 +4,7 @@ FLYWAY_PASSWORD?='$(shell aws secretsmanager get-secret-value --secret-id rds\!d
 DATABASE_PASSWORD?=$(shell urlencode $(FLYWAY_PASSWORD))
 DB_CONNECTION_LIB_VERSION=0.0.5
 SQS_HELPER_LIB_VERSION=0.0.1
+S3_HELPER_LIB_VERSION=0.0.1
 
 db-migrations-integration-test:
 	@docker run --rm -v $(shell pwd)/db/migrations:/flyway/sql -v $(shell pwd)/db/conf-integration-test:/flyway/conf -e FLYWAY_PASSWORD=$(FLYWAY_PASSWORD) flyway/flyway clean migrate
@@ -100,6 +101,7 @@ build-unit-tests-dependencies: db-migrations-unit-test
 	cd tests/unit_tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall
 	cd infra/lambdas/docker/sqs_helper && python -m build && pip install dist/sqs_helper-$(SQS_HELPER_LIB_VERSION)-py3-none-any.whl --force-reinstall
+	cd infra/lambdas/docker/s3_helper && python -m build && pip install dist/s3_helper-$(S3_HELPER_LIB_VERSION)-py3-none-any.whl --force-reinstall
 
 
 integration-tests-server: build-lambda-dependencies
