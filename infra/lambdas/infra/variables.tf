@@ -17,9 +17,9 @@ variable "aws_apigatewayv2_api_execution_arn" {
 
 variable "queues" {
   type = object({
-    input_sqs_arn  = string,
-    output_sqs_arn = string,
-    dlq_arn        = string,
+    input_sqs_arn   = string,
+    output_sqs_arns = set(string),
+    dlq_arn         = string,
   })
 }
 
@@ -65,4 +65,9 @@ variable "batch_size" {
 variable "batch_size_window" {
   default = 0
   type    = number
+}
+
+variable "s3_reports_bucket_arn" {
+  default = null
+  type    = string
 }

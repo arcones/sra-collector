@@ -80,7 +80,7 @@ class DBConnectionManager:
             logger.info(f'Executed {statement} with parameters {parameters}')
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_read_statement.__name__}: {str(exception)}')
             raise exception
 
     def execute_write_statement(self, statement: str, parameters: tuple):
@@ -91,7 +91,7 @@ class DBConnectionManager:
             self.database_connection.commit()
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_write_statement.__name__}: {str(exception)}')
             raise exception
 
     def execute_bulk_write_statement(self, statement: str, parameters: [tuple]):
@@ -102,7 +102,7 @@ class DBConnectionManager:
             self.database_connection.commit()
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_bulk_write_statement.__name__}: {str(exception)}')
             raise exception
 
     def _cursor_execute_single_and_return(self, statement, parameters) -> None | tuple:
@@ -110,7 +110,7 @@ class DBConnectionManager:
         if os.environ['ENV'] == 'prod' or os.environ['ENV'] == 'integration-test':
             self.database_cursor.execute(statement, parameters)
             try:
-                result = self.database_cursor.fetchone()
+                result = self.database_cursor.fetchall()
             except ProgrammingError:
                 pass
         elif os.environ['ENV'] == 'unit-test':
@@ -118,7 +118,7 @@ class DBConnectionManager:
             for statement, parameters in statement_2_parameters.items():
                 if _is_select(statement):
                     self.database_cursor.execute(statement, parameters)
-                    result = self.database_cursor.fetchone()
+                    result = self.database_cursor.fetchall()
                 else:
                     self.database_cursor.execute(statement, parameters)
         return result
@@ -129,7 +129,7 @@ class DBConnectionManager:
             for parameter in parameters:
                 self.database_cursor.execute(statement, parameter)
                 try:
-                    inserted_id = self.database_cursor.fetchone()
+                    inserted_id = self.database_cursor.fetchone()[0]
                     result.append(inserted_id)
                 except ProgrammingError:
                     pass
@@ -139,7 +139,7 @@ class DBConnectionManager:
                 if _is_select(statement):
                     for parameter_group in parameter_groups:
                         self.database_cursor.execute(statement, parameter_group)
-                        result.append(self.database_cursor.fetchone())
+                        result.append(self.database_cursor.fetchone()[0])
                 else:
                     self.database_cursor.executemany(statement, parameter_groups)
         return result

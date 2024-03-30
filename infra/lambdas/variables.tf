@@ -2,7 +2,11 @@ variable "aws_apigatewayv2_api_execution_arn" {
   type = string
 }
 
-variable "s3_bucket_id" {
+variable "s3_code_bucket_id" {
+  type = string
+}
+
+variable "s3_reports_bucket_arn" {
   type = string
 }
 
@@ -12,31 +16,41 @@ variable "queues" {
       A_user_query_sqs_arn                = string
       A_user_query_sqs_visibility_timeout = number
     }),
-    A_DLQ_user_query_2_query_pages_arn = string,
+    A_to_B_DLQ_arn = string,
     B_query_pages_sqs = object({
       B_query_pages_sqs_arn                = string
       B_query_pages_sqs_visibility_timeout = number
     }),
-    B_DLQ_query_pages_2_study_ids_arn = string,
+    B_to_C_DLQ_arn = string,
     C_study_ids_sqs = object({
       C_study_ids_sqs_arn                = string
       C_study_ids_sqs_visibility_timeout = number
     }),
-    C_DLQ_study_ids_2_geos_arn = string,
+    C_to_D_DLQ_arn = string,
     D_geos_sqs = object({
       D_geos_sqs_arn                = string
       D_geos_sqs_visibility_timeout = number
     }),
-    D_DLQ_geos_2_srps_arn = string,
+    D_to_E_DLQ_arn = string,
     E_srps_sqs = object({
       E_srps_sqs_arn                = string
       E_srps_sqs_visibility_timeout = number
     }),
-    E_DLQ_srps_2_srrs_arn = string,
+    E_to_F_DLQ_arn = string,
     F_srrs_sqs = object({
       F_srrs_sqs_arn                = string
       F_srrs_sqs_visibility_timeout = number
     }),
+    F_to_G_DLQ_arn = string,
+    G_srr_metadata = object({
+      G_srr_metadata_arn                = string
+      G_srr_metadata_visibility_timeout = number
+    })
+    G_to_S3_DLQ_arn = string,
+    H_user_feedback = object({
+      H_user_feedback_arn                = string
+      H_user_feedback_visibility_timeout = number
+    })
   })
 }
 

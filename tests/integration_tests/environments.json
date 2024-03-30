@@ -16,5 +16,11 @@
   },
   "ModuleLambdasModuleFGetStudySrrsLambdaAwsLambdaFunctionFunctionE863B903": {
     "ENV": "integration-test"
+  },
+  "ModuleLambdasModuleGGetSrrMetadataLambdaAwsLambdaFunctionFunction0013013F": {
+    "ENV": "integration-test"
+  },
+  "ModuleLambdasModuleHGenerateReportLambdaAwsLambdaFunctionFunctionC6933FDE": {
+    "ENV": "integration-test"
   }
 }

@@ -1,21 +1,15 @@
 import json
 import logging
-import os
-import time
 from enum import Enum
 
 import boto3
 from db_connection.db_connection import DBConnectionManager
 from pysradb import SRAweb
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 
 sqs = boto3.client('sqs', region_name='eu-central-1')
-
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/F_srrs'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
 
 
 class PysradbError(Enum):
@@ -48,44 +42,44 @@ def handler(event, context):
 
                         if srrs:
                             logging.info(f'For {srp}, SRRs are {srrs}')
+                            sra_run_ids = store_srrs_and_count(database_holder, srrs, sra_project_id)
 
-                            messages = []
+                            message_bodies = [{'sra_run_id': sra_run_id} for sra_run_id in sra_run_ids]
 
-                            for srr in srrs:
-                                messages.append({
-                                    'Id': str(time.time()).replace('.', ''),
-                                    'MessageBody': json.dumps({'srr': srr})
-                                })
+                            SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
 
-                            store_srrs_in_db(database_holder, srrs, sra_project_id)
-
-                            message_batches = [messages[index:index + 10] for index in range(0, len(messages), 10)]
-                            for message_batch in message_batches:
-                                sqs.send_message_batch(QueueUrl=output_sqs, Entries=message_batch)
-
-                            logging.info(f'Sent {len(messages)} messages to {output_sqs.split("/")[-1]}')
                         else:
                             logging.info(f'No SRR for {srp} found via pysradb')
-                            store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')
+                            store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')
                     except AttributeError as attribute_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced attribute error with name {attribute_error.name}')
-                        store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
+                        store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.ATTRIBUTE_ERROR, str(attribute_error))
                     except TypeError as type_error:
                         logging.info(f'For SRP with id {sra_project_id}, pysradb produced type error with name {type_error}')
-                        store_missing_srr_in_db(database_holder, sra_project_id, PysradbError.TYPE_ERROR, str(type_error))
+                        store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.TYPE_ERROR, str(type_error))
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
-                logging.error(f'An exception has occurred: {str(exception)}')
+                logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
         sqs_batch_response['batchItemFailures'] = batch_item_failures
         return sqs_batch_response
+
+
+def store_srrs_and_count(database_holder, srrs: [str], sra_project_id: int):
+    try:
+        srr_and_sra_id_tuples = store_srrs_in_db(database_holder, srrs, sra_project_id)
+        update_ncbi_study_srr_count(database_holder, sra_project_id, len(srrs))
+        return srr_and_sra_id_tuples
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_srrs_and_count.__name__}: {str(exception)}')
+        raise exception
 
 
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
         srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
-        database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing;', srr_and_sra_id_tuples)
+        return database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;', srr_and_sra_id_tuples)
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_srrs_in_db.__name__}: {str(exception)}')
         raise exception
 
 
@@ -93,10 +87,31 @@ def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
         statement = f'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
-        row = database_holder.execute_read_statement(statement, parameters)
-        return row[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_srp_sra_project.__name__}: {str(exception)}')
+        raise exception
+
+
+def store_missing_srr_and_count(database_holder, sra_project_id: int, pysradb_error: PysradbError, details: str):
+    try:
+        store_missing_srr_in_db(database_holder, sra_project_id, pysradb_error, details)
+        update_ncbi_study_srr_count(database_holder, sra_project_id, 0)
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_missing_srr_and_count.__name__}: {str(exception)}')
+        raise exception
+
+
+def update_ncbi_study_srr_count(database_holder, sra_project_id: int, srr_metadata_count: int):
+    try:
+        statement = ('update ncbi_study set srr_metadata_count=%s '
+                     'where id=('
+                     'select ncbi_study_id from geo_study gs '
+                     'join sra_project sp on sp.geo_study_id = gs.id '
+                     'where sp.id=%s)')
+        database_holder.execute_write_statement(statement, (srr_metadata_count, sra_project_id))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception
 
 
@@ -108,7 +123,7 @@ def store_missing_srr_in_db(database_holder, sra_project_id: int, pysradb_error:
         parameters = (sra_project_id, pysradb_error_reference_id, details)
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_missing_srr_in_db.__name__}: {str(exception)}')
         raise exception
 
 
@@ -116,7 +131,7 @@ def get_pysradb_error_reference(database_holder, pysradb_error: PysradbError) ->
     try:
         statement = f"select id from pysradb_error_reference where name=%s and operation='srp_to_srr';"
         parameters = (pysradb_error.value,)
-        return database_holder.execute_read_statement(statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_pysradb_error_reference.__name__}: {str(exception)}')
         raise exception

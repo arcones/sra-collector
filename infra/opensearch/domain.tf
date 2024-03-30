@@ -34,8 +34,8 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
         Condition : {
           IpAddress : {
             "aws:SourceIp" : [
-              "77.225.25.138/32",
-              "79.116.183.0/24"
+              "86.127.230.240/32", ## Home
+              "79.116.183.0/24"    ## Work
             ]
           }
         },

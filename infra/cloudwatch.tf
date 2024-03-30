@@ -18,14 +18,18 @@ locals {
     (module.lambdas.get_study_ids_function_name)               = 5,
     (module.lambdas.get_study_geo_function_name)               = 5,
     (module.lambdas.get_study_srp_function_name)               = 10,
-    (module.lambdas.get_study_srrs_function_name)              = 10
+    (module.lambdas.get_study_srrs_function_name)              = 10,
+    (module.lambdas.get_srr_metadata_function_name)            = 1,
+    (module.lambdas.generate_report_function_name)             = 1
   }
   dlqs = [
-    aws_sqs_queue.A_DLQ_user_query_2_query_pages.name,
-    aws_sqs_queue.B_DLQ_query_pages_2_study_ids.name,
-    aws_sqs_queue.C_DLQ_study_ids_2_geos.name,
-    aws_sqs_queue.D_DLQ_geos_2_srps.name,
-    aws_sqs_queue.E_DLQ_srps_2_srrs.name,
+    aws_sqs_queue.A_to_B_DLQ.name,
+    aws_sqs_queue.B_to_C_DLQ.name,
+    aws_sqs_queue.C_to_D_DLQ.name,
+    aws_sqs_queue.D_to_E_DLQ.name,
+    aws_sqs_queue.E_to_F_DLQ.name,
+    aws_sqs_queue.F_to_G_DLQ.name,
+    aws_sqs_queue.G_to_S3_DLQ.name,
   ]
 }
 
@@ -36,8 +40,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
   evaluation_periods  = 1
   datapoints_to_alarm = 1
   alarm_description   = "Lambda ${each.key} error rate exceeded ${each.value}%"
-  alarm_actions       = [aws_sns_topic.admin.arn]
-  ok_actions          = [aws_sns_topic.admin.arn]
+  alarm_actions       = [aws_sns_topic.sra_collector_monitoring_topic.arn]
+  ok_actions          = [aws_sns_topic.sra_collector_monitoring_topic.arn]
   threshold           = each.value
   treat_missing_data  = "ignore"
 
@@ -83,8 +87,8 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
   threshold           = 0
-  alarm_actions       = [aws_sns_topic.admin.arn]
-  ok_actions          = [aws_sns_topic.admin.arn]
+  alarm_actions       = [aws_sns_topic.sra_collector_monitoring_topic.arn]
+  ok_actions          = [aws_sns_topic.sra_collector_monitoring_topic.arn]
   treat_missing_data  = "ignore"
 
   metric_query {

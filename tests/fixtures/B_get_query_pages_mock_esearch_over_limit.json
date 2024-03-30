@@ -1,0 +1,37 @@
+{
+    "header": {
+        "type": "esearch",
+        "version": "0.3"
+    },
+    "esearchresult": {
+        "count": "1412995",
+        "retmax": "1",
+        "retstart": "0",
+        "idlist": [
+            "200261927"
+        ],
+        "translationset": [
+            {
+                "from": "cancer",
+                "to": "\"neoplasms\"[MeSH Terms] OR cancer[All Fields]"
+            }
+        ],
+        "translationstack": [
+            {
+                "term": "\"neoplasms\"[MeSH Terms]",
+                "field": "MeSH Terms",
+                "count": "1412995",
+                "explode": "Y"
+            },
+            {
+                "term": "cancer[All Fields]",
+                "field": "All Fields",
+                "count": "480146",
+                "explode": "N"
+            },
+            "OR",
+            "GROUP"
+        ],
+        "querytranslation": "\"neoplasms\"[MeSH Terms] OR cancer[All Fields]"
+    }
+}

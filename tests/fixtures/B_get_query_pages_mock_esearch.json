@@ -1,89 +1,82 @@
 {
-  "header": {
-    "type": "esearch",
-    "version": "0.3"
-  },
-  "esearchresult": {
-    "count": "1096",
-    "retmax": "1",
-    "retstart": "0",
-    "idlist": [
-      "200221906"
-    ],
-    "translationset": [
-      {
-        "from": "homo sapiens",
-        "to": "\"humans\"[MeSH Terms] OR \"Homo sapiens\"[Organism] OR homo sapiens[All Fields]"
-      },
-      {
-        "from": "leukemia",
-        "to": "\"leukemia\"[MeSH Terms] OR leukemia[All Fields]"
-      },
-      {
-        "from": "rna seq",
-        "to": "rna seq[All Fields]"
-      }
-    ],
-    "translationstack": [
-      {
-        "term": "rna seq[All Fields]",
-        "field": "All Fields",
-        "count": "256121",
-        "explode": "N"
-      },
-      {
-        "term": "\"humans\"[MeSH Terms]",
-        "field": "MeSH Terms",
-        "count": "1028632",
-        "explode": "Y"
-      },
-      {
-        "term": "\"Homo sapiens\"[Organism]",
-        "field": "Organism",
-        "count": "3845572",
-        "explode": "Y"
-      },
-      "OR",
-      {
-        "term": "homo sapiens[All Fields]",
-        "field": "All Fields",
-        "count": "94745",
-        "explode": "N"
-      },
-      "OR",
-      "GROUP",
-      "AND",
-      {
-        "term": "myeloid[All Fields]",
-        "field": "All Fields",
-        "count": "44772",
-        "explode": "N"
-      },
-      "AND",
-      {
-        "term": "\"leukemia\"[MeSH Terms]",
-        "field": "MeSH Terms",
-        "count": "147671",
-        "explode": "Y"
-      },
-      {
-        "term": "leukemia[All Fields]",
-        "field": "All Fields",
-        "count": "141435",
-        "explode": "N"
-      },
-      "OR",
-      "GROUP",
-      "AND",
-      "GROUP"
-    ],
-    "querytranslation": "rna seq[All Fields] AND (\"humans\"[MeSH Terms] OR \"Homo sapiens\"[Organism] OR homo sapiens[All Fields]) AND myeloid[All Fields] AND (\"leukemia\"[MeSH Terms] OR leukemia[All Fields])",
-    "warninglist": {
-      "phrasesignored": [
-        "and"
-      ],
-      "quotedphrasesnotfound": [],
-      "outputmessages": []
+    "header": {
+        "type": "esearch",
+        "version": "0.3"
+    },
+    "esearchresult": {
+        "count": "687",
+        "retmax": "1",
+        "retstart": "0",
+        "idlist": [
+            "200261766"
+        ],
+        "translationset": [
+            {
+                "from": "cancer",
+                "to": "\"neoplasms\"[MeSH Terms] OR cancer[All Fields]"
+            },
+            {
+                "from": "mus musculus",
+                "to": "\"mice\"[MeSH Terms] OR \"Mus musculus\"[Organism] OR mus musculus[All Fields]"
+            },
+            {
+                "from": "children",
+                "to": "\"child\"[MeSH Terms] OR children[All Fields]"
+            }
+        ],
+        "translationstack": [
+            {
+                "term": "\"neoplasms\"[MeSH Terms]",
+                "field": "MeSH Terms",
+                "count": "1412995",
+                "explode": "Y"
+            },
+            {
+                "term": "cancer[All Fields]",
+                "field": "All Fields",
+                "count": "480146",
+                "explode": "N"
+            },
+            "OR",
+            "GROUP",
+            {
+                "term": "\"mice\"[MeSH Terms]",
+                "field": "MeSH Terms",
+                "count": "1861726",
+                "explode": "Y"
+            },
+            {
+                "term": "\"Mus musculus\"[Organism]",
+                "field": "Organism",
+                "count": "2183370",
+                "explode": "Y"
+            },
+            "OR",
+            {
+                "term": "mus musculus[All Fields]",
+                "field": "All Fields",
+                "count": "68142",
+                "explode": "N"
+            },
+            "OR",
+            "GROUP",
+            "AND",
+            {
+                "term": "\"child\"[MeSH Terms]",
+                "field": "MeSH Terms",
+                "count": "45850",
+                "explode": "Y"
+            },
+            {
+                "term": "children[All Fields]",
+                "field": "All Fields",
+                "count": "9010",
+                "explode": "N"
+            },
+            "OR",
+            "GROUP",
+            "AND"
+        ],
+        "querytranslation": "(\"neoplasms\"[MeSH Terms] OR cancer[All Fields]) AND (\"mice\"[MeSH Terms] OR \"Mus musculus\"[Organism] OR mus musculus[All Fields]) AND (\"child\"[MeSH Terms] OR children[All Fields])"
     }
-  }
 }

@@ -1,11 +1,11 @@
 import json
 import logging
-import os
 from enum import Enum
 
 import boto3
 import urllib3
 from db_connection.db_connection import DBConnectionManager
+from sqs_helper.sqs_helper import SQSHelper
 
 boto3.set_stream_logger(name='botocore.credentials', level=logging.ERROR)
 urllib3_logger = logging.getLogger('urllib3')
@@ -15,12 +15,6 @@ FORMAT = '%(funcName)s %(message)s'
 
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 sqs = boto3.client('sqs', region_name='eu-central-1')
-
-if os.environ['ENV'] == 'prod':
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/D_geos'
-else:
-    output_sqs = 'https://sqs.eu-central-1.amazonaws.com/120715685161/integration_test_queue'
-
 
 all_http_codes_but_200 = list(range(100, 200)) + list(range(300, 600))
 retries = urllib3.Retry(status_forcelist=all_http_codes_but_200, backoff_factor=0.5)
@@ -70,7 +64,7 @@ def handler(event, context):
                     ncbi_study_id = request_body['ncbi_study_id']
                     ncbi_study_id_2_ncbi_id_list.append({'ncbi_study_id': ncbi_study_id, 'ncbi_id': get_ncbi_id(database_holder, ncbi_study_id)})
                 except Exception as exception:
-                    logging.error(f'An exception has occurred: {str(exception)}')
+                    logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
                     raise exception
 
             base_url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&retmode=json&api_key={ncbi_api_key}'
@@ -81,10 +75,10 @@ def handler(event, context):
             for parsed_response_item in parsed_response:
                 if parsed_response_item in ncbi_ids_as_strs:
                     ncbi_id_2_study_id = [ncbi_id_2_study_id for ncbi_id_2_study_id in ncbi_study_id_2_ncbi_id_list if str(ncbi_id_2_study_id['ncbi_id']) == parsed_response_item][0]
-                    summary_process(database_holder, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
+                    summary_process(database_holder, context.function_name, ncbi_id_2_study_id['ncbi_study_id'], int(parsed_response_item), parsed_response[parsed_response_item])
 
 
-def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: str):
+def summary_process(database_holder, function_name: str, ncbi_study_id: int, ncbi_id: int, summary: str):
     try:
         logging.debug(f'Study summary from study {ncbi_id} is {summary}')
         geo_entity = extract_geo_entity_from_summaries(summary)
@@ -94,14 +88,14 @@ def summary_process(database_holder, ncbi_study_id: int, ncbi_id: int, summary: 
             geo_entity_id = store_geo_entity_in_db(database_holder, ncbi_study_id, geo_entity)
 
             if geo_entity.geo_entity_type is GeoEntityType.GSE:
-                message = {'geo_entity_id': geo_entity_id}
-                sqs.send_message(QueueUrl=output_sqs, MessageBody=json.dumps(message))
-                logging.info(f'Sent message {message} for study {ncbi_id}')
+                SQSHelper(sqs, function_name).send(message_body={'geo_entity_id': geo_entity_id})
+            else:
+                update_ncbi_study_srr_count(database_holder, ncbi_study_id)
         else:
             logging.info(f'The record ncbi_study_id {ncbi_study_id} and study_id {ncbi_id} has already been processed')
     except Exception as exception:
         if exception is not SystemError:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {summary_process.__name__}: {str(exception)}')
         raise exception
 
 
@@ -117,7 +111,7 @@ def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
             logging.warning(message)
     except Exception as exception:
         if exception is not ValueError:
-            logging.error(f'An exception has occurred: {str(exception)}')
+            logging.error(f'An exception has occurred in {extract_geo_entity_from_summaries.__name__}: {str(exception)}')
         raise exception
 
 
@@ -125,9 +119,9 @@ def get_ncbi_id(database_holder, ncbi_study_id: int) -> int:
     try:
         statement = f'select ncbi_id from ncbi_study where id=%s;'
         parameters = (ncbi_study_id,)
-        return database_holder.execute_read_statement(statement, parameters)[0]
+        return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {get_ncbi_id.__name__}: {str(exception)}')
         raise exception
 
 
@@ -137,7 +131,15 @@ def store_geo_entity_in_db(database_holder, ncbi_study_id: int, geo_entity: GeoE
                         (ncbi_study_id, {geo_entity.geo_entity_type.value['short_name']})
                         values (%s, %s) on conflict do nothing returning id;"""
         parameters = (ncbi_study_id, geo_entity.identifier)
-        return database_holder.execute_write_statement(statement, parameters)[0]
+        return database_holder.execute_write_statement(statement, parameters)[0][0]
     except Exception as exception:
-        logging.error(f'An exception has occurred: {str(exception)}')
+        logging.error(f'An exception has occurred in {store_geo_entity_in_db.__name__}: {str(exception)}')
+        raise exception
+
+
+def update_ncbi_study_srr_count(database_holder, ncbi_study_id: int):
+    try:
+        database_holder.execute_write_statement(f'update ncbi_study set srr_metadata_count=0 where id=%s', (ncbi_study_id,))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception

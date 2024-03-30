@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-      - name: Run Integration Tests
+      - name: Run Unit Tests
         run: make build-unit-tests-dependencies && pytest tests/unit_tests
   infra:
     needs:

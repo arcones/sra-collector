@@ -10,7 +10,7 @@ http = urllib3.PoolManager()
 secrets = boto3.client('secretsmanager', region_name='eu-central-1')
 
 
-def _wait_test_server_readiness():
+def wait_test_server_readiness():
     is_test_still_initializing = True
     start_waiting = time.time()
     while is_test_still_initializing:
@@ -51,31 +51,58 @@ class PostgreConnectionManager:
             self.database_connection.close()
 
 
-def _store_test_request(database_holder, request_id, ncbi_query):
+def store_test_request(database_holder, request_id, ncbi_query):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into request (id, query, geo_count) values (%s, %s, %s);', (request_id, ncbi_query, 1))
     database_connection.commit()
 
 
-def _stores_test_ncbi_study(database_holder, request_id, ncbi_id):
+def stores_test_ncbi_study(database_holder, request_id, ncbi_id):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into ncbi_study (request_id, ncbi_id) values (%s, %s) returning id;', (request_id, ncbi_id))
     database_connection.commit()
     return database_cursor.fetchone()[0]
 
 
-def _store_test_geo_study(database_holder, study_id, gse):
+def store_test_geo_study(database_holder, study_id, gse):
     database_connection, database_cursor = database_holder
     database_cursor.execute('insert into geo_study (ncbi_study_id, gse) values (%s, %s) returning id;', (study_id, gse))
     database_connection.commit()
     return database_cursor.fetchone()[0]
 
 
-def _store_test_sra_project(database_holder, geo_study_id, srp):
+def store_test_sra_project(database_holder, geo_study_id, srp):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into sra_project (srp) values (%s) returning id;', (srp,))
+    database_cursor.execute('insert into sra_project (geo_study_id, srp) values (%s, %s) returning id;', (geo_study_id, srp))
     inserted_sra_project_id = database_cursor.fetchone()[0]
     database_connection.commit()
-    database_cursor.execute('insert into geo_study_sra_project_link (geo_study_id, sra_project_id) values (%s, %s);', (geo_study_id, inserted_sra_project_id))
-    database_connection.commit()
     return inserted_sra_project_id
+
+
+def store_test_sra_run(database_holder, sra_project_id, srr):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute('insert into sra_run (sra_project_id, srr) values (%s, %s) returning id;', (sra_project_id, srr))
+    database_connection.commit()
+    return database_cursor.fetchone()[0]
+
+
+def store_test_sra_run_metadata(database_holder, sra_run_id):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute(
+        'insert into sra_run_metadata (sra_run_id, spots, bases, organism) values (%s, %s, %s, %s) returning id;',
+        (sra_run_id, 39832, 93809832, 'ser ser')
+    )
+    database_connection.commit()
+    sra_run_metadata_id = database_cursor.fetchone()[0]
+    database_cursor.execute(
+        'insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) values (%s, %s, %s);',
+        (sra_run_metadata_id, 37, 100)
+    )
+    database_cursor.execute(
+        ('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots, layout,'
+         'read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
+         'values (%s, %s, %s,%s, %s, %s, %s, %s, %s)'
+         ),
+        (sra_run_metadata_id, 9832, 'SINGLE', 4237, 2.56, 3.222, 0, 0, 0)
+    )
+    database_connection.commit()

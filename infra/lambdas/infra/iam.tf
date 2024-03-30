@@ -39,17 +39,19 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
   })
 }
 
+resource "random_uuid" "uuid" {}
+
 resource "aws_iam_role_policy" "output_sqs_policy" {
-  count = var.queues.output_sqs_arn == null ? 0 : 1
-  name  = "output_sqs_policy"
-  role  = aws_iam_role.lambda_role.name
+  for_each = var.queues.output_sqs_arns
+  name     = "output_sqs_policy_${random_uuid.uuid.result}"
+  role     = aws_iam_role.lambda_role.name
   policy = jsonencode({
     Version = "2008-10-17"
     Statement = [
       {
         Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
-        Resource = var.queues.output_sqs_arn
+        Resource = each.value
       },
     ]
   })
@@ -114,6 +116,23 @@ resource "aws_iam_role_policy" "kms_policy" {
         Action   = ["kms:decrypt"]
         Effect   = "Allow"
         Resource = var.rds_kms_key_arn
+      },
+    ]
+  })
+}
+
+
+resource "aws_iam_role_policy" "s3_policy" { # TODO hace falta o no? pq el SAM ha hecho PUT libremente
+  count = var.s3_reports_bucket_arn == null ? 0 : 1
+  name  = "s3_policy"
+  role  = aws_iam_role.lambda_role.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["s3:PutObject"]
+        Effect   = "Allow"
+        Resource = "${var.s3_reports_bucket_arn}/*"
       },
     ]
   })
