@@ -6,6 +6,10 @@ ENV DB_CONNECTION_LIB_VERSION=0.0.5
 ENV SQS_HELP_LIB_FOLDER=sqs_helper
 ENV SQS_HELP_LIB_VERSION=0.0.1
 
+ENV S3_HELP_LIB_FOLDER=s3_helper
+ENV S3_HELP_LIB_VERSION=0.0.1
+
+
 ENV DEPS_FOLDER=lambda-dependencies/python
 
 RUN apt update && apt install -y zip && pip install wheel setuptools build
@@ -28,5 +32,12 @@ COPY ${SQS_HELP_LIB_FOLDER} ${SQS_HELP_LIB_FOLDER}
 RUN cd ${SQS_HELP_LIB_FOLDER} && python -m build
 RUN cd ${DEPS_FOLDER} \
     && pip install /${SQS_HELP_LIB_FOLDER}/dist/${SQS_HELP_LIB_FOLDER}-${SQS_HELP_LIB_VERSION}-py3-none-any.whl -t . \
+    && cd .. \
+    && zip -ur9 ../dependencies.zip .
+
+COPY ${S3_HELP_LIB_FOLDER} ${S3_HELP_LIB_FOLDER}
+RUN cd ${S3_HELP_LIB_FOLDER} && python -m build
+RUN cd ${DEPS_FOLDER} \
+    && pip install /${S3_HELP_LIB_FOLDER}/dist/${S3_HELP_LIB_FOLDER}-${S3_HELP_LIB_VERSION}-py3-none-any.whl -t . \
     && cd .. \
     && zip -ur9 ../dependencies.zip .

@@ -5,6 +5,7 @@ import os
 
 import boto3
 from db_connection.db_connection import DBConnectionManager
+from s3_helper.s3_helper import S3Helper
 
 s3 = boto3.client('s3', region_name='eu-central-1')
 
@@ -37,7 +38,7 @@ def handler(event, context):
                                                  'NSPOTS', 'LAYOUT', 'PHRED_READ_OVER_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
                                                  'READ_0_STDEV', 'READ_1_COUNT', 'READ_1_AVERAGE', 'READ_1_STDEV'])
                             csv_writer.writerows(report)
-                        s3.upload_file(path, 'sra-collector-reports', filename)
+                        S3Helper(s3).upload_file(path, filename)
                         update_request_status(database_holder, request_id)
                     elif request_status == 'COMPLETED':
                         logging.info(f'For {request_id} the CSV was already generated')
