@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import os
 
 import boto3
 from db_connection.db_connection import DBConnectionManager
@@ -29,13 +30,14 @@ def handler(event, context):
                     if request_status == 'PENDING':
                         report = generate_report(database_holder, request_id)
                         filename = f'Report_{request_id}.csv'
-                        with open(f'./{filename}', 'w', newline='') as csvfile:
+                        path = os.path.join('/tmp', filename)
+                        with open(path, 'w', newline='') as csvfile:
                             csv_writer = csv.writer(csvfile)
-                            csv_writer.writerows('REQUEST_ID, QUERY, NCBI_STUDY, GSE, SRP, SRR, SPOTS, BASES, ORGANISM'
-                                                 'NSPOTS, LAYOUT, PHRED_READ_OVER_37, READ_0_COUNT, READ_0_AVERAGE,'
-                                                 'READ_0_STDEV, READ_1_COUNT, READ_1_AVERAGE, READ_1_STDEV')
+                            csv_writer.writerow(['REQUEST_ID', 'QUERY', 'NCBI_STUDY', 'GSE', 'SRP', 'SRR', 'SPOTS', 'BASES', 'ORGANISM',
+                                                 'NSPOTS', 'LAYOUT', 'PHRED_READ_OVER_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
+                                                 'READ_0_STDEV', 'READ_1_COUNT', 'READ_1_AVERAGE', 'READ_1_STDEV'])
                             csv_writer.writerows(report)
-                        s3.upload_file(f'./{filename}', 'sra-collector-reports', filename)
+                        s3.upload_file(path, 'sra-collector-reports', filename)
                         update_request_status(database_holder, request_id)
                     elif request_status == 'COMPLETED':
                         logging.info(f'For {request_id} the CSV was already generated')
@@ -74,7 +76,9 @@ def generate_report(database_holder, request_id: str) -> [[]]:
                      'JOIN NCBI_STUDY NS ON GS.NCBI_STUDY_ID = NS.ID '
                      'JOIN REQUEST R ON NS.REQUEST_ID = R.ID '
                      'WHERE R.ID =%s '
-                     'GROUP BY SRM.BASES; ')
+                     'GROUP BY R.ID, R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS, SRM.BASES, '
+                     'SRM.ORGANISM, SRMSR.NSPOTS, SRMSR.LAYOUT, SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, '
+                     'SRMSR.READ_0_STDEV, SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV; ')
         return database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:
         logging.error(f'An exception has occurred in {generate_report.__name__}: {str(exception)}')

@@ -40,8 +40,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
   evaluation_periods  = 1
   datapoints_to_alarm = 1
   alarm_description   = "Lambda ${each.key} error rate exceeded ${each.value}%"
-  alarm_actions       = [aws_sns_topic.admin.arn]
-  ok_actions          = [aws_sns_topic.admin.arn]
+  alarm_actions       = [aws_sns_topic.sra_collector_monitoring_topic.arn]
+  ok_actions          = [aws_sns_topic.sra_collector_monitoring_topic.arn]
   threshold           = each.value
   treat_missing_data  = "ignore"
 
@@ -87,8 +87,8 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
   threshold           = 0
-  alarm_actions       = [aws_sns_topic.admin.arn]
-  ok_actions          = [aws_sns_topic.admin.arn]
+  alarm_actions       = [aws_sns_topic.sra_collector_monitoring_topic.arn]
+  ok_actions          = [aws_sns_topic.sra_collector_monitoring_topic.arn]
   treat_missing_data  = "ignore"
 
   metric_query {

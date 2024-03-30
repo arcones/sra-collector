@@ -12,6 +12,7 @@ from .utils_integration_test import store_test_geo_study
 from .utils_integration_test import store_test_request
 from .utils_integration_test import store_test_sra_project
 from .utils_integration_test import store_test_sra_run
+from .utils_integration_test import store_test_sra_run_metadata
 from .utils_integration_test import stores_test_ncbi_study
 from .utils_integration_test import wait_test_server_readiness
 
@@ -171,14 +172,24 @@ def test_g_get_srr_metadata(lambda_client):
         # GIVEN
         request_id = provide_random_request_id()
         store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
-        ncbi_study_id = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
-        geo_entity_id = store_test_geo_study((database_connection, database_cursor), ncbi_study_id, 'GSE126815')
-        sra_project_id = store_test_sra_project((database_connection, database_cursor), geo_entity_id, 'SRP185522')
-        sra_run_id = store_test_sra_run((database_connection, database_cursor), sra_project_id, 'SRR22873806')  # TODO hacer la prueba con dos
-        input_body = json.dumps({'sra_run_id': sra_run_id})
+
+        ncbi_study_id_1 = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
+        ncbi_study_id_2 = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200069235)
+
+        geo_entity_id_1 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
+        geo_entity_id_2 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
+
+        sra_project_id_1 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_1, 'SRP185522')
+        sra_project_id_2 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_2, 'SRP421048')
+
+        sra_run_id_1 = store_test_sra_run((database_connection, database_cursor), sra_project_id_1, 'SRR22873806')
+        sra_run_id_2 = store_test_sra_run((database_connection, database_cursor), sra_project_id_2, 'SRR18507358')
+
+        input_body_1 = json.dumps({'sra_run_id': sra_run_id_1})
+        input_body_2 = json.dumps({'sra_run_id': sra_run_id_2})
 
         # WHEN
-        invocation_result = lambda_client.invoke(FunctionName='G_get_srr_metadata', Payload=sqs_wrap([input_body], dumps=True))
+        invocation_result = lambda_client.invoke(FunctionName='G_get_srr_metadata', Payload=sqs_wrap([input_body_1, input_body_2], dumps=True))
 
         # THEN
         lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
@@ -189,5 +200,36 @@ def test_g_get_srr_metadata(lambda_client):
         assert lambda_response['batchItemFailures'] == []
 
 
-# def test_h_generate_report(lambda_client):  # TODO hacerlo funcionar
-#     with PostgreConnectionManager() as (database_connection, database_cursor):
+def test_h_generate_report(lambda_client):
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = provide_random_request_id()
+        store_test_request((database_connection, database_cursor), request_id, 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS')
+
+        ncbi_study_id_1 = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200126815)
+        ncbi_study_id_2 = stores_test_ncbi_study((database_connection, database_cursor), request_id, 200069235)
+
+        geo_entity_id_1 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_1, 'GSE126815')
+        geo_entity_id_2 = store_test_geo_study((database_connection, database_cursor), ncbi_study_id_2, 'GSE069235')
+
+        sra_project_id_1 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_1, 'SRP185522')
+        sra_project_id_2 = store_test_sra_project((database_connection, database_cursor), geo_entity_id_2, 'SRP421048')
+
+        sra_run_id_1 = store_test_sra_run((database_connection, database_cursor), sra_project_id_1, 'SRR22873806')
+        sra_run_id_2 = store_test_sra_run((database_connection, database_cursor), sra_project_id_2, 'SRR18507358')
+
+        store_test_sra_run_metadata((database_connection, database_cursor), sra_run_id_1)
+        store_test_sra_run_metadata((database_connection, database_cursor), sra_run_id_2)
+
+        input_body = json.dumps({'request_id': request_id})
+
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='H_generate_report', Payload=sqs_wrap([input_body], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
+
+        assert lambda_response['batchItemFailures'] == []

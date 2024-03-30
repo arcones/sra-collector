@@ -84,3 +84,25 @@ def store_test_sra_run(database_holder, sra_project_id, srr):
     database_cursor.execute('insert into sra_run (sra_project_id, srr) values (%s, %s) returning id;', (sra_project_id, srr))
     database_connection.commit()
     return database_cursor.fetchone()[0]
+
+
+def store_test_sra_run_metadata(database_holder, sra_run_id):
+    database_connection, database_cursor = database_holder
+    database_cursor.execute(
+        'insert into sra_run_metadata (sra_run_id, spots, bases, organism) values (%s, %s, %s, %s) returning id;',
+        (sra_run_id, 39832, 93809832, 'ser ser')
+    )
+    database_connection.commit()
+    sra_run_metadata_id = database_cursor.fetchone()[0]
+    database_cursor.execute(
+        'insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) values (%s, %s, %s);',
+        (sra_run_metadata_id, 37, 100)
+    )
+    database_cursor.execute(
+        ('insert into sra_run_metadata_statistic_read (sra_run_metadata_id, nspots, layout,'
+         'read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
+         'values (%s, %s, %s,%s, %s, %s, %s, %s, %s)'
+         ),
+        (sra_run_metadata_id, 9832, 'SINGLE', 4237, 2.56, 3.222, 0, 0, 0)
+    )
+    database_connection.commit()

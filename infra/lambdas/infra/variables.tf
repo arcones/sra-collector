@@ -66,3 +66,8 @@ variable "batch_size_window" {
   default = 0
   type    = number
 }
+
+variable "s3_reports_bucket_arn" {
+  default = null
+  type    = string
+}

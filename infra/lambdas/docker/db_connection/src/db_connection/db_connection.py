@@ -89,7 +89,7 @@ class DBConnectionManager:
             logger.info(f'Executing: {statement} with parameters {parameters}...')
             result = self._cursor_execute_single_and_return(statement, parameters)
             logger.info(f'Executed {statement} with parameters {parameters}')
-            self.database_connection.commit()  # TODO se podrian poner los commits en el __Exit__ o similar? me garantizaria atomicidad para los metadata y sus hijas
+            self.database_connection.commit()
             return result
         except Exception as exception:
             logging.error(f'An exception has occurred in {self.execute_write_statement.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')

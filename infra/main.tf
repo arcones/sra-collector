@@ -1,7 +1,8 @@
 module "lambdas" {
   source                             = "./lambdas"
   aws_apigatewayv2_api_execution_arn = aws_apigatewayv2_api.sra_collector_api.execution_arn
-  s3_bucket_id                       = aws_s3_bucket.sra-collector-lambdas.id
+  s3_code_bucket_id                  = aws_s3_bucket.sra-collector-lambdas.id
+  s3_reports_bucket_arn              = aws_s3_bucket.sra-collector-reports.arn
   queues = {
     A_user_query_sqs = {
       A_user_query_sqs_arn                = aws_sqs_queue.A_user_query.arn,

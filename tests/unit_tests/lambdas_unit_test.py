@@ -668,4 +668,4 @@ def test_h_generate_report():
                 # THEN REGARDING MESSAGES
                 assert mock_s3.upload_file.call_count == 1
                 expected_filename = f'Report_{request_id}.csv'
-                mock_s3.upload_file.assert_called_with(f'./{expected_filename}', 'sra-collector-reports', expected_filename)
+                mock_s3.upload_file.assert_called_with(f'/tmp/{expected_filename}', 'sra-collector-reports', expected_filename)

@@ -30,7 +30,7 @@ class StatisticRead:
             return 'SINGLE'
 
 
-class SRRMetadata:  # TODO sample type: wild type, etc
+class SRRMetadata:
     def __init__(self, srr: str):
         self.srr = srr
         self.spots = None

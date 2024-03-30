@@ -148,6 +148,7 @@ module "H_generate_report_lambda" {
     output_sqs_arns = []
     dlq_arn         = var.queues.G_to_S3_DLQ_arn
   }
+  s3_reports_bucket_arn                 = var.s3_reports_bucket_arn
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
