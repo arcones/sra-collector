@@ -1,4 +1,3 @@
-import inspect
 import json
 import logging
 import os
@@ -81,7 +80,7 @@ class DBConnectionManager:
             logger.info(f'Executed {statement} with parameters {parameters}')
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred in {self.execute_read_statement.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_read_statement.__name__}: {str(exception)}')
             raise exception
 
     def execute_write_statement(self, statement: str, parameters: tuple):
@@ -92,7 +91,7 @@ class DBConnectionManager:
             self.database_connection.commit()
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred in {self.execute_write_statement.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_write_statement.__name__}: {str(exception)}')
             raise exception
 
     def execute_bulk_write_statement(self, statement: str, parameters: [tuple]):
@@ -103,7 +102,7 @@ class DBConnectionManager:
             self.database_connection.commit()
             return result
         except Exception as exception:
-            logging.error(f'An exception has occurred in {self.execute_bulk_write_statement.__name__} line {inspect.currentframe().f_lineno}: {str(exception)}')
+            logging.error(f'An exception has occurred in {self.execute_bulk_write_statement.__name__}: {str(exception)}')
             raise exception
 
     def _cursor_execute_single_and_return(self, statement, parameters) -> None | tuple:
