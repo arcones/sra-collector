@@ -40,6 +40,7 @@ def handler(event, context):
                             csv_writer.writerows(report)
                         S3Helper(s3).upload_file(path, filename)
                         update_request_status(database_holder, request_id)
+                        logging.info(f'Uploaded {filename} to S3')
                     elif request_status == 'COMPLETED':
                         logging.info(f'For {request_id} the CSV was already generated')
             except Exception as exception:
