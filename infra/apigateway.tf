@@ -9,6 +9,17 @@ resource "aws_apigatewayv2_api" "sra_collector_api" {
   }
 }
 
+resource "aws_apigatewayv2_authorizer" "cognito_authorizer" {
+  api_id           = aws_apigatewayv2_api.sra_collector_api.id
+  name             = "cognito_authorizer"
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+  jwt_configuration {
+    audience = [aws_cognito_user_pool_client.apigateway_cognito_client.id]
+    issuer   = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.sracollector_user_pool.id}"
+  }
+}
+
 resource "aws_apigatewayv2_stage" "apigw_stage" {
   api_id = aws_apigatewayv2_api.sra_collector_api.id
 
@@ -40,9 +51,11 @@ resource "aws_apigatewayv2_integration" "get_user_query" {
 }
 
 resource "aws_apigatewayv2_route" "query_study_hierarchy" {
-  api_id    = aws_apigatewayv2_api.sra_collector_api.id
-  route_key = "POST /query-submit"
-  target    = "integrations/${aws_apigatewayv2_integration.get_user_query.id}"
+  api_id             = aws_apigatewayv2_api.sra_collector_api.id
+  route_key          = "POST /query-submit"
+  target             = "integrations/${aws_apigatewayv2_integration.get_user_query.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_authorizer.id
 }
 
 resource "aws_apigatewayv2_api_mapping" "api" {

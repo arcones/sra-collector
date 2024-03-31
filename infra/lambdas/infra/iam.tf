@@ -39,19 +39,17 @@ resource "aws_iam_role_policy" "input_sqs_policy" {
   })
 }
 
-resource "random_uuid" "uuid" {}
-
 resource "aws_iam_role_policy" "output_sqs_policy" {
-  for_each = var.queues.output_sqs_arns
-  name     = "output_sqs_policy_${random_uuid.uuid.result}"
-  role     = aws_iam_role.lambda_role.name
+  count = length(var.queues.output_sqs_arns)
+  name  = "output_sqs_policy_${count.index}"
+  role  = aws_iam_role.lambda_role.name
   policy = jsonencode({
     Version = "2008-10-17"
     Statement = [
       {
         Action   = ["sqs:sendmessage"]
         Effect   = "Allow"
-        Resource = each.value
+        Resource = var.queues.output_sqs_arns[count.index]
       },
     ]
   })
