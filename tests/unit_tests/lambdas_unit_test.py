@@ -47,7 +47,7 @@ def test_a_get_user_query():
             mock_sqs.send_message = Mock()
             mock_cognito.return_value = {'AuthenticationResult': {'foo': 'bar'}}
 
-            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, user=DEFAULT_FIXTURE['mail'], password='correct_password')
+            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, username=DEFAULT_FIXTURE['mail'], password='correct_password')
 
             # WHEN
             actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
@@ -71,7 +71,7 @@ def test_a_get_user_query_bad_credentials():
             mock_sqs.send_message = Mock()
             mock_cognito.side_effect = ClientError({'Error': {'Code': 'UserNotFoundException', 'Message': 'User not found'}}, 'operation_name')
 
-            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, user='not_registered_user@caca.com', password='wrong_password')
+            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, username='not_registered_user@caca.com', password='wrong_password')
 
             # WHEN
             actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))

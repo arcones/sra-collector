@@ -16,7 +16,7 @@ def handler(event, context):
     try:
         logging.info(f'Received event {event}')
 
-        username = event['headers']['user']
+        username = event['headers']['username']
         password = event['headers']['password']
 
         if authenticate_user(username, password):
@@ -51,6 +51,6 @@ def authenticate_user(username: str, password: str) -> bool:
         )
         if authentication['AuthenticationResult']:
             return True
-    except ClientError as client_error:
+    except ClientError as client_error: #TODO aquimequede no consigo autenticarme
         logging.warning(f'Bad credentials provided {authenticate_user.__name__}: {str(client_error)}')
         return False
