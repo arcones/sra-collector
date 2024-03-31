@@ -51,6 +51,6 @@ def authenticate_user(username: str, password: str) -> bool:
         )
         if authentication['AuthenticationResult']:
             return True
-    except ClientError as client_error: #TODO aquimequede no consigo autenticarme
+    except ClientError as client_error:
         logging.warning(f'Bad credentials provided {authenticate_user.__name__}: {str(client_error)}')
         return False
