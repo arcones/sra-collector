@@ -1,3 +1,11 @@
+variable "queues" {
+  type = object({
+    input_sqs_arn   = string,
+    output_sqs_arns = list(string),
+    dlq_arn         = string,
+  })
+}
+
 variable "function_name" {
   type = string
 }
@@ -13,14 +21,6 @@ variable "code_path" {
 variable "aws_apigatewayv2_api_execution_arn" {
   default = null
   type    = string
-}
-
-variable "queues" {
-  type = object({
-    input_sqs_arn   = string,
-    output_sqs_arns = list(string),
-    dlq_arn         = string,
-  })
 }
 
 variable "rds_secret_arn" {
@@ -68,6 +68,16 @@ variable "batch_size_window" {
 }
 
 variable "s3_reports_bucket_arn" {
+  default = null
+  type    = string
+}
+
+variable "cognito_pool_id" {
+  default = null
+  type    = string
+}
+
+variable "cognito_client_id" {
   default = null
   type    = string
 }

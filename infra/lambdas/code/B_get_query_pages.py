@@ -32,12 +32,13 @@ def handler(event, context):
 
                     ncbi_query = request_body['ncbi_query']
                     request_id = request_body['request_id']
+                    mail = request_body['mail']
 
                     study_count = get_study_count(ncbi_query)
 
                     if study_count < QUERY_STUDY_LIMIT:
                         if is_request_pending_to_be_processed(database_holder, request_id, ncbi_query):
-                            store_request_in_db(database_holder, request_id, ncbi_query, study_count)
+                            store_request_in_db(database_holder, request_id, ncbi_query, study_count, mail)
 
                             retstart = 0
                             message_bodies = []
@@ -82,10 +83,10 @@ def get_study_count(ncbi_query: str) -> int:
         raise exception
 
 
-def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study_count: int):
+def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study_count: int, mail: str):
     try:
-        statement = f'insert into request (id, query, geo_count) values (%s, %s, %s) on conflict do nothing;'
-        parameters = (request_id, ncbi_query, study_count)
+        statement = f'insert into request (id, query, geo_count, mail) values (%s, %s, %s, %s) on conflict do nothing;'
+        parameters = (request_id, ncbi_query, study_count, mail)
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_request_in_db.__name__}: {str(exception)}')

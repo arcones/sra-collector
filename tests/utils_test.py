@@ -34,13 +34,16 @@ def sqs_wrap(bodies: [str], dumps: bool = False) -> dict:
     return sqs_records
 
 
-def _apigateway_wrap(request_id: str, body: dict, dumps: bool = False) -> dict:
+def _apigateway_wrap(request_id: str, body: dict, user: str = None, password: str = None, dumps: bool = False) -> dict:
     payload = json.dumps(body)
 
     with open(f'tests/fixtures/A_get_user_query_input.json') as json_data:
         input_body = json.load(json_data)
         input_body['requestContext']['requestId'] = request_id
         input_body['body'] = payload
+        if user is not None and password is not None:
+            input_body['headers']['user'] = user
+            input_body['headers']['password'] = password
 
     if dumps:
         input_body = json.dumps(input_body)

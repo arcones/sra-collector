@@ -23,6 +23,18 @@ paths:
             schema:
               $ref: '#/components/schemas/Query'
         required: true
+      parameters:
+        - in: header
+          name: username
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: password
+          required: true
+          schema:
+            type: string
+            format: password
       responses:
         '201':
           description: Request created
@@ -30,8 +42,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryProcessed'
+        '401':
+          description: The credentials you provided are wrong
         '500':
-          description: Something went wrong, contact developer
+          description: Something went wrong, contact webmaster marta.arcones@gmail.com
 components:
   schemas:
     Query:

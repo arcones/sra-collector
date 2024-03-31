@@ -8,6 +8,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+from botocore.exceptions import ClientError
 
 from ..utils_test import _apigateway_wrap
 from ..utils_test import provide_random_request_id
@@ -39,23 +40,48 @@ import H_generate_report
 
 def test_a_get_user_query():
     with patch.object(A_get_user_query, 'sqs') as mock_sqs:
-        # GIVEN
-        request_id = provide_random_request_id()
+        with patch.object(A_get_user_query.cognito, 'initiate_auth') as mock_cognito:
+            # GIVEN
+            request_id = provide_random_request_id()
 
-        mock_sqs.send_message = Mock()
+            mock_sqs.send_message = Mock()
+            mock_cognito.return_value = {'AuthenticationResult': {'foo': 'bar'}}
 
-        input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']})
+            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, user=DEFAULT_FIXTURE['mail'], password='correct_password')
 
-        # WHEN
-        actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
+            # WHEN
+            actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
 
-        # THEN REGARDING LAMBDA
-        assert actual_result['statusCode'] == 201
-        assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query_<20"]}"}}'
+            # THEN REGARDING LAMBDA
+            assert actual_result['statusCode'] == 201
+            assert actual_result['body'] == f'{{"request_id": "{request_id}", "ncbi_query": "{DEFAULT_FIXTURE["query_<20"]}"}}'
 
-        # THEN REGARDING MESSAGES
-        assert mock_sqs.send_message.call_count == 1
-        mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_<20']}))
+            # THEN REGARDING MESSAGES
+            assert mock_sqs.send_message.call_count == 1
+            mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps(
+                {'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_<20'], 'mail': DEFAULT_FIXTURE['mail']}))
+
+
+def test_a_get_user_query_bad_credentials():
+    with patch.object(A_get_user_query, 'sqs') as mock_sqs:
+        with patch.object(A_get_user_query.cognito, 'initiate_auth') as mock_cognito:
+            # GIVEN
+            request_id = provide_random_request_id()
+
+            mock_sqs.send_message = Mock()
+            mock_cognito.side_effect = ClientError({'Error': {'Code': 'UserNotFoundException', 'Message': 'User not found'}}, 'operation_name')
+
+            input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, user='not_registered_user@caca.com', password='wrong_password')
+
+            # WHEN
+            actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
+
+            # THEN REGARDING LAMBDA
+            assert actual_result['statusCode'] == 401
+            assert 'body' not in actual_result
+
+            # THEN REGARDING MESSAGES
+            assert mock_sqs.send_message.call_count == 0
 
 
 def test_b_get_query_pages():
@@ -67,7 +93,7 @@ def test_b_get_query_pages():
 
                 mock_sqs.send_message_batch = Mock()
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -76,9 +102,9 @@ def test_b_get_query_pages():
                 assert actual_result == {'batchItemFailures': []}
 
                 # THEN REGARDING DATA
-                database_cursor.execute(f"select id, query, geo_count from request where id='{request_id}'")
+                database_cursor.execute(f"select id, query, geo_count, mail from request where id='{request_id}'")
                 actual_rows = database_cursor.fetchall()
-                expected_row = [(request_id, DEFAULT_FIXTURE['query_+500'], DEFAULT_FIXTURE['results'])]
+                expected_row = [(request_id, DEFAULT_FIXTURE['query_+500'], DEFAULT_FIXTURE['results'], DEFAULT_FIXTURE['mail'])]
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
@@ -101,7 +127,7 @@ def test_b_get_query_pages_skip_already_processed_study_id():
 
                 store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+500'])
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -130,7 +156,7 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_over_limit']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_over_limit'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))

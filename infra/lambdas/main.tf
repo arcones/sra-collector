@@ -21,6 +21,8 @@ module "A_get_user_query_lambda" {
   }
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   aws_apigatewayv2_api_execution_arn    = var.aws_apigatewayv2_api_execution_arn
+  cognito_pool_id                       = var.cognito_pool_id
+  cognito_client_id                     = var.cognito_client_id
 }
 
 module "B_get_query_pages_lambda" {
@@ -75,7 +77,7 @@ module "D_get_study_geo_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout - 10
   memory_size                           = 128
-  batch_size                            = 180
+  batch_size                            = 50
   batch_size_window                     = 3
 }
 
@@ -115,7 +117,7 @@ module "F_get_study_srrs_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout - 10
   memory_size                           = 1024
-  batch_size                            = 30
+  batch_size                            = 20
   batch_size_window                     = 1
 }
 
