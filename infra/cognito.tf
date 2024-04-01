@@ -11,11 +11,6 @@ resource "aws_cognito_user_pool" "sracollector_user_pool" {
   }
 }
 
-resource "aws_cognito_user_pool_domain" "cognito_domain" {
-  domain       = "sracollector-user-pool"
-  user_pool_id = aws_cognito_user_pool.sracollector_user_pool.id
-}
-
 resource "aws_cognito_user_pool_client" "apigateway_cognito_client" {
   name                   = "OpenAPI"
   user_pool_id           = aws_cognito_user_pool.sracollector_user_pool.id
