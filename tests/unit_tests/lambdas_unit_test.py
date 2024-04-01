@@ -84,6 +84,31 @@ def test_a_get_user_query_bad_credentials():
             assert mock_sqs.send_message.call_count == 0
 
 
+@pytest.mark.parametrize('maybe_username, maybe_password', [
+    (None, 'a_password'),
+    ('a_username', None),
+    (None, None),
+])
+def test_a_get_user_query_missing_credentials(maybe_username, maybe_password):
+    with patch.object(A_get_user_query, 'sqs') as mock_sqs:
+        # GIVEN
+        request_id = provide_random_request_id()
+
+        mock_sqs.send_message = Mock()
+
+        input_body = _apigateway_wrap(request_id, {'ncbi_query': DEFAULT_FIXTURE['query_<20']}, username=maybe_username, password=maybe_password)
+
+        # WHEN
+        actual_result = A_get_user_query.handler(input_body, Context('A_get_user_query'))
+
+        # THEN REGARDING LAMBDA
+        assert actual_result['statusCode'] == 401
+        assert 'body' not in actual_result
+
+        # THEN REGARDING MESSAGES
+        assert mock_sqs.send_message.call_count == 0
+
+
 def test_b_get_query_pages():
     with patch.object(B_get_query_pages, 'sqs') as mock_sqs:
         with patch.object(B_get_query_pages.http, 'request', side_effect=mock_eutils):

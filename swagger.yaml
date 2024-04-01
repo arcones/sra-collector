@@ -43,7 +43,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/QueryProcessed'
         '401':
-          description: The credentials you provided are wrong
+          description: Credentials missing or wrong
         '500':
           description: Something went wrong, contact webmaster marta.arcones@gmail.com
 components:

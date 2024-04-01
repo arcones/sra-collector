@@ -16,10 +16,7 @@ def handler(event, context):
     try:
         logging.info(f'Received event {event}')
 
-        username = event['headers']['username']
-        password = event['headers']['password']
-
-        if authenticate_user(username, password):
+        if authenticate_user(event['headers']):
             request_id = event['requestContext']['requestId']
 
             request_body = json.loads(event['body'])
@@ -28,7 +25,7 @@ def handler(event, context):
 
             message_body = {'request_id': request_id, 'ncbi_query': ncbi_query}
 
-            SQSHelper(sqs, context.function_name).send(message_body={**message_body, 'mail': username})
+            SQSHelper(sqs, context.function_name).send(message_body={**message_body, 'mail': event['headers']['username']})
 
             return {'statusCode': 201, 'body': json.dumps(message_body), 'headers': {'content-type': 'application/json'}}
         else:
@@ -38,7 +35,16 @@ def handler(event, context):
         raise exception
 
 
-def authenticate_user(username: str, password: str) -> bool:
+def authenticate_user(headers: dict) -> bool:
+    username = headers['username'] if 'username' in headers else None
+    password = headers['password'] if 'password' in headers else None
+
+    are_credentials_provided = username is not None and password is not None
+
+    return are_credentials_provided and _validate_cognito_credentials(username, password)
+
+
+def _validate_cognito_credentials(username: str, password: str) -> bool:
     try:
         authentication = cognito.initiate_auth(
             AuthFlow='USER_PASSWORD_AUTH',

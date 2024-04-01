@@ -120,7 +120,7 @@ resource "aws_iam_role_policy" "kms_policy" {
 }
 
 
-resource "aws_iam_role_policy" "s3_policy" { # TODO hace falta o no? pq el SAM ha hecho PUT libremente
+resource "aws_iam_role_policy" "s3_policy" {
   count = var.s3_reports_bucket_arn == null ? 0 : 1
   name  = "s3_policy"
   role  = aws_iam_role.lambda_role.name
