@@ -26,7 +26,9 @@ resource "aws_lambda_function" "function" {
   }
   environment {
     variables = {
-      ENV = "prod"
+      ENV               = "prod"
+      COGNITO_POOL_ID   = var.cognito_pool_id
+      COGNITO_CLIENT_ID = var.cognito_client_id
     }
   }
   runtime          = "python3.11"

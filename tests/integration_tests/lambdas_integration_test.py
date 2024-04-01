@@ -30,9 +30,18 @@ def lambda_client():
     lambda_client.close()
 
 
-def test_a_get_user_query(lambda_client):
+@pytest.fixture(scope='session', autouse=True)
+def cognito_credentials():
+    secrets_client = boto3.client('secretsmanager', region_name='eu-central-1')
+    cognito_credentials_secret = secrets_client.get_secret_value(SecretId='integration_test_credentials')
+    cognito_username = json.loads(cognito_credentials_secret['SecretString'])['username']
+    cognito_password = json.loads(cognito_credentials_secret['SecretString'])['password']
+    yield {'username': cognito_username, 'password': cognito_password}
+
+
+def test_a_get_user_query(lambda_client, cognito_credentials):
     # GIVEN
-    input_body = _apigateway_wrap('mockRequest', {'ncbi_query': 'mock query'}, dumps=True)
+    input_body = _apigateway_wrap('mockRequest', {'ncbi_query': 'mock query'}, cognito_credentials['username'], cognito_credentials['password'], dumps=True)
 
     # WHEN
     invocation_result = lambda_client.invoke(FunctionName='A_get_user_query', Payload=input_body)
@@ -50,8 +59,8 @@ def test_a_get_user_query(lambda_client):
 
 def test_b_get_query_pages(lambda_client):
     # GIVEN
-    input_body_1 = json.dumps({'request_id': provide_random_request_id(), 'ncbi_query': 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS'})
-    input_body_2 = json.dumps({'request_id': provide_random_request_id(), 'ncbi_query': 'stroke AND single cell rna seq AND musculus'})
+    input_body_1 = json.dumps({'request_id': provide_random_request_id(), 'ncbi_query': 'multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS', 'mail': 'tomasa@grijander.com'})
+    input_body_2 = json.dumps({'request_id': provide_random_request_id(), 'ncbi_query': 'stroke AND single cell rna seq AND musculus', 'mail': 'lauria@arcrolo.com'})
 
     # WHEN
     invocation_result = lambda_client.invoke(FunctionName='B_get_query_pages', Payload=sqs_wrap([input_body_1, input_body_2], dumps=True))

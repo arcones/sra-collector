@@ -1,8 +1,5 @@
 module "lambdas" {
-  source                             = "./lambdas"
-  aws_apigatewayv2_api_execution_arn = aws_apigatewayv2_api.sra_collector_api.execution_arn
-  s3_code_bucket_id                  = aws_s3_bucket.sra-collector-lambdas.id
-  s3_reports_bucket_arn              = aws_s3_bucket.sra-collector-reports.arn
+  source = "./lambdas"
   queues = {
     A_user_query_sqs = {
       A_user_query_sqs_arn                = aws_sqs_queue.A_user_query.arn,
@@ -44,9 +41,14 @@ module "lambdas" {
       H_user_feedback_visibility_timeout = aws_sqs_queue.H_user_feedback.visibility_timeout_seconds
     }
   }
+  aws_apigatewayv2_api_execution_arn    = aws_apigatewayv2_api.sra_collector_api.execution_arn
+  s3_code_bucket_id                     = aws_s3_bucket.sra-collector-lambdas.id
+  s3_reports_bucket_arn                 = aws_s3_bucket.sra-collector-reports.arn
   ncbi_api_key_secret_arn               = aws_secretsmanager_secret.ncbi_api_key_secret.arn
   rds_kms_key_arn                       = aws_kms_key.db_kms_key.arn
   cloudwatch_to_opensearch_function_arn = module.opensearch.cloudwatch_to_opensearch_function_arn
+  cognito_pool_id                       = aws_cognito_user_pool.sracollector_user_pool.id
+  cognito_client_id                     = aws_cognito_user_pool_client.apigateway_cognito_client.id
 }
 
 module "opensearch" {

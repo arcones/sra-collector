@@ -1,15 +1,3 @@
-variable "aws_apigatewayv2_api_execution_arn" {
-  type = string
-}
-
-variable "s3_code_bucket_id" {
-  type = string
-}
-
-variable "s3_reports_bucket_arn" {
-  type = string
-}
-
 variable "queues" {
   type = object({
     A_user_query_sqs = object({
@@ -54,6 +42,18 @@ variable "queues" {
   })
 }
 
+variable "aws_apigatewayv2_api_execution_arn" {
+  type = string
+}
+
+variable "s3_code_bucket_id" {
+  type = string
+}
+
+variable "s3_reports_bucket_arn" {
+  type = string
+}
+
 variable "ncbi_api_key_secret_arn" {
   type = string
 }
@@ -63,5 +63,13 @@ variable "rds_kms_key_arn" {
 }
 
 variable "cloudwatch_to_opensearch_function_arn" {
+  type = string
+}
+
+variable "cognito_pool_id" {
+  type = string
+}
+
+variable "cognito_client_id" {
   type = string
 }

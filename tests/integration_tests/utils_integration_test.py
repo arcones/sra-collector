@@ -53,7 +53,7 @@ class PostgreConnectionManager:
 
 def store_test_request(database_holder, request_id, ncbi_query):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into request (id, query, geo_count) values (%s, %s, %s);', (request_id, ncbi_query, 1))
+    database_cursor.execute('insert into request (id, query, geo_count, mail) values (%s, %s, %s, %s);', (request_id, ncbi_query, 1, 'doctor@grijander.com'))
     database_connection.commit()
 
 

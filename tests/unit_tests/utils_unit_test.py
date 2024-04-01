@@ -10,6 +10,7 @@ DEFAULT_FIXTURE = {
     'query_+500': 'cancer AND mus musculus AND children',
     'query_<20': 'rna seq and homo sapiens and myeloid and leukemia',
     'query_over_limit': 'cancer',
+    'mail': 'crispin@grijander.com',
     'results': 687,
     'ncbi_id': 200126815,
     'gse': 'GSE126815',
@@ -71,7 +72,7 @@ class H2ConnectionManager:
 
 def store_test_request(database_holder, request_id, ncbi_query):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into request (id, query, geo_count) values (?, ?, ?);', [request_id, ncbi_query, 1])
+    database_cursor.execute('insert into request (id, query, geo_count, mail) values (?, ?, ?, ?);', [request_id, ncbi_query, 1, DEFAULT_FIXTURE['mail']])
     database_connection.commit()
 
 
