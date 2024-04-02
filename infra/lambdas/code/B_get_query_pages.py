@@ -61,7 +61,7 @@ def handler(event, context):
                                                      f'Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={ncbi_query}'
                                                      'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
 
-                        too_expensive_user_feedback_message = {'request_id': request_id, 'result': 'FAILURE', 'reason': too_expensive_halt_reason}
+                        too_expensive_user_feedback_message = {'request_id': request_id, 'result': 'FAILURE', 'reason': too_expensive_halt_reason}  # TODO ese result failure no me sirve de nada
                         SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
