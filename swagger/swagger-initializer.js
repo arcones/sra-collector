@@ -22,7 +22,8 @@ window.onload = function() {
       SwaggerUIBundle.plugins.DownloadUrl,
       HideCurlPlugin
     ],
-    layout: "StandaloneLayout"
+    layout: "StandaloneLayout",
+    documentTitle: "SRA Collector"
   });
 
   //</editor-fold>

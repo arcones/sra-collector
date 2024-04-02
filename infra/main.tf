@@ -35,7 +35,7 @@ module "lambdas" {
       G_srr_metadata_arn                = aws_sqs_queue.G_srr_metadata.arn,
       G_srr_metadata_visibility_timeout = aws_sqs_queue.G_srr_metadata.visibility_timeout_seconds
     },
-    G_to_S3_DLQ_arn = aws_sqs_queue.G_to_S3_DLQ.arn,
+    G_to_H_DLQ_arn = aws_sqs_queue.G_to_H_DLQ.arn,
     H_user_feedback = {
       H_user_feedback_arn                = aws_sqs_queue.H_user_feedback.arn,
       H_user_feedback_visibility_timeout = aws_sqs_queue.H_user_feedback.visibility_timeout_seconds

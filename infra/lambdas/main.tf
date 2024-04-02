@@ -148,7 +148,7 @@ module "H_generate_report_lambda" {
   queues = {
     input_sqs_arn   = var.queues.G_srr_metadata.G_srr_metadata_arn
     output_sqs_arns = []
-    dlq_arn         = var.queues.G_to_S3_DLQ_arn
+    dlq_arn         = var.queues.G_to_H_DLQ_arn
   }
   s3_reports_bucket_arn                 = var.s3_reports_bucket_arn
   rds_kms_key_arn                       = var.rds_kms_key_arn

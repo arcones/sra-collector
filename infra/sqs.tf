@@ -81,13 +81,13 @@ resource "aws_sqs_queue" "G_srr_metadata" {
   name                       = "G_srr_metadata"
   visibility_timeout_seconds = 40
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.G_to_S3_DLQ.arn,
+    deadLetterTargetArn = aws_sqs_queue.G_to_H_DLQ.arn,
     maxReceiveCount     = 2
   })
 }
 
-resource "aws_sqs_queue" "G_to_S3_DLQ" {
-  name = "G_to_S3_DLQ"
+resource "aws_sqs_queue" "G_to_H_DLQ" {
+  name = "G_to_H_DLQ"
 }
 
 resource "aws_sqs_queue" "H_user_feedback" {

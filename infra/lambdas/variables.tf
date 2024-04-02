@@ -34,7 +34,7 @@ variable "queues" {
       G_srr_metadata_arn                = string
       G_srr_metadata_visibility_timeout = number
     })
-    G_to_S3_DLQ_arn = string,
+    G_to_H_DLQ_arn = string,
     H_user_feedback = object({
       H_user_feedback_arn                = string
       H_user_feedback_visibility_timeout = number

@@ -6,8 +6,10 @@ import os
 import boto3
 from db_connection.db_connection import DBConnectionManager
 from s3_helper.s3_helper import S3Helper
+from sqs_helper.sqs_helper import SQSHelper
 
 s3 = boto3.client('s3', region_name='eu-central-1')
+sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
@@ -41,6 +43,7 @@ def handler(event, context):
                         S3Helper(s3).upload_file(path, filename)
                         update_request_status(database_holder, request_id)
                         logging.info(f'Uploaded {filename} to S3')
+                        SQSHelper(sqs, context.function_name).send(message_body={'filename': filename})
                     elif request_status == 'COMPLETED':
                         logging.info(f'For {request_id} the CSV was already generated')
             except Exception as exception:

@@ -647,76 +647,82 @@ def test_g_get_srr_metadata_finish():
 
 def test_h_generate_report():
     with patch.object(H_generate_report, 's3') as mock_s3:
-        with patch('H_generate_report.csv.writer') as mock_csv_writer:
-            with H2ConnectionManager() as database_holder:
-                # GIVEN
-                request_id = provide_random_request_id()
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
-                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
-                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
-                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
-                sra_run_id_1 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
-                sra_run_id_2 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][1])
-                store_test_metadata(database_holder, [sra_run_id_1, sra_run_id_2])
+        with patch.object(H_generate_report, 'sqs') as mock_sqs:
+            with patch('H_generate_report.csv.writer') as mock_csv_writer:
+                with H2ConnectionManager() as database_holder:
+                    # GIVEN
+                    request_id = provide_random_request_id()
+                    store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                    study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                    inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                    inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                    sra_run_id_1 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
+                    sra_run_id_2 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][1])
+                    store_test_metadata(database_holder, [sra_run_id_1, sra_run_id_2])
 
-                mock_s3.upload_file = Mock()
-                mock_csv_writer_instance = mock_csv_writer.return_value
+                    mock_s3.upload_file = Mock()
+                    mock_csv_writer_instance = mock_csv_writer.return_value
+                    mock_sqs.send_message = Mock()
 
-                input_body = json.dumps({'request_id': request_id})
+                    input_body = json.dumps({'request_id': request_id})
 
-                # WHEN
-                actual_result = H_generate_report.handler(sqs_wrap([input_body]), Context('H_generate_report'))
+                    # WHEN
+                    actual_result = H_generate_report.handler(sqs_wrap([input_body]), Context('H_generate_report'))
 
-                # THEN REGARDING LAMBDA
-                assert actual_result == {'batchItemFailures': []}
+                    # THEN REGARDING LAMBDA
+                    assert actual_result == {'batchItemFailures': []}
 
-                # THEN REGARDING DATA
-                _, database_cursor = database_holder
-                database_cursor.execute(f"select status from request where id='{request_id}'")
-                actual_request_status = database_cursor.fetchone()[0]
-                assert actual_request_status == 'COMPLETED'
+                    # THEN REGARDING DATA
+                    _, database_cursor = database_holder
+                    database_cursor.execute(f"select status from request where id='{request_id}'")
+                    actual_request_status = database_cursor.fetchone()[0]
+                    assert actual_request_status == 'COMPLETED'
 
-                # THEN REGARDING REPORT
-                rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
+                    # THEN REGARDING REPORT
+                    rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
 
-                assert rows_written[0][0] == rows_written[1][0] == request_id
-                assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['query_<20']
-                assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['ncbi_id']
-                assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['gse']
-                assert rows_written[0][4] == rows_written[1][4] == DEFAULT_FIXTURE['srp']
+                    assert rows_written[0][0] == rows_written[1][0] == request_id
+                    assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['query_<20']
+                    assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['ncbi_id']
+                    assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['gse']
+                    assert rows_written[0][4] == rows_written[1][4] == DEFAULT_FIXTURE['srp']
 
-                rows_written_for_first_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][0]][0]
-                rows_written_for_second_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][1]][0]
+                    rows_written_for_first_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][0]][0]
+                    rows_written_for_second_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][1]][0]
 
-                assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['srrs'][0]
-                assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['spots']
-                assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['bases']
-                assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['organism']
-                assert rows_written_for_first_srr[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
-                assert rows_written_for_first_srr[10] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
-                assert rows_written_for_first_srr[11] == 0.9196027757910978
-                assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
-                assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
-                assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
-                assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
-                assert rows_written_for_first_srr[16] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
-                assert rows_written_for_first_srr[17] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+                    assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['srrs'][0]
+                    assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                    assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                    assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['organism']
+                    assert rows_written_for_first_srr[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
+                    assert rows_written_for_first_srr[10] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
+                    assert rows_written_for_first_srr[11] == 0.9196027757910978
+                    assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
+                    assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
+                    assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
+                    assert rows_written_for_first_srr[16] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
+                    assert rows_written_for_first_srr[17] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
 
-                assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['srrs'][1]
-                assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['spots']
-                assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['bases']
-                assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['organism']
-                assert rows_written_for_second_srr[9] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['nspots']
-                assert rows_written_for_second_srr[10] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
-                assert rows_written_for_second_srr[11] == 0.666666667
-                assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
-                assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
-                assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
-                assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
-                assert rows_written_for_second_srr[16] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
-                assert rows_written_for_second_srr[17] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
+                    assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['srrs'][1]
+                    assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['spots']
+                    assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['bases']
+                    assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['organism']
+                    assert rows_written_for_second_srr[9] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['nspots']
+                    assert rows_written_for_second_srr[10] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
+                    assert rows_written_for_second_srr[11] == 0.666666667
+                    assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
+                    assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
+                    assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
+                    assert rows_written_for_second_srr[16] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
+                    assert rows_written_for_second_srr[17] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
 
-                # THEN REGARDING MESSAGES
-                assert mock_s3.upload_file.call_count == 1
-                expected_filename = f'Report_{request_id}.csv'
-                mock_s3.upload_file.assert_called_with(f'/tmp/{expected_filename}', 'integration-tests-s3', expected_filename)
+                    # THEN REGARDING MESSAGES
+                    assert mock_s3.upload_file.call_count == 1
+                    expected_filename = f'Report_{request_id}.csv'
+                    mock_s3.upload_file.assert_called_with(f'/tmp/{expected_filename}', 'integration-tests-s3', expected_filename)
+
+                    # THEN REGARDING MESSAGES
+                    assert mock_sqs.send_message.call_count == 1
+                    mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'filename': f'Report_{request_id}.csv'}))

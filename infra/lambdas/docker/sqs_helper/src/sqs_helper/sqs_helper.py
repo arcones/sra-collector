@@ -25,6 +25,8 @@ class SQSHelper:
                 self.output_sqs = f'{self.sqs_prefix}/F_srrs' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
             elif function_name == 'G_get_srr_metadata':
                 self.output_sqs = f'{self.sqs_prefix}/G_srr_metadata' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
+            elif function_name == 'H_generate_report':
+                self.output_sqs = f'{self.sqs_prefix}/H_user_feedback' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
         else:
             self.output_sqs = f'{self.sqs_prefix}/integration_test_queue'
 
