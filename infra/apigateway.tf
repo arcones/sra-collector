@@ -4,7 +4,7 @@ resource "aws_apigatewayv2_api" "sra_collector_api" {
   cors_configuration {
     allow_origins = ["https://arcones.github.io"]
     allow_methods = ["POST", "OPTIONS"]
-    allow_headers = ["content-type"]
+    allow_headers = ["content-type", "username", "password"]
     max_age       = 300
   }
 }
