@@ -32,7 +32,7 @@ class SQSHelper:
 
     def send(self, message_body: dict = None, message_bodies: [dict] = None):
         try:
-            if message_body is not None and message_bodies is not None:
+            if (message_body is None) == (message_bodies is None):
                 raise ValueError('Either message_body or message_bodies should be provided, not both')
 
             if message_body:

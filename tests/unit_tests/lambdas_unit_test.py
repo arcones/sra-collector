@@ -1,6 +1,8 @@
+import base64
 import json
 import os
 import re
+import shutil
 import sys
 from unittest.mock import ANY
 from unittest.mock import call
@@ -36,6 +38,7 @@ import E_get_study_srp
 import F_get_study_srrs
 import G_get_srr_metadata
 import H_generate_report
+import I_send_email
 
 
 def test_a_get_user_query():
@@ -726,3 +729,89 @@ def test_h_generate_report():
                     # THEN REGARDING MESSAGES
                     assert mock_sqs.send_message.call_count == 1
                     mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'filename': f'Report_{request_id}.csv'}))
+
+
+def test_i_send_email_successful_scenario():  ## TODO more meaningful names for tests
+    with patch.object(I_send_email.s3, 'download_file') as mock_s3_download_file:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
+
+                fixture_file_path = 'tests/fixtures/Report.csv'
+                new_filename = f'Report_{request_id}.csv'
+                shutil.copy(fixture_file_path, f'/tmp/{new_filename}')
+
+                with open(fixture_file_path) as s3_report:
+                    mock_s3_download_file.return_value = s3_report
+                    expected_content = s3_report.read()
+
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3_download_file.call_count == 1
+                expected_filename = f'Report_{request_id}.csv'
+                mock_s3_download_file.assert_called_with('integration-tests-s3', expected_filename, '/tmp')
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 1
+                mock_ses.send_raw_email.assert_called_with(
+                    Source='noreply@sracollector.com',
+                    Destination={'ToAddresses': [DEFAULT_FIXTURE['mail']], 'BccAddresses': ['marta.arcones@gmail.com']},
+                    RawMessage={'Data': ANY}
+                )
+
+                mail_data = mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+
+                assert f'Results for {request_id} query to SRA-Collector' in mail_data
+                base64_attachment = re.search(fr'(?<=Content-Disposition: attachment; filename="{expected_filename}"\n\n)([\s\S]+?)(?=\n\n--)', mail_data).group(1)
+                binary_attachment = base64.b64decode(base64_attachment)
+                with open('/tmp/actual_report.csv', 'wb') as actual_file_write:
+                    actual_file_write.write(binary_attachment)
+
+                with open('/tmp/actual_report.csv') as actual_file_read: # TODO aquimequede test unitarios funcionando, faltan los de integración y la infra claro, tb me he cargado un test
+                    actual_content = actual_file_read.read()
+                    assert expected_content == actual_content
+
+
+def test_i_send_email_unsuccessful_scenario():  ## TODO more meaningful names for tests
+    with patch.object(I_send_email, 's3') as mock_s3:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
+                reason = 'an amazing reason'
+
+                mock_s3.download_file = Mock()
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'reason': reason})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3.download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 1
+                mock_ses.send_raw_email.assert_called_with(
+                    Source='noreply@sracollector.com',
+                    Destination={'ToAddresses': [DEFAULT_FIXTURE['mail']], 'BccAddresses': ['marta.arcones@gmail.com']},
+                    RawMessage={'Data': ANY}
+                )
+                assert reason in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+                assert f'Results for {request_id} query to SRA-Collector' in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
