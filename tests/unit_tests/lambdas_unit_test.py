@@ -728,7 +728,7 @@ def test_h_generate_report():
 
                     # THEN REGARDING MESSAGES
                     assert mock_sqs.send_message.call_count == 1
-                    mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'filename': f'Report_{request_id}.csv'}))
+                    mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'}))
 
 
 def test_i_send_email_successful_scenario():  ## TODO more meaningful names for tests
@@ -778,7 +778,7 @@ def test_i_send_email_successful_scenario():  ## TODO more meaningful names for 
                 with open('/tmp/actual_report.csv', 'wb') as actual_file_write:
                     actual_file_write.write(binary_attachment)
 
-                with open('/tmp/actual_report.csv') as actual_file_read: # TODO aquimequede test unitarios funcionando, faltan los de integración y la infra claro, tb me he cargado un test
+                with open('/tmp/actual_report.csv') as actual_file_read:
                     actual_content = actual_file_read.read()
                     assert expected_content == actual_content
 

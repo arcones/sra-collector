@@ -95,7 +95,7 @@ def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study
 
 def is_request_pending_to_be_processed(database_holder, request_id: str, ncbi_query: str) -> bool:
     try:
-        statement = f'select id from request where id=%s and query=%s;'
+        statement = 'select id from request where id=%s and query=%s;'
         parameters = (request_id, ncbi_query)
         return not database_holder.execute_read_statement(statement, parameters)
     except Exception as exception:

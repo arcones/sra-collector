@@ -147,7 +147,7 @@ module "H_generate_report_lambda" {
   function_name         = "H_generate_report"
   queues = {
     input_sqs_arn   = var.queues.G_srr_metadata.G_srr_metadata_arn
-    output_sqs_arns = []
+    output_sqs_arns = [var.queues.H_user_feedback.H_user_feedback_arn]
     dlq_arn         = var.queues.G_to_H_DLQ_arn
   }
   s3_reports_bucket_arn                 = var.s3_reports_bucket_arn
@@ -155,5 +155,24 @@ module "H_generate_report_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.G_srr_metadata.G_srr_metadata_visibility_timeout - 10
+  memory_size                           = 128
+}
+
+module "I_send_email_lambda" {
+  source                = "./infra"
+  code_path             = "${path.module}/code"
+  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name         = "I_send_email"
+  queues = {
+    input_sqs_arn   = var.queues.H_user_feedback.H_user_feedback_arn
+    output_sqs_arns = []
+    dlq_arn         = var.queues.H_to_mail_DLQ_arn
+  }
+  s3_reports_bucket_arn                 = var.s3_reports_bucket_arn
+  rds_kms_key_arn                       = var.rds_kms_key_arn
+  rds_secret_arn                        = local.rds_secret_arn
+  cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
+  timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout - 10
+  webmaster_mail                        = var.webmaster_mail
   memory_size                           = 128
 }

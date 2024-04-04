@@ -1,15 +1,6 @@
-locals {
-  subdomain = "martaarcones.net"
-}
-
 resource "aws_acm_certificate" "certificate" {
-  domain_name       = "sra-collector.${local.subdomain}"
+  domain_name       = "sra-collector.${var.subdomain}"
   validation_method = "DNS"
-}
-
-data "aws_route53_zone" "zone" {
-  name         = local.subdomain
-  private_zone = false
 }
 
 resource "aws_route53_record" "records" {
@@ -35,7 +26,7 @@ resource "aws_acm_certificate_validation" "certificate_validation" {
 }
 
 resource "aws_apigatewayv2_domain_name" "apigateway_domain_name" {
-  domain_name = "sra-collector.${local.subdomain}"
+  domain_name = "sra-collector.${var.subdomain}"
 
   domain_name_configuration {
     certificate_arn = aws_acm_certificate.certificate.arn

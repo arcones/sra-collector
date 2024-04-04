@@ -81,3 +81,8 @@ variable "cognito_client_id" {
   default = null
   type    = string
 }
+
+variable "webmaster_mail" {
+  default = null
+  type    = string
+}

@@ -242,3 +242,23 @@ def test_h_generate_report(lambda_client):
         assert lambda_response is None or 'errorType' not in lambda_response
 
         assert lambda_response['batchItemFailures'] == []
+
+
+def test_i_send_email(lambda_client):
+    with PostgreConnectionManager() as (database_connection, database_cursor):
+        # GIVEN
+        request_id = provide_random_request_id()
+        store_test_request((database_connection, database_cursor), request_id, 'whatever')
+
+        input_body = json.dumps({'request_id': request_id, 'reason': 'a fantastic reason for a failure'})
+
+        # WHEN
+        invocation_result = lambda_client.invoke(FunctionName='I_send_email', Payload=sqs_wrap([input_body], dumps=True))
+
+        # THEN
+        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
+
+        assert lambda_response is None or 'errorMessage' not in lambda_response
+        assert lambda_response is None or 'errorType' not in lambda_response
+
+        assert lambda_response['batchItemFailures'] == []

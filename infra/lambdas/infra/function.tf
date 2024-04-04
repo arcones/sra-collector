@@ -29,6 +29,7 @@ resource "aws_lambda_function" "function" {
       ENV               = "prod"
       COGNITO_POOL_ID   = var.cognito_pool_id
       COGNITO_CLIENT_ID = var.cognito_client_id
+      WEBMASTER_MAIL    = var.webmaster_mail
     }
   }
   runtime          = "python3.11"

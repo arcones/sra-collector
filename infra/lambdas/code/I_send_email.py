@@ -31,10 +31,10 @@ def handler(event, context):
 
                     if 'filename' in request_body:
                         filename = request_body['filename']
-                        S3Helper(s3).download_file(request_body['filename'])
-                        send_mail(request_id, recipient_mail_address, attachment_path=f'/tmp/{filename}')
+                        S3Helper(s3).download_file(request_body['filename'])  ## TODO AQUIMEQUEDE PQ NO HA SALTADO EN INT TEST??? An exception has occurred in _single_send: 'SQSHelper' object has no attribute 'output_sqs'
+                        send_email(request_id, recipient_mail_address, attachment_path=f'/tmp/{filename}')
                     else:
-                        send_mail(request_id, recipient_mail_address, reason=request_body['reason'])
+                        send_email(request_id, recipient_mail_address, reason=request_body['reason'])
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -45,7 +45,7 @@ def handler(event, context):
 
 def get_mail_address_for_request(database_holder, request_id: str) -> str:
     try:
-        statement = f'select mail from request where id=%s;'
+        statement = 'select mail from request where id=%s;'
         return database_holder.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(
@@ -53,10 +53,10 @@ def get_mail_address_for_request(database_holder, request_id: str) -> str:
         raise exception
 
 
-def send_mail(request_id: str, recipient: str, attachment_path: str = None, reason: str = None) -> None:
+def send_email(request_id: str, recipient: str, attachment_path: str = None, reason: str = None) -> None:
     ses.send_raw_email(
-        Source='noreply@sracollector.com',
-        Destination={'ToAddresses': [recipient], 'BccAddresses': ['marta.arcones@gmail.com']},
+        Source=os.environ.get('WEBMASTER_MAIL'),
+        Destinations=[],
         RawMessage={'Data': compose_mail(request_id, recipient, attachment_path, reason) }
     )
 
@@ -67,9 +67,9 @@ def compose_mail(request_id: str, recipient: str, attachment_path: str = None, r
 
     mail = MIMEMultipart()
     mail['Subject'] = f'Results for {request_id} query to SRA-Collector'
-    mail['From'] = 'noreply@sracollector.com'
+    mail['From'] = os.environ.get('WEBMASTER_MAIL')
     mail['To'] = recipient
-    mail['Bcc'] = 'marta.arcones@gmail.com'  # TODO parametrizar envvar para webmaster
+    mail['Bcc'] = os.environ.get('WEBMASTER_MAIL')
 
     if attachment_path is not None:
         with open(attachment_path, 'rb') as attachment:
