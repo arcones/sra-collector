@@ -14,6 +14,6 @@ resource "aws_ses_email_identity" "webmaster_mail" {
   email = var.webmaster_mail
 }
 
-resource "aws_ses_email_identity" "other_mail" { ###TODO se va a quedar esto asi
+resource "aws_ses_email_identity" "integration_test_mail" {
   email = "arconestech@gmail.com"
 }

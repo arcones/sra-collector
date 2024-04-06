@@ -38,6 +38,7 @@ module "B_get_query_pages_lambda" {
   }
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
+  webmaster_mail                        = var.webmaster_mail
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout - 10
 }
@@ -172,7 +173,7 @@ module "I_send_email_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout - 10
   webmaster_mail                        = var.webmaster_mail
+  timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout - 10
   memory_size                           = 128
 }
