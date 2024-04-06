@@ -5,7 +5,11 @@ locals {
 
 resource "null_resource" "dependencies_watcher" {
   triggers = {
-    sha1 = filesha1("${path.module}/${local.deps_folder}/db_connection/src/db_connection/db_connection.py")
+    sha1 = format("%s%s%s",
+      filesha1("${path.module}/${local.deps_folder}/db_connection/src/db_connection/db_connection.py"),
+      filesha1("${path.module}/${local.deps_folder}/s3_helper/src/s3_helper/s3_helper.py"),
+      filesha1("${path.module}/${local.deps_folder}/sqs_helper/src/sqs_helper/sqs_helper.py")
+    )
   }
 }
 
