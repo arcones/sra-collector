@@ -28,6 +28,7 @@ from .utils_unit_test import store_test_sra_run
 from .utils_unit_test import stores_test_ncbi_study
 
 os.environ['ENV'] = 'unit-test'
+os.environ['WEBMASTER_MAIL'] = 'doctora@grijander.com'
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -765,8 +766,8 @@ def test_i_send_email_successful_scenario():  ## TODO more meaningful names for 
                 # THEN REGARDING EMAIL
                 assert mock_ses.send_raw_email.call_count == 1
                 mock_ses.send_raw_email.assert_called_with(
-                    Source='noreply@sracollector.com',
-                    Destination={'ToAddresses': [DEFAULT_FIXTURE['mail']], 'BccAddresses': ['marta.arcones@gmail.com']},
+                    Source=os.environ.get('WEBMASTER_MAIL'),
+                    Destinations=[],
                     RawMessage={'Data': ANY}
                 )
 
@@ -809,8 +810,8 @@ def test_i_send_email_unsuccessful_scenario():  ## TODO more meaningful names fo
                 # THEN REGARDING EMAIL
                 assert mock_ses.send_raw_email.call_count == 1
                 mock_ses.send_raw_email.assert_called_with(
-                    Source='noreply@sracollector.com',
-                    Destination={'ToAddresses': [DEFAULT_FIXTURE['mail']], 'BccAddresses': ['marta.arcones@gmail.com']},
+                    Source=os.environ.get('WEBMASTER_MAIL'),
+                    Destinations=[],
                     RawMessage={'Data': ANY}
                 )
                 assert reason in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']

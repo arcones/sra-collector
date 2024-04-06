@@ -59,7 +59,7 @@ def handler(event, context):
                         logging.info(f'Query has {study_count} studies associated which is above the limit of {QUERY_STUDY_LIMIT} studies so it will not be processed')
                         too_expensive_halt_reason = (f'Queries with more than {QUERY_STUDY_LIMIT} studies cannot be processed as costs are not affordable.'
                                                      f'Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={ncbi_query}'
-                                                     'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
+                                                     'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')  ## TODO parametrize webmaster mail
 
                         too_expensive_user_feedback_message = {'request_id': request_id, 'result': 'FAILURE', 'reason': too_expensive_halt_reason}  # TODO ese result failure no me sirve de nada
                         SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)
