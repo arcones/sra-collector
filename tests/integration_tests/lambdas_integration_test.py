@@ -7,6 +7,7 @@ import pytest
 from ..utils_test import _apigateway_wrap
 from ..utils_test import provide_random_request_id
 from ..utils_test import sqs_wrap
+from .utils_integration_test import delete_test_request
 from .utils_integration_test import PostgreConnectionManager
 from .utils_integration_test import store_test_geo_study
 from .utils_integration_test import store_test_request
@@ -247,30 +248,11 @@ def test_h_generate_report(lambda_client):
 def test_i_send_email(lambda_client):
     with PostgreConnectionManager() as (database_connection, database_cursor):
         # GIVEN
-        request_id = provide_random_request_id()
+        request_id = 'integration_test'
+        delete_test_request((database_connection, database_cursor))
         store_test_request((database_connection, database_cursor), request_id, 'whatever')
 
-        input_body = json.dumps({'request_id': request_id, 'reason': 'a fantastic reason for a failure'})
-
-        # WHEN
-        invocation_result = lambda_client.invoke(FunctionName='I_send_email', Payload=sqs_wrap([input_body], dumps=True))
-
-        # THEN
-        lambda_response = json.loads(invocation_result['Payload']._raw_stream.data.decode('utf-8'))
-
-        assert lambda_response is None or 'errorMessage' not in lambda_response
-        assert lambda_response is None or 'errorType' not in lambda_response
-
-        assert lambda_response['batchItemFailures'] == []
-
-
-def test_i_send_email_2(lambda_client):
-    with PostgreConnectionManager() as (database_connection, database_cursor):
-        # GIVEN
-        request_id = provide_random_request_id()
-        store_test_request((database_connection, database_cursor), request_id, 'whatever')
-
-        input_body = json.dumps({'request_id': request_id, 'filename': 'cosa'})
+        input_body = json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'})
 
         # WHEN
         invocation_result = lambda_client.invoke(FunctionName='I_send_email', Payload=sqs_wrap([input_body], dumps=True))

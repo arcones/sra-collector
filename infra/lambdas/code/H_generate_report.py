@@ -64,6 +64,9 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
         logging.error(f'An exception has occurred in {get_request_status.__name__}: {str(exception)}')
         raise exception
 
+## TODO quitar nspots
+## TODO añadir phred over 30
+## TODO quitar requestid
 
 def generate_report(database_holder, request_id: str) -> [[]]:
     try:

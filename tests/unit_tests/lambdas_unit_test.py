@@ -204,7 +204,7 @@ def test_b_get_query_pages_stop_expensive_queries():
                 expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.'
                                    f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}"
                                    'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
-                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'result': 'FAILURE', 'reason': expected_reason}))
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'failure_reason': expected_reason}))
 
 
 def test_c_get_study_ids():
@@ -732,7 +732,7 @@ def test_h_generate_report():
                     mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'}))
 
 
-def test_i_send_email_successful_scenario():  ## TODO more meaningful names for tests
+def test_i_send_email_ok():
     with patch.object(I_send_email.s3, 'download_file') as mock_s3_download_file:
         with patch.object(I_send_email, 'ses') as mock_ses:
             with H2ConnectionManager() as database_holder:
@@ -761,13 +761,12 @@ def test_i_send_email_successful_scenario():  ## TODO more meaningful names for 
                 # THEN REGARDING S3
                 assert mock_s3_download_file.call_count == 1
                 expected_filename = f'Report_{request_id}.csv'
-                mock_s3_download_file.assert_called_with('integration-tests-s3', expected_filename, '/tmp')
+                mock_s3_download_file.assert_called_with('integration-tests-s3', expected_filename, f'/tmp/{expected_filename}')
 
                 # THEN REGARDING EMAIL
                 assert mock_ses.send_raw_email.call_count == 1
                 mock_ses.send_raw_email.assert_called_with(
                     Source=os.environ.get('WEBMASTER_MAIL'),
-                    Destinations=[],
                     RawMessage={'Data': ANY}
                 )
 
@@ -784,7 +783,7 @@ def test_i_send_email_successful_scenario():  ## TODO more meaningful names for 
                     assert expected_content == actual_content
 
 
-def test_i_send_email_unsuccessful_scenario():  ## TODO more meaningful names for tests
+def test_i_send_email_ko():
     with patch.object(I_send_email, 's3') as mock_s3:
         with patch.object(I_send_email, 'ses') as mock_ses:
             with H2ConnectionManager() as database_holder:
@@ -796,7 +795,7 @@ def test_i_send_email_unsuccessful_scenario():  ## TODO more meaningful names fo
                 mock_s3.download_file = Mock()
                 mock_ses.send_raw_email = Mock()
 
-                input_body = json.dumps({'request_id': request_id, 'reason': reason})
+                input_body = json.dumps({'request_id': request_id, 'failure_reason': reason})
 
                 # WHEN
                 actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
@@ -811,7 +810,6 @@ def test_i_send_email_unsuccessful_scenario():  ## TODO more meaningful names fo
                 assert mock_ses.send_raw_email.call_count == 1
                 mock_ses.send_raw_email.assert_called_with(
                     Source=os.environ.get('WEBMASTER_MAIL'),
-                    Destinations=[],
                     RawMessage={'Data': ANY}
                 )
                 assert reason in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
