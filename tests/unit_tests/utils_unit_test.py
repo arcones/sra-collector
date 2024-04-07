@@ -161,6 +161,12 @@ def mock_eutils(method, url, *args, **kwargs):
         elif url == f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={DEFAULT_FIXTURE['srrs'][0]}":
             with open('tests/fixtures/G_get_srr_metadata.xml') as response:
                 return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR6348099':
+            with open('tests/fixtures/G_get_srr_metadata_problematic_1.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR10522811':
+            with open('tests/fixtures/G_get_srr_metadata_problematic_2.xml') as response:
+                return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')
     else:
@@ -168,7 +174,9 @@ def mock_eutils(method, url, *args, **kwargs):
 
 
 def mock_pysradb(entity, *args, **kwargs):
-    if entity.startswith('GSE'):
+    if entity == 'GSE126183':
+        return {'study_accession': ['SRP184257']}
+    elif entity.startswith('GSE'):
         return {'study_accession': [DEFAULT_FIXTURE['srp']]}
     elif entity.startswith('SRP'):
         return {'run_accession': DEFAULT_FIXTURE['srrs']}

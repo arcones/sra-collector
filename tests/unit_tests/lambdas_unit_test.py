@@ -360,6 +360,49 @@ def test_e_get_study_srp_ok():
                 assert expected_calls == actual_calls
 
 
+def test_e_get_study_srp_TEST():
+    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
+        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=mock_pysradb):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, 'GSE126183')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
+
+                # WHEN
+                actual_result = E_get_study_srp.handler(sqs_wrap([input_body]), Context('E_get_study_srp'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select sp.* from sra_project sp where geo_study_id={inserted_geo_study_id}')
+                actual_srp_rows = database_cursor.fetchall()
+                sra_project_id = actual_srp_rows[0][0]
+                assert actual_srp_rows[0][1] == DEFAULT_FIXTURE['srp']
+
+                database_cursor.execute(f"select ncbi_id, request_id, srr_metadata_count from ncbi_study where request_id='{request_id}'")
+                actual_ncbi_study_row = database_cursor.fetchall()
+                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, None)]
+
+                database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
+                actual_ko_rows = database_cursor.fetchall()
+                assert actual_ko_rows == []
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                expected_calls = [call(QueueUrl=ANY, MessageBody=json.dumps({'sra_project_id': sra_project_id}))]
+                actual_calls = mock_sqs.send_message.call_args_list
+
+                assert expected_calls == actual_calls
+
 @pytest.mark.parametrize('pysradb_exception, pysradb_exception_info, pysradb_exception_name', [
     (AttributeError, 'jander', 'ATTRIBUTE_ERROR'),
     (ValueError, 'clander', 'VALUE_ERROR'),
@@ -641,6 +684,60 @@ def test_g_get_srr_metadata_finish():
                 assert statistic_read[7] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
                 assert statistic_read[8] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
                 assert statistic_read[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_g_get_srr_metadata_problematic_1_xml():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR6348099')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []} ## TODO descartar las muestras que no tienen información
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_g_get_srr_metadata_problematic_2_xml():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR10522811')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []} ## TODO descartar las muestras que no tienen información
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1

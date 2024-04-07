@@ -36,8 +36,8 @@ def handler(event, context):
                         path = os.path.join('/tmp', filename)
                         with open(path, 'w', newline='') as csvfile:
                             csv_writer = csv.writer(csvfile)
-                            csv_writer.writerow(['REQUEST_ID', 'QUERY', 'NCBI_STUDY', 'GSE', 'SRP', 'SRR', 'SPOTS', 'BASES', 'ORGANISM',
-                                                 'NSPOTS', 'LAYOUT', 'PHRED_READ_OVER_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
+                            csv_writer.writerow(['QUERY', 'NCBI_STUDY', 'GSE', 'SRP', 'SRR', 'SPOTS', 'BASES', 'ORGANISM',
+                                                 'LAYOUT', 'PHRED_READ_FROM_30', 'PHRED_READ_FROM_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
                                                  'READ_0_STDEV', 'READ_1_COUNT', 'READ_1_AVERAGE', 'READ_1_STDEV'])
                             csv_writer.writerows(report)
                         S3Helper(s3).upload_file(path, filename)
@@ -64,13 +64,13 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
         logging.error(f'An exception has occurred in {get_request_status.__name__}: {str(exception)}')
         raise exception
 
-## TODO añadir phred over 30
-
+## TODO el phred de 30 parece EXACTAMENTE igual que el phred de 37... ¬¬
 def generate_report(database_holder, request_id: str) -> [[]]:
     try:
         statement = ('SELECT R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
                      'SRM.BASES AS TOTAL_BASES, SRM.ORGANISM, SRMSR.LAYOUT, '
-                     'SUM(CASE WHEN SRMP.SCORE >= 37 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_OVER_37, '
+                     'SUM(CASE WHEN SRMP.SCORE >= 30 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_FROM_30, '
+                     'SUM(CASE WHEN SRMP.SCORE >= 37 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_FROM_37, '
                      'SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, SRMSR.READ_0_STDEV, '
                      'SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV '
                      'FROM SRA_RUN_METADATA SRM '
