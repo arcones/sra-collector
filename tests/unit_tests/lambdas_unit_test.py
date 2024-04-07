@@ -183,8 +183,6 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 mock_sqs.send_message = Mock()
 
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
-
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_over_limit'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
@@ -201,9 +199,9 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.'
-                                   f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}"
-                                   'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
+                expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.\n'
+                                   f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}\n"
+                                   f"Do smaller queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'failure_reason': expected_reason}))
 
 
@@ -680,7 +678,7 @@ def test_h_generate_report():
                     _, database_cursor = database_holder
                     database_cursor.execute(f"select status from request where id='{request_id}'")
                     actual_request_status = database_cursor.fetchone()[0]
-                    assert actual_request_status == 'COMPLETED'
+                    assert actual_request_status == 'EXTRACTED'
 
                     # THEN REGARDING REPORT
                     rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
@@ -738,7 +736,7 @@ def test_i_send_email_ok():
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = provide_random_request_id()
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'EXTRACTED')
 
                 fixture_file_path = 'tests/fixtures/Report.csv'
                 new_filename = f'Report_{request_id}.csv'
@@ -765,10 +763,7 @@ def test_i_send_email_ok():
 
                 # THEN REGARDING EMAIL
                 assert mock_ses.send_raw_email.call_count == 1
-                mock_ses.send_raw_email.assert_called_with(
-                    Source=os.environ.get('WEBMASTER_MAIL'),
-                    RawMessage={'Data': ANY}
-                )
+                mock_ses.send_raw_email.assert_called_with(RawMessage={'Data': ANY})
 
                 mail_data = mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
 
@@ -789,7 +784,7 @@ def test_i_send_email_ko():
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = provide_random_request_id()
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'NOT_EXTRACTED')
                 reason = 'an amazing reason'
 
                 mock_s3.download_file = Mock()
@@ -808,9 +803,65 @@ def test_i_send_email_ko():
 
                 # THEN REGARDING EMAIL
                 assert mock_ses.send_raw_email.call_count == 1
-                mock_ses.send_raw_email.assert_called_with(
-                    Source=os.environ.get('WEBMASTER_MAIL'),
-                    RawMessage={'Data': ANY}
-                )
+                mock_ses.send_raw_email.assert_called_with(RawMessage={'Data': ANY})
                 assert reason in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
                 assert f'Results for {request_id} query to SRA-Collector' in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+
+
+def test_i_send_email_ok_skip_already_processed():
+    with patch.object(I_send_email.s3, 'download_file') as mock_s3_download_file:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'SENT')
+
+                fixture_file_path = 'tests/fixtures/Report.csv'
+                new_filename = f'Report_{request_id}.csv'
+                shutil.copy(fixture_file_path, f'/tmp/{new_filename}')
+
+                with open(fixture_file_path) as s3_report:
+                    mock_s3_download_file.return_value = s3_report
+                    expected_content = s3_report.read()
+
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3_download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 0
+
+
+def test_i_send_email_ko_skip_already_processed():
+    with patch.object(I_send_email, 's3') as mock_s3:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'SENT')
+
+                mock_s3.download_file = Mock()
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'failure_reason': 'an amazing reason'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3.download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 0

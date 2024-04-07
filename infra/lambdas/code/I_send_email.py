@@ -13,7 +13,7 @@ ses = boto3.client('ses', region_name='eu-central-1')
 s3 = boto3.client('s3', region_name='eu-central-1')
 
 
-def handler(event, context):
+def handler(event, _):
     if event:
         logging.info(f'Received {len(event["Records"])} records event {event}')
 
@@ -29,12 +29,15 @@ def handler(event, context):
                     request_id = request_body['request_id']
                     recipient_mail_address = get_mail_address_for_request(database_holder, request_id)
 
-                    if 'filename' in request_body:
-                        filename = request_body['filename']
-                        S3Helper(s3).download_file(request_body['filename'])
-                        send_email(request_id, recipient_mail_address, attachment_path=f'/tmp/{filename}')
-                    else:
-                        send_email(request_id, recipient_mail_address, reason=request_body['failure_reason'])
+                    if recipient_mail_address:
+                        if 'filename' in request_body:
+                            filename = request_body['filename']
+                            S3Helper(s3).download_file(request_body['filename'])
+                            send_email(request_id, recipient_mail_address, attachment_path=f'/tmp/{filename}')
+                        else:
+                            send_email(request_id, recipient_mail_address, reason=request_body['failure_reason'])
+
+                        update_request_status(database_holder, request_id)
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -43,13 +46,19 @@ def handler(event, context):
         return sqs_batch_response
 
 
-def get_mail_address_for_request(database_holder, request_id: str) -> str:
+def get_mail_address_for_request(database_holder, request_id: str) -> str | bool:
     try:
-        statement = 'select mail from request where id=%s;'
-        return database_holder.execute_read_statement(statement, (request_id,))[0][0]
+        statement = 'select mail from request where id=%s and status like %s;'
+        parameters = (request_id, '%EXTRACTED')
+        is_row_present = database_holder.execute_read_statement(statement, parameters)
+
+        if is_row_present:
+            return is_row_present[0][0]
+        else:
+            return False
     except Exception as exception:
         logging.error(
-            f'An exception has occurred in {get_mail_address_for_request.__name__}: {str(exception)}')  # TODO el completed en la tabla REQUEST quiza deberia ser segun el mail queda enviado? estados PENDING, EXTRACT, COMPLETED? Llegan mail dups!
+            f'An exception has occurred in {get_mail_address_for_request.__name__}: {str(exception)}')
         raise exception
 
 
@@ -77,3 +86,12 @@ def compose_mail(request_id: str, recipient: str, attachment_path: str = None, r
         mail.attach(mail_body)
 
     return mail.as_string()
+
+
+def update_request_status(database_holder, request_id: str):
+    try:
+        statement = 'update request set status=%s where id=%s;'
+        database_holder.execute_write_statement(statement, ('SENT', request_id))
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {update_request_status.__name__}: {str(exception)}')
+        raise exception

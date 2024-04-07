@@ -56,14 +56,14 @@ def handler(event, context):
                         else:
                             logging.info(f'The record with request_id {request_id} and NCBI query {ncbi_query} has already been processed')
                     else:
-                        store_request_in_db(database_holder, request_id, ncbi_query, study_count, mail) ## TODO aquimequede esto peta pq se ha insertado antes la request
+                        store_request_in_db(database_holder, request_id, ncbi_query, study_count, mail, 'NOT_EXTRACTED')
                         logging.info(f'Query has {study_count} studies associated which is above the limit of {QUERY_STUDY_LIMIT} studies so it will not be processed')
                         too_expensive_halt_reason = (f'Queries with more than {QUERY_STUDY_LIMIT} studies cannot be processed as costs are not affordable.\n'
                                                      f'Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={ncbi_query}\n'
                                                      f"Do smaller queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
 
                         too_expensive_user_feedback_message = {'request_id': request_id, 'failure_reason': too_expensive_halt_reason}
-                        SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message) ## TODO hay q poner el mail a completed en este caso tambien!
+                        SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)
             except Exception as exception:
                 batch_item_failures.append({'itemIdentifier': record['messageId']})
                 logging.error(f'An exception has occurred in {handler.__name__}: {str(exception)}')
@@ -84,10 +84,10 @@ def get_study_count(ncbi_query: str) -> int:
         raise exception
 
 
-def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study_count: int, mail: str):
+def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study_count: int, mail: str, status: str = None):
     try:
-        statement = f'insert into request (id, query, geo_count, mail) values (%s, %s, %s, %s) on conflict do nothing;'
-        parameters = (request_id, ncbi_query, study_count, mail)
+        statement = f'insert into request (id, query, geo_count, mail, status) values (%s, %s, %s, %s, %s) on conflict do nothing;'
+        parameters = (request_id, ncbi_query, study_count, mail, status if status is not None else 'PENDING')
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_request_in_db.__name__}: {str(exception)}')
@@ -96,8 +96,8 @@ def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study
 
 def is_request_pending_to_be_processed(database_holder, request_id: str, ncbi_query: str) -> bool:
     try:
-        statement = 'select id from request where id=%s and query=%s;'
-        parameters = (request_id, ncbi_query)
+        statement = 'select id from request where id=%s and query=%s and status=%s;'
+        parameters = (request_id, ncbi_query, 'PENDING')
         return not database_holder.execute_read_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {is_request_pending_to_be_processed.__name__}: {str(exception)}')

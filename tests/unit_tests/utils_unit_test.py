@@ -70,9 +70,10 @@ class H2ConnectionManager:
             self.database_connection.close()
 
 
-def store_test_request(database_holder, request_id, ncbi_query):
+def store_test_request(database_holder, request_id, ncbi_query, status=None):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into request (id, query, geo_count, mail) values (?, ?, ?, ?);', [request_id, ncbi_query, 1, DEFAULT_FIXTURE['mail']])
+    database_cursor.execute('insert into request (id, query, geo_count, mail, status) values (?, ?, ?, ?, ?);',
+                            [request_id, ncbi_query, 1, DEFAULT_FIXTURE['mail'], status if status is not None else 'PENDING'])
     database_connection.commit()
 
 
