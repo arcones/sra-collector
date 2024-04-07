@@ -64,14 +64,12 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
         logging.error(f'An exception has occurred in {get_request_status.__name__}: {str(exception)}')
         raise exception
 
-## TODO quitar nspots
 ## TODO añadir phred over 30
-## TODO quitar requestid
 
 def generate_report(database_holder, request_id: str) -> [[]]:
     try:
-        statement = ('SELECT R.ID, R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
-                     'SRM.BASES AS TOTAL_BASES, SRM.ORGANISM, SRMSR.NSPOTS, SRMSR.LAYOUT, '
+        statement = ('SELECT R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
+                     'SRM.BASES AS TOTAL_BASES, SRM.ORGANISM, SRMSR.LAYOUT, '
                      'SUM(CASE WHEN SRMP.SCORE >= 37 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_OVER_37, '
                      'SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, SRMSR.READ_0_STDEV, '
                      'SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV '
@@ -84,8 +82,8 @@ def generate_report(database_holder, request_id: str) -> [[]]:
                      'JOIN NCBI_STUDY NS ON GS.NCBI_STUDY_ID = NS.ID '
                      'JOIN REQUEST R ON NS.REQUEST_ID = R.ID '
                      'WHERE R.ID =%s '
-                     'GROUP BY R.ID, R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS, SRM.BASES, '
-                     'SRM.ORGANISM, SRMSR.NSPOTS, SRMSR.LAYOUT, SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, '
+                     'GROUP BY R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS, SRM.BASES, '
+                     'SRM.ORGANISM, SRMSR.LAYOUT, SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, '
                      'SRMSR.READ_0_STDEV, SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV; ')
         return database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:

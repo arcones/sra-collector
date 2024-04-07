@@ -683,42 +683,39 @@ def test_h_generate_report():
                     # THEN REGARDING REPORT
                     rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
 
-                    assert rows_written[0][0] == rows_written[1][0] == request_id
-                    assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['query_<20']
-                    assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['ncbi_id']
-                    assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['gse']
-                    assert rows_written[0][4] == rows_written[1][4] == DEFAULT_FIXTURE['srp']
+                    assert rows_written[0][0] == rows_written[1][0] == DEFAULT_FIXTURE['query_<20']
+                    assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['ncbi_id']
+                    assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['gse']
+                    assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['srp']
 
-                    rows_written_for_first_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][0]][0]
-                    rows_written_for_second_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][1]][0]
+                    rows_written_for_first_srr = [row for row in rows_written if row[4] == DEFAULT_FIXTURE['srrs'][0]][0]
+                    rows_written_for_second_srr = [row for row in rows_written if row[4] == DEFAULT_FIXTURE['srrs'][1]][0]
 
-                    assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['srrs'][0]
-                    assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['spots']
-                    assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['bases']
-                    assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['organism']
-                    assert rows_written_for_first_srr[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
-                    assert rows_written_for_first_srr[10] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
-                    assert rows_written_for_first_srr[11] == 0.9196027757910978
-                    assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
-                    assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
-                    assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
-                    assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
-                    assert rows_written_for_first_srr[16] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
-                    assert rows_written_for_first_srr[17] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+                    assert rows_written_for_first_srr[4] == DEFAULT_FIXTURE['srrs'][0]
+                    assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                    assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                    assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['organism']
+                    assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
+                    assert rows_written_for_first_srr[9] == 0.9196027757910978
+                    assert rows_written_for_first_srr[10] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
+                    assert rows_written_for_first_srr[11] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
+                    assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
+                    assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
+                    assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
 
-                    assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['srrs'][1]
-                    assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['spots']
-                    assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['bases']
-                    assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['organism']
-                    assert rows_written_for_second_srr[9] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['nspots']
-                    assert rows_written_for_second_srr[10] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
-                    assert rows_written_for_second_srr[11] == 0.666666667
-                    assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
-                    assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
-                    assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
-                    assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
-                    assert rows_written_for_second_srr[16] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
-                    assert rows_written_for_second_srr[17] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
+                    assert rows_written_for_second_srr[4] == DEFAULT_FIXTURE['srrs'][1]
+                    assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['metadatas'][1]['spots']
+                    assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['bases']
+                    assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['organism']
+                    assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
+                    assert rows_written_for_second_srr[9] == 0.666666667
+                    assert rows_written_for_second_srr[10] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
+                    assert rows_written_for_second_srr[11] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
+                    assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
+                    assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
+                    assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
 
                     # THEN REGARDING MESSAGES
                     assert mock_s3.upload_file.call_count == 1
