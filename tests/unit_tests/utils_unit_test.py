@@ -7,11 +7,11 @@ import urllib3
 http = urllib3.PoolManager()
 
 DEFAULT_FIXTURE = {
-    'query_+500': 'cancer AND mus musculus AND children',
-    'query_<20': 'rna seq and homo sapiens and myeloid and leukemia',
+    'query_+300': 'foo AND bar AND baz',
+    'query_<20': 'foobar',
     'query_over_limit': 'cancer',
     'mail': 'crispin@grijander.com',
-    'results': 687,
+    'results': 384,
     'ncbi_id': 200126815,
     'gse': 'GSE126815',
     'srp': 'SRP185522',
@@ -137,7 +137,7 @@ def mock_eutils(method, url, *args, **kwargs):
     eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 
     if method == 'GET':
-        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_+500']}&retmax=1":
+        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_+300']}&retmax=1":
             with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
                 return Mock(data=response.read())
         if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_over_limit']}&retmax=1":
@@ -166,6 +166,9 @@ def mock_eutils(method, url, *args, **kwargs):
                 return Mock(data=response.read())
         elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR10522811':
             with open('tests/fixtures/G_get_srr_metadata_problematic_2.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR23100522':
+            with open('tests/fixtures/G_get_srr_metadata_problematic_3.xml') as response:
                 return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')

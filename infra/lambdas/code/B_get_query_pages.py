@@ -14,7 +14,7 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 http = urllib3.PoolManager()
 page_size = 500
 
-QUERY_STUDY_LIMIT = 1000
+QUERY_STUDY_LIMIT = 500
 
 
 def handler(event, context):
@@ -60,7 +60,7 @@ def handler(event, context):
                         logging.info(f'Query has {study_count} studies associated which is above the limit of {QUERY_STUDY_LIMIT} studies so it will not be processed')
                         too_expensive_halt_reason = (f'Queries with more than {QUERY_STUDY_LIMIT} studies cannot be processed as costs are not affordable.\n'
                                                      f'Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={ncbi_query}\n'
-                                                     f"Do smaller queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
+                                                     f"Either do more specific queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
 
                         too_expensive_user_feedback_message = {'request_id': request_id, 'failure_reason': too_expensive_halt_reason}
                         SQSHelper(sqs, context.function_name, 'H_user_feedback').send(message_body=too_expensive_user_feedback_message)

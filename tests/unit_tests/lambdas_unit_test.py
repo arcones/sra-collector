@@ -122,7 +122,7 @@ def test_b_get_query_pages():
 
                 mock_sqs.send_message_batch = Mock()
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+300'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -133,7 +133,7 @@ def test_b_get_query_pages():
                 # THEN REGARDING DATA
                 database_cursor.execute(f"select id, query, geo_count, mail from request where id='{request_id}'")
                 actual_rows = database_cursor.fetchall()
-                expected_row = [(request_id, DEFAULT_FIXTURE['query_+500'], DEFAULT_FIXTURE['results'], DEFAULT_FIXTURE['mail'])]
+                expected_row = [(request_id, DEFAULT_FIXTURE['query_+300'], DEFAULT_FIXTURE['results'], DEFAULT_FIXTURE['mail'])]
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
@@ -142,7 +142,7 @@ def test_b_get_query_pages():
                 actual_message_bodies = [json.loads(entry['MessageBody']) for entry in mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries']]
                 assert {message_body['request_id'] for message_body in actual_message_bodies} == {request_id}
                 assert {message_body['retmax'] for message_body in actual_message_bodies} == {500}
-                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500}
+                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0}
 
 
 def test_b_get_query_pages_skip_already_processed_study_id():
@@ -154,9 +154,9 @@ def test_b_get_query_pages_skip_already_processed_study_id():
 
                 mock_sqs.send_message_batch = Mock()
 
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+500'])
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+300'])
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+300'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -199,9 +199,9 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.\n'
+                expected_reason = (f'Queries with more than 500 studies cannot be processed as costs are not affordable.\n'
                                    f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}\n"
-                                   f"Do smaller queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
+                                   f"Either do more specific queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'failure_reason': expected_reason}))
 
 
@@ -359,49 +359,6 @@ def test_e_get_study_srp_ok():
 
                 assert expected_calls == actual_calls
 
-
-def test_e_get_study_srp_TEST():
-    with patch.object(E_get_study_srp, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'gse_to_srp', side_effect=mock_pysradb):
-            with H2ConnectionManager() as database_holder:
-                # GIVEN
-                request_id = provide_random_request_id()
-
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
-                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'])
-                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, 'GSE126183')
-
-                mock_sqs.send_message = Mock()
-
-                input_body = json.dumps({'geo_entity_id': inserted_geo_study_id})
-
-                # WHEN
-                actual_result = E_get_study_srp.handler(sqs_wrap([input_body]), Context('E_get_study_srp'))
-
-                # THEN REGARDING LAMBDA
-                assert actual_result == {'batchItemFailures': []}
-
-                # THEN REGARDING DATA
-                _, database_cursor = database_holder
-                database_cursor.execute(f'select sp.* from sra_project sp where geo_study_id={inserted_geo_study_id}')
-                actual_srp_rows = database_cursor.fetchall()
-                sra_project_id = actual_srp_rows[0][0]
-                assert actual_srp_rows[0][1] == DEFAULT_FIXTURE['srp']
-
-                database_cursor.execute(f"select ncbi_id, request_id, srr_metadata_count from ncbi_study where request_id='{request_id}'")
-                actual_ncbi_study_row = database_cursor.fetchall()
-                assert actual_ncbi_study_row == [(DEFAULT_FIXTURE['ncbi_id'], request_id, None)]
-
-                database_cursor.execute(f'select * from sra_project_missing where geo_study_id={inserted_geo_study_id}')
-                actual_ko_rows = database_cursor.fetchall()
-                assert actual_ko_rows == []
-
-                # THEN REGARDING MESSAGES
-                assert mock_sqs.send_message.call_count == 1
-                expected_calls = [call(QueueUrl=ANY, MessageBody=json.dumps({'sra_project_id': sra_project_id}))]
-                actual_calls = mock_sqs.send_message.call_args_list
-
-                assert expected_calls == actual_calls
 
 @pytest.mark.parametrize('pysradb_exception, pysradb_exception_info, pysradb_exception_name', [
     (AttributeError, 'jander', 'ATTRIBUTE_ERROR'),
@@ -623,7 +580,7 @@ def test_g_get_srr_metadata_start():
 
                 database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
                 statistic_read = database_cursor.fetchone()
-                statistic_read_id = statistic_read[0]
+                statistic_read_id = statistic_read[0] ## TODO analyze code for not used things
                 assert statistic_read[2] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
                 assert statistic_read[3] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
                 assert statistic_read[4] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
@@ -690,6 +647,9 @@ def test_g_get_srr_metadata_finish():
                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
 
 
+## TODO merge the three tests of problematic traces
+## TODO assert also DB insertions in each case
+
 def test_g_get_srr_metadata_problematic_1_xml():
     with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
         with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
@@ -710,7 +670,7 @@ def test_g_get_srr_metadata_problematic_1_xml():
                 actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
 
                 # THEN REGARDING LAMBDA
-                assert actual_result == {'batchItemFailures': []} ## TODO descartar las muestras que no tienen información
+                assert actual_result == {'batchItemFailures': []}
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
@@ -737,7 +697,34 @@ def test_g_get_srr_metadata_problematic_2_xml():
                 actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
 
                 # THEN REGARDING LAMBDA
-                assert actual_result == {'batchItemFailures': []} ## TODO descartar las muestras que no tienen información
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_g_get_srr_metadata_problematic_3_xml():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR23100522')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1

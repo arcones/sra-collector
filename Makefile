@@ -92,11 +92,6 @@ xl-sra-collector-request:
 		--header 'Content-Type: application/json' \
 		--data '{ "ncbi_query": "multiple sclerosis AND rna seq" }'
 
-max-sra-collector-request:
-	curl -w "\n%{http_code}" --location --request POST 'https://sra-collector.martaarcones.net/query-submit' \
-		--header 'Content-Type: application/json' \
-		--data '{ "ncbi_query": "cancer AND mus musculus AND children" }'
-
 build-unit-tests-dependencies: db-migrations-unit-test
 	cd tests/unit_tests && pip install -r requirements.txt
 	cd infra/lambdas/docker/db_connection && python -m build && pip install dist/db_connection-$(DB_CONNECTION_LIB_VERSION)-py3-none-any.whl --force-reinstall

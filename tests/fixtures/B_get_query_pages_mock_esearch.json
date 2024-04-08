@@ -4,7 +4,7 @@
         "version": "0.3"
     },
     "esearchresult": {
-        "count": "687",
+        "count": "384",
         "retmax": "1",
         "retstart": "0",
         "idlist": [
@@ -12,16 +12,16 @@
         ],
         "translationset": [
             {
-                "from": "cancer",
-                "to": "\"neoplasms\"[MeSH Terms] OR cancer[All Fields]"
+                "from": "foo",
+                "to": "\"neoplasms\"[MeSH Terms] OR foo[All Fields]"
             },
             {
-                "from": "mus musculus",
-                "to": "\"mice\"[MeSH Terms] OR \"Mus musculus\"[Organism] OR mus musculus[All Fields]"
+                "from": "bar",
+                "to": "\"mice\"[MeSH Terms] OR \"bar\"[Organism] OR bar[All Fields]"
             },
             {
-                "from": "children",
-                "to": "\"child\"[MeSH Terms] OR children[All Fields]"
+                "from": "baz",
+                "to": "\"child\"[MeSH Terms] OR baz[All Fields]"
             }
         ],
         "translationstack": [
@@ -32,7 +32,7 @@
                 "explode": "Y"
             },
             {
-                "term": "cancer[All Fields]",
+                "term": "foo[All Fields]",
                 "field": "All Fields",
                 "count": "480146",
                 "explode": "N"
@@ -46,14 +46,14 @@
                 "explode": "Y"
             },
             {
-                "term": "\"Mus musculus\"[Organism]",
+                "term": "\"bar\"[Organism]",
                 "field": "Organism",
                 "count": "2183370",
                 "explode": "Y"
             },
             "OR",
             {
-                "term": "mus musculus[All Fields]",
+                "term": "bar[All Fields]",
                 "field": "All Fields",
                 "count": "68142",
                 "explode": "N"
@@ -68,7 +68,7 @@
                 "explode": "Y"
             },
             {
-                "term": "children[All Fields]",
+                "term": "baz[All Fields]",
                 "field": "All Fields",
                 "count": "9010",
                 "explode": "N"
@@ -77,6 +77,6 @@
             "GROUP",
             "AND"
         ],
-        "querytranslation": "(\"neoplasms\"[MeSH Terms] OR cancer[All Fields]) AND (\"mice\"[MeSH Terms] OR \"Mus musculus\"[Organism] OR mus musculus[All Fields]) AND (\"child\"[MeSH Terms] OR children[All Fields])"
+        "querytranslation": "(\"neoplasms\"[MeSH Terms] OR foo[All Fields]) AND (\"mice\"[MeSH Terms] OR \"bar\"[Organism] OR bar[All Fields]) AND (\"child\"[MeSH Terms] OR baz[All Fields])"
     }
 }

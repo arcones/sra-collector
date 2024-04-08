@@ -40,7 +40,7 @@ module "B_get_query_pages_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   webmaster_mail                        = var.webmaster_mail
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout / 7
+  timeout                               = var.queues.A_user_query_sqs.A_user_query_sqs_visibility_timeout / 3
 }
 
 module "C_get_study_ids_lambda" {
@@ -57,7 +57,7 @@ module "C_get_study_ids_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout / 7
+  timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout / 3
   memory_size                           = 128
 }
 
@@ -66,7 +66,7 @@ module "D_get_study_geo_lambda" {
   code_path                      = "${path.module}/code"
   common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                  = "D_get_study_geo"
-  reserved_concurrent_executions = 100
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn   = var.queues.C_study_ids_sqs.C_study_ids_sqs_arn
     output_sqs_arns = [var.queues.D_geos_sqs.D_geos_sqs_arn]
@@ -76,7 +76,7 @@ module "D_get_study_geo_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout / 7
+  timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout / 3
   memory_size                           = 128
   batch_size                            = 50
   batch_size_window                     = 3
@@ -87,7 +87,7 @@ module "E_get_study_srp_lambda" {
   code_path                      = "${path.module}/code"
   common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                  = "E_get_study_srp"
-  reserved_concurrent_executions = 150
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn   = var.queues.D_geos_sqs.D_geos_sqs_arn
     output_sqs_arns = [var.queues.E_srps_sqs.E_srps_sqs_arn]
@@ -96,9 +96,9 @@ module "E_get_study_srp_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout / 7
+  timeout                               = var.queues.D_geos_sqs.D_geos_sqs_visibility_timeout / 3
   memory_size                           = 320
-  batch_size                            = 10
+  batch_size                            = 1
   batch_size_window                     = 1
 }
 
@@ -107,7 +107,7 @@ module "F_get_study_srrs_lambda" {
   code_path                      = "${path.module}/code"
   common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
   function_name                  = "F_get_study_srrs"
-  reserved_concurrent_executions = 150
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn   = var.queues.E_srps_sqs.E_srps_sqs_arn
     output_sqs_arns = [var.queues.F_srrs_sqs.F_srrs_sqs_arn]
@@ -116,17 +116,18 @@ module "F_get_study_srrs_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout / 7
+  timeout                               = var.queues.E_srps_sqs.E_srps_sqs_visibility_timeout / 3
   memory_size                           = 1024
-  batch_size                            = 10
+  batch_size                            = 1
   batch_size_window                     = 1
 }
 
 module "G_get_srr_metadata_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "G_get_srr_metadata"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "G_get_srr_metadata"
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn   = var.queues.F_srrs_sqs.F_srrs_sqs_arn
     output_sqs_arns = [var.queues.G_srr_metadata.G_srr_metadata_arn]
@@ -135,17 +136,18 @@ module "G_get_srr_metadata_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.F_srrs_sqs.F_srrs_sqs_visibility_timeout / 7
+  timeout                               = var.queues.F_srrs_sqs.F_srrs_sqs_visibility_timeout / 3
   memory_size                           = 128
-  batch_size                            = 10
+  batch_size                            = 3
   batch_size_window                     = 1
 }
 
 module "H_generate_report_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "H_generate_report"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "H_generate_report"
+  reserved_concurrent_executions = 50
   queues = {
     input_sqs_arn   = var.queues.G_srr_metadata.G_srr_metadata_arn
     output_sqs_arns = [var.queues.H_user_feedback.H_user_feedback_arn]
@@ -155,15 +157,16 @@ module "H_generate_report_lambda" {
   rds_kms_key_arn                       = var.rds_kms_key_arn
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
-  timeout                               = var.queues.G_srr_metadata.G_srr_metadata_visibility_timeout / 7
+  timeout                               = var.queues.G_srr_metadata.G_srr_metadata_visibility_timeout / 3
   memory_size                           = 128
 }
 
 module "I_send_email_lambda" {
-  source                = "./infra"
-  code_path             = "${path.module}/code"
-  common_libs_layer_arn = aws_lambda_layer_version.common_libs_lambda_layer.arn
-  function_name         = "I_send_email"
+  source                         = "./infra"
+  code_path                      = "${path.module}/code"
+  common_libs_layer_arn          = aws_lambda_layer_version.common_libs_lambda_layer.arn
+  function_name                  = "I_send_email"
+  reserved_concurrent_executions = 1
   queues = {
     input_sqs_arn   = var.queues.H_user_feedback.H_user_feedback_arn
     output_sqs_arns = []
@@ -174,6 +177,6 @@ module "I_send_email_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   webmaster_mail                        = var.webmaster_mail
-  timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout / 7
+  timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout / 3
   memory_size                           = 128
 }

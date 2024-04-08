@@ -72,21 +72,11 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
         write_statement = f'insert into sra_project (geo_study_id, srp) values (%s, %s) on conflict do nothing returning id;'
         parameters = (geo_entity_id, srp)
         operation_result = database_holder.execute_write_statement(write_statement, parameters)
-        logging.info(f'operation result is {operation_result}')
-        if operation_result: ## TODO aquimequede parece que esto rula, probar a ver si el G_ tb resolve algo
-            logging.info('operation result is true')
-            logging.info(f'operation result [0] is {operation_result[0]}')
-            logging.info(f'operation result [0][0] is {operation_result[0][0]}')
+        if operation_result:
             return operation_result[0][0]
         else:
-            logging.info('operation result was false')
-            read_statement = f'select id from sra_project where geo_study_id=%s and srp=%s;'  # TODO si esto va bien ponerlo en todos los bloques similares
-            read_result = database_holder.execute_read_statement(read_statement, parameters)
-            logging.info(f'read result is {read_result}')
-            logging.info(f'read result [0] is {read_result[0]}')
-            logging.info(f'read result [0][0] is {read_result[0][0]}')
-
-            return read_result[0][0]
+            read_statement = 'select id from sra_project where geo_study_id=%s and srp=%s;'
+            return database_holder.execute_read_statement(read_statement, parameters)[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srp_in_db.__name__}: {str(exception)}')
         raise exception

@@ -64,7 +64,7 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
         logging.error(f'An exception has occurred in {get_request_status.__name__}: {str(exception)}')
         raise exception
 
-## TODO el phred de 30 parece EXACTAMENTE igual que el phred de 37... ¬¬
+
 def generate_report(database_holder, request_id: str) -> [[]]:
     try:
         statement = ('SELECT R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
