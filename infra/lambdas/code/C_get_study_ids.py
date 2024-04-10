@@ -65,7 +65,7 @@ def esearch_entities_list(ncbi_query: str, retstart: int, retmax: int) -> list[i
 
 def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
     try:
-        statement = f'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict do nothing returning id;'
+        statement = 'insert into ncbi_study (request_id, ncbi_id) values (%s, %s) on conflict do nothing returning id;'
         parameters = [(request_id, ncbi_id) for ncbi_id in ncbi_ids]
         return database_holder.execute_bulk_write_statement(statement, parameters)
     except Exception as exception:
@@ -75,7 +75,7 @@ def store_study_ids_in_db(database_holder, request_id: str, ncbi_ids: [int]):
 
 def get_query(database_holder, request_id: str):
     try:
-        statement = f'select query from request where id=%s;'
+        statement = 'select query from request where id=%s;'
         return database_holder.execute_read_statement(statement, (request_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_query.__name__}: {str(exception)}')

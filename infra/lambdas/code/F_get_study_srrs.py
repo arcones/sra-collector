@@ -91,7 +91,7 @@ def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
 
 def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
-        statement = f'select srp from sra_project where id=%s'
+        statement = 'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
         return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:

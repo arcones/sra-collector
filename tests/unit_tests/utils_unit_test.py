@@ -133,7 +133,7 @@ def store_test_metadata(database_holder, sra_run_ids):
             database_connection.commit()
 
 
-def mock_eutils(method, url, *args, **kwargs):
+def mock_eutils(method, url):
     eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 
     if method == 'GET':
@@ -161,14 +161,20 @@ def mock_eutils(method, url, *args, **kwargs):
         elif url == f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={DEFAULT_FIXTURE['srrs'][0]}":
             with open('tests/fixtures/G_get_srr_metadata.xml') as response:
                 return Mock(data=response.read())
-        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR6348099':
-            with open('tests/fixtures/G_get_srr_metadata_problematic_1.xml') as response:
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR12345678':
+            with open('tests/fixtures/G_get_srr_metadata_missing_all_info.xml') as response:
                 return Mock(data=response.read())
-        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR10522811':
-            with open('tests/fixtures/G_get_srr_metadata_problematic_2.xml') as response:
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000000':
+            with open('tests/fixtures/G_get_srr_metadata_pool_member_missing.xml') as response:
                 return Mock(data=response.read())
-        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR23100522':
-            with open('tests/fixtures/G_get_srr_metadata_problematic_3.xml') as response:
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000001':
+            with open('tests/fixtures/G_get_srr_metadata_quality_count_empty.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000002':
+            with open('tests/fixtures/G_get_srr_metadata_quality_count_missing.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000003':
+            with open('tests/fixtures/G_get_srr_metadata_statistics_missing.xml') as response:
                 return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')
@@ -176,7 +182,7 @@ def mock_eutils(method, url, *args, **kwargs):
         sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
 
 
-def mock_pysradb(entity, *args, **kwargs):
+def mock_pysradb(entity):
     if entity == 'GSE126183':
         return {'study_accession': ['SRP184257']}
     elif entity.startswith('GSE'):

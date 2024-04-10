@@ -14,7 +14,7 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 http = urllib3.PoolManager()
 page_size = 500
 
-QUERY_STUDY_LIMIT = 500
+QUERY_STUDY_LIMIT = 600
 
 
 def handler(event, context):
@@ -86,7 +86,7 @@ def get_study_count(ncbi_query: str) -> int:
 
 def store_request_in_db(database_holder, request_id: str, ncbi_query: str, study_count: int, mail: str, status: str = None):
     try:
-        statement = f'insert into request (id, query, geo_count, mail, status) values (%s, %s, %s, %s, %s) on conflict do nothing;'
+        statement = 'insert into request (id, query, geo_count, mail, status) values (%s, %s, %s, %s, %s) on conflict do nothing;'
         parameters = (request_id, ncbi_query, study_count, mail, status if status is not None else 'PENDING')
         database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:

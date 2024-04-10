@@ -69,7 +69,7 @@ def handler(event, context):
 
 def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
     try:
-        write_statement = f'insert into sra_project (geo_study_id, srp) values (%s, %s) on conflict do nothing returning id;'
+        write_statement = 'insert into sra_project (geo_study_id, srp) values (%s, %s) on conflict do nothing returning id;'
         parameters = (geo_entity_id, srp)
         operation_result = database_holder.execute_write_statement(write_statement, parameters)
         if operation_result:
@@ -84,7 +84,7 @@ def store_srp_in_db(database_holder, geo_entity_id: int, srp: str):
 
 def get_gse_geo_study(database_holder, geo_entity_id: int) -> str:
     try:
-        statement = f'select gse from geo_study where id=%s;'  # TODO quitar todas las fstring q no son tal cosa
+        statement = 'select gse from geo_study where id=%s;'
         return database_holder.execute_read_statement(statement, (geo_entity_id,))[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {get_gse_geo_study.__name__}: {str(exception)}')
@@ -113,7 +113,7 @@ def store_missing_srp_and_srr_count(database_holder, geo_entity_id: int, pysradb
 def store_missing_srp_in_db(database_holder, geo_entity_id: int, pysradb_error: PysradbError, details: str):
     try:
         pysradb_error_reference_id = get_pysradb_error_reference(database_holder, pysradb_error)
-        statement = f'''insert into sra_project_missing (geo_study_id, pysradb_error_reference_id, details)
+        statement = '''insert into sra_project_missing (geo_study_id, pysradb_error_reference_id, details)
                         values (%s, %s, %s) on conflict do nothing;'''
         parameters = (geo_entity_id, pysradb_error_reference_id, details)
         database_holder.execute_write_statement(statement, parameters)
