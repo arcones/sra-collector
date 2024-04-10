@@ -65,3 +65,11 @@ output "generate_report_function_name" {
 output "generate_report_log_group_arn" {
   value = module.H_generate_report_lambda.cloudwatch_log_group_arn
 }
+
+output "send_email_function_name" {
+  value = module.I_send_email_lambda.function.function_name
+}
+
+output "send_email_log_group_arn" {
+  value = module.I_send_email_lambda.cloudwatch_log_group_arn
+}

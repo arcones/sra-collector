@@ -25,12 +25,14 @@ class SQSHelper:
                 self.output_sqs = f'{self.sqs_prefix}/F_srrs' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
             elif function_name == 'G_get_srr_metadata':
                 self.output_sqs = f'{self.sqs_prefix}/G_srr_metadata' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
+            elif function_name == 'H_generate_report':
+                self.output_sqs = f'{self.sqs_prefix}/H_user_feedback' if output_sqs is None else f'{self.sqs_prefix}/{output_sqs}'
         else:
             self.output_sqs = f'{self.sqs_prefix}/integration_test_queue'
 
     def send(self, message_body: dict = None, message_bodies: [dict] = None):
         try:
-            if message_body is not None and message_bodies is not None:
+            if (message_body is None) == (message_bodies is None):
                 raise ValueError('Either message_body or message_bodies should be provided, not both')
 
             if message_body:

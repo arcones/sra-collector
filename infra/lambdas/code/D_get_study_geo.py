@@ -117,7 +117,7 @@ def extract_geo_entity_from_summaries(summary: str) -> GeoEntity:
 
 def get_ncbi_id(database_holder, ncbi_study_id: int) -> int:
     try:
-        statement = f'select ncbi_id from ncbi_study where id=%s;'
+        statement = 'select ncbi_id from ncbi_study where id=%s;'
         parameters = (ncbi_study_id,)
         return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:
@@ -139,7 +139,7 @@ def store_geo_entity_in_db(database_holder, ncbi_study_id: int, geo_entity: GeoE
 
 def update_ncbi_study_srr_count(database_holder, ncbi_study_id: int):
     try:
-        database_holder.execute_write_statement(f'update ncbi_study set srr_metadata_count=0 where id=%s', (ncbi_study_id,))
+        database_holder.execute_write_statement('update ncbi_study set srr_metadata_count=0 where id=%s', (ncbi_study_id,))
     except Exception as exception:
         logging.error(f'An exception has occurred in {update_ncbi_study_srr_count.__name__}: {str(exception)}')
         raise exception

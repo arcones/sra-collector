@@ -1,6 +1,8 @@
+import base64
 import json
 import os
 import re
+import shutil
 import sys
 from unittest.mock import ANY
 from unittest.mock import call
@@ -26,6 +28,7 @@ from .utils_unit_test import store_test_sra_run
 from .utils_unit_test import stores_test_ncbi_study
 
 os.environ['ENV'] = 'unit-test'
+os.environ['WEBMASTER_MAIL'] = 'doctora@grijander.com'
 
 sys.path.append('infra/lambdas/code')
 import A_get_user_query
@@ -36,6 +39,7 @@ import E_get_study_srp
 import F_get_study_srrs
 import G_get_srr_metadata
 import H_generate_report
+import I_send_email
 
 
 def test_a_get_user_query():
@@ -118,7 +122,7 @@ def test_b_get_query_pages():
 
                 mock_sqs.send_message_batch = Mock()
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+300'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -129,7 +133,7 @@ def test_b_get_query_pages():
                 # THEN REGARDING DATA
                 database_cursor.execute(f"select id, query, geo_count, mail from request where id='{request_id}'")
                 actual_rows = database_cursor.fetchall()
-                expected_row = [(request_id, DEFAULT_FIXTURE['query_+500'], DEFAULT_FIXTURE['results'], DEFAULT_FIXTURE['mail'])]
+                expected_row = [(request_id, DEFAULT_FIXTURE['query_+300'], DEFAULT_FIXTURE['results'], DEFAULT_FIXTURE['mail'])]
                 assert actual_rows == expected_row
 
                 # THEN REGARDING MESSAGES
@@ -138,7 +142,7 @@ def test_b_get_query_pages():
                 actual_message_bodies = [json.loads(entry['MessageBody']) for entry in mock_sqs.send_message_batch.call_args_list[0].kwargs['Entries']]
                 assert {message_body['request_id'] for message_body in actual_message_bodies} == {request_id}
                 assert {message_body['retmax'] for message_body in actual_message_bodies} == {500}
-                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0, 500}
+                assert {message_body['retstart'] for message_body in actual_message_bodies} == {0}
 
 
 def test_b_get_query_pages_skip_already_processed_study_id():
@@ -150,9 +154,9 @@ def test_b_get_query_pages_skip_already_processed_study_id():
 
                 mock_sqs.send_message_batch = Mock()
 
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+500'])
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_+300'])
 
-                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+500'], 'mail': DEFAULT_FIXTURE['mail']})
+                input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_+300'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
                 actual_result = B_get_query_pages.handler(sqs_wrap([input_body]), Context('B_get_query_pages'))
@@ -179,8 +183,6 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 mock_sqs.send_message = Mock()
 
-                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'])
-
                 input_body = json.dumps({'request_id': request_id, 'ncbi_query': DEFAULT_FIXTURE['query_over_limit'], 'mail': DEFAULT_FIXTURE['mail']})
 
                 # WHEN
@@ -197,10 +199,10 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                expected_reason = (f'Queries with more than 1000 studies cannot be processed as costs are not affordable.'
-                                   f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}"
-                                   'Do smaller queries or contact webmaster marta.arcones@gmail.com to see alternatives')
-                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'result': 'FAILURE', 'reason': expected_reason}))
+                expected_reason = (f'Queries with more than 600 studies cannot be processed as costs are not affordable.\n'
+                                   f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}\n"
+                                   f"Either do more specific queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'failure_reason': expected_reason}))
 
 
 def test_c_get_study_ids():
@@ -578,7 +580,6 @@ def test_g_get_srr_metadata_start():
 
                 database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
                 statistic_read = database_cursor.fetchone()
-                statistic_read_id = statistic_read[0]
                 assert statistic_read[2] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
                 assert statistic_read[3] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
                 assert statistic_read[4] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
@@ -630,7 +631,6 @@ def test_g_get_srr_metadata_finish():
 
                 database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
                 statistic_read = database_cursor.fetchone()
-                statistic_read_id = statistic_read[0]
                 assert statistic_read[2] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
                 assert statistic_read[3] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
                 assert statistic_read[4] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
@@ -645,9 +645,9 @@ def test_g_get_srr_metadata_finish():
                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
 
 
-def test_h_generate_report():
-    with patch.object(H_generate_report, 's3') as mock_s3:
-        with patch('H_generate_report.csv.writer') as mock_csv_writer:
+def test_g_get_srr_metadata_missing_all_info():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = provide_random_request_id()
@@ -655,68 +655,402 @@ def test_h_generate_report():
                 study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
                 inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
                 inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
-                sra_run_id_1 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
-                sra_run_id_2 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][1])
-                store_test_metadata(database_holder, [sra_run_id_1, sra_run_id_2])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR12345678')
 
-                mock_s3.upload_file = Mock()
-                mock_csv_writer_instance = mock_csv_writer.return_value
+                mock_sqs.send_message = Mock()
 
-                input_body = json.dumps({'request_id': request_id})
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
 
                 # WHEN
-                actual_result = H_generate_report.handler(sqs_wrap([input_body]), Context('H_generate_report'))
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
 
                 # THEN REGARDING LAMBDA
                 assert actual_result == {'batchItemFailures': []}
 
                 # THEN REGARDING DATA
                 _, database_cursor = database_holder
-                database_cursor.execute(f"select status from request where id='{request_id}'")
-                actual_request_status = database_cursor.fetchone()[0]
-                assert actual_request_status == 'COMPLETED'
+                database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+                actual_sra_run_metadata_rows = database_cursor.fetchone()
+                srr_metadata_id = actual_sra_run_metadata_rows[0]
+                assert actual_sra_run_metadata_rows[2] == 0
+                assert actual_sra_run_metadata_rows[3] == 0
+                assert actual_sra_run_metadata_rows[4] == '-'
 
-                # THEN REGARDING REPORT
-                rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
+                database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+                actual_phred_rows = database_cursor.fetchall()
+                assert actual_phred_rows == []
 
-                assert rows_written[0][0] == rows_written[1][0] == request_id
-                assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['query_<20']
-                assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['ncbi_id']
-                assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['gse']
-                assert rows_written[0][4] == rows_written[1][4] == DEFAULT_FIXTURE['srp']
-
-                rows_written_for_first_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][0]][0]
-                rows_written_for_second_srr = [row for row in rows_written if row[5] == DEFAULT_FIXTURE['srrs'][1]][0]
-
-                assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['srrs'][0]
-                assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['spots']
-                assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['bases']
-                assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['organism']
-                assert rows_written_for_first_srr[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
-                assert rows_written_for_first_srr[10] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
-                assert rows_written_for_first_srr[11] == 0.9196027757910978
-                assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
-                assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
-                assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
-                assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
-                assert rows_written_for_first_srr[16] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
-                assert rows_written_for_first_srr[17] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
-
-                assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['srrs'][1]
-                assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['spots']
-                assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['bases']
-                assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['organism']
-                assert rows_written_for_second_srr[9] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['nspots']
-                assert rows_written_for_second_srr[10] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
-                assert rows_written_for_second_srr[11] == 0.666666667
-                assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
-                assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
-                assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
-                assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
-                assert rows_written_for_second_srr[16] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
-                assert rows_written_for_second_srr[17] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
+                database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+                statistic_read = database_cursor.fetchall()
+                assert statistic_read == []
 
                 # THEN REGARDING MESSAGES
-                assert mock_s3.upload_file.call_count == 1
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_g_get_srr_metadata_missing_pool_member():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR0000000')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+                actual_sra_run_metadata_rows = database_cursor.fetchone()
+                srr_metadata_id = actual_sra_run_metadata_rows[0]
+                assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                assert actual_sra_run_metadata_rows[4] == '-'
+
+                database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+                actual_phred_rows = database_cursor.fetchall()
+                actual_phred_rows_payload = [(actual_phred_row[2], actual_phred_row[3]) for actual_phred_row in actual_phred_rows]
+                assert actual_phred_rows_payload == DEFAULT_FIXTURE['metadatas'][0]['phred']
+
+                database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+                statistic_read = database_cursor.fetchone()
+                assert statistic_read[2] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
+                assert statistic_read[3] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
+                assert statistic_read[4] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
+                assert statistic_read[5] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
+                assert statistic_read[6] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
+                assert statistic_read[7] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
+                assert statistic_read[8] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
+                assert statistic_read[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+@pytest.mark.parametrize('srr', ['SRR0000001', 'SRR0000002'])
+def test_g_get_srr_metadata_quality_count_empty(srr):
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, srr)
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+                actual_sra_run_metadata_rows = database_cursor.fetchone()
+                srr_metadata_id = actual_sra_run_metadata_rows[0]
+                assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadatas'][0]['organism']
+
+                database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+                actual_phred_rows = database_cursor.fetchall()
+                assert actual_phred_rows == []
+
+                database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+                statistic_read = database_cursor.fetchone()
+                assert statistic_read[2] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['nspots']
+                assert statistic_read[3] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
+                assert statistic_read[4] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
+                assert statistic_read[5] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
+                assert statistic_read[6] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
+                assert statistic_read[7] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
+                assert statistic_read[8] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
+                assert statistic_read[9] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_g_get_srr_metadata_statistics_missing():
+    with patch.object(G_get_srr_metadata, 'sqs') as mock_sqs:
+        with patch.object(G_get_srr_metadata.http, 'request', side_effect=mock_eutils):
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                inserted_sra_run_id = store_test_sra_run(database_holder, inserted_sra_project_id, 'SRR0000003')
+
+                mock_sqs.send_message = Mock()
+
+                input_body = json.dumps({'sra_run_id': inserted_sra_run_id})
+
+                # WHEN
+                actual_result = G_get_srr_metadata.handler(sqs_wrap([input_body]), Context('G_get_srr_metadata'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING DATA
+                _, database_cursor = database_holder
+                database_cursor.execute(f'select * from sra_run_metadata where sra_run_id={inserted_sra_run_id}')
+                actual_sra_run_metadata_rows = database_cursor.fetchone()
+                srr_metadata_id = actual_sra_run_metadata_rows[0]
+                assert actual_sra_run_metadata_rows[2] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                assert actual_sra_run_metadata_rows[3] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                assert actual_sra_run_metadata_rows[4] == DEFAULT_FIXTURE['metadatas'][0]['organism']
+
+                database_cursor.execute(f'select * from sra_run_metadata_phred where sra_run_metadata_id={srr_metadata_id}')
+                actual_phred_rows = database_cursor.fetchall()
+                actual_phred_rows_payload = [(actual_phred_row[2], actual_phred_row[3]) for actual_phred_row in actual_phred_rows]
+                assert actual_phred_rows_payload == DEFAULT_FIXTURE['metadatas'][0]['phred']
+
+                database_cursor.execute(f'select * from sra_run_metadata_statistic_read where sra_run_metadata_id={srr_metadata_id}')
+                statistic_read = database_cursor.fetchall()
+                assert statistic_read == []
+
+                # THEN REGARDING MESSAGES
+                assert mock_sqs.send_message.call_count == 1
+                mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id}))
+
+
+def test_h_generate_report():
+    with patch.object(H_generate_report, 's3') as mock_s3:
+        with patch.object(H_generate_report, 'sqs') as mock_sqs:
+            with patch('H_generate_report.csv.writer') as mock_csv_writer:
+                with H2ConnectionManager() as database_holder:
+                    # GIVEN
+                    request_id = provide_random_request_id()
+                    store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_<20'])
+                    study_id = stores_test_ncbi_study(database_holder, request_id, DEFAULT_FIXTURE['ncbi_id'], 2)
+                    inserted_geo_study_id = store_test_geo_study(database_holder, study_id, DEFAULT_FIXTURE['gse'])
+                    inserted_sra_project_id = store_test_sra_project(database_holder, inserted_geo_study_id, DEFAULT_FIXTURE['srp'])
+                    sra_run_id_1 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][0])
+                    sra_run_id_2 = store_test_sra_run(database_holder, inserted_sra_project_id, DEFAULT_FIXTURE['srrs'][1])
+                    store_test_metadata(database_holder, [sra_run_id_1, sra_run_id_2])
+
+                    mock_s3.upload_file = Mock()
+                    mock_csv_writer_instance = mock_csv_writer.return_value
+                    mock_sqs.send_message = Mock()
+
+                    input_body = json.dumps({'request_id': request_id})
+
+                    # WHEN
+                    actual_result = H_generate_report.handler(sqs_wrap([input_body]), Context('H_generate_report'))
+
+                    # THEN REGARDING LAMBDA
+                    assert actual_result == {'batchItemFailures': []}
+
+                    # THEN REGARDING DATA
+                    _, database_cursor = database_holder
+                    database_cursor.execute(f"select status from request where id='{request_id}'")
+                    actual_request_status = database_cursor.fetchone()[0]
+                    assert actual_request_status == 'EXTRACTED'
+
+                    # THEN REGARDING REPORT
+                    rows_written = mock_csv_writer_instance.writerows.call_args.args[0]
+
+                    assert rows_written[0][0] == rows_written[1][0] == DEFAULT_FIXTURE['query_<20']
+                    assert rows_written[0][1] == rows_written[1][1] == DEFAULT_FIXTURE['ncbi_id']
+                    assert rows_written[0][2] == rows_written[1][2] == DEFAULT_FIXTURE['gse']
+                    assert rows_written[0][3] == rows_written[1][3] == DEFAULT_FIXTURE['srp']
+
+                    rows_written_for_first_srr = [row for row in rows_written if row[4] == DEFAULT_FIXTURE['srrs'][0]][0]
+                    rows_written_for_second_srr = [row for row in rows_written if row[4] == DEFAULT_FIXTURE['srrs'][1]][0]
+
+                    assert rows_written_for_first_srr[4] == DEFAULT_FIXTURE['srrs'][0]
+                    assert rows_written_for_first_srr[5] == DEFAULT_FIXTURE['metadatas'][0]['spots']
+                    assert rows_written_for_first_srr[6] == DEFAULT_FIXTURE['metadatas'][0]['bases']
+                    assert rows_written_for_first_srr[7] == DEFAULT_FIXTURE['metadatas'][0]['organism']
+                    assert rows_written_for_first_srr[8] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['layout']
+                    assert rows_written_for_first_srr[9] == 0.9196027757910978
+                    assert rows_written_for_first_srr[10] == 0.9196027757910978
+                    assert rows_written_for_first_srr[11] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_count']
+                    assert rows_written_for_first_srr[12] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_average']
+                    assert rows_written_for_first_srr[13] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_first_srr[14] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_count']
+                    assert rows_written_for_first_srr[15] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_average']
+                    assert rows_written_for_first_srr[16] == DEFAULT_FIXTURE['metadatas'][0]['statistic_reads']['read_1_stdev']
+
+                    assert rows_written_for_second_srr[4] == DEFAULT_FIXTURE['srrs'][1]
+                    assert rows_written_for_second_srr[5] == DEFAULT_FIXTURE['metadatas'][1]['spots']
+                    assert rows_written_for_second_srr[6] == DEFAULT_FIXTURE['metadatas'][1]['bases']
+                    assert rows_written_for_second_srr[7] == DEFAULT_FIXTURE['metadatas'][1]['organism']
+                    assert rows_written_for_second_srr[8] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['layout']
+                    assert rows_written_for_second_srr[9] == 0.6670877406666667
+                    assert rows_written_for_second_srr[10] == 0.666666667
+                    assert rows_written_for_second_srr[11] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_count']
+                    assert rows_written_for_second_srr[12] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_average']
+                    assert rows_written_for_second_srr[13] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_0_stdev']
+                    assert rows_written_for_second_srr[14] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_count']
+                    assert rows_written_for_second_srr[15] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_average']
+                    assert rows_written_for_second_srr[16] == DEFAULT_FIXTURE['metadatas'][1]['statistic_reads']['read_1_stdev']
+
+                    # THEN REGARDING MESSAGES
+                    assert mock_s3.upload_file.call_count == 1
+                    expected_filename = f'Report_{request_id}.csv'
+                    mock_s3.upload_file.assert_called_with(f'/tmp/{expected_filename}', 'integration-tests-s3', expected_filename)
+
+                    # THEN REGARDING MESSAGES
+                    assert mock_sqs.send_message.call_count == 1
+                    mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'}))
+
+
+def test_i_send_email_ok():
+    with patch.object(I_send_email.s3, 'download_file') as mock_s3_download_file:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'EXTRACTED')
+
+                fixture_file_path = 'tests/fixtures/Report.csv'
+                new_filename = f'Report_{request_id}.csv'
+                shutil.copy(fixture_file_path, f'/tmp/{new_filename}')
+
+                with open(fixture_file_path) as s3_report:
+                    mock_s3_download_file.return_value = s3_report
+                    expected_content = s3_report.read()
+
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3_download_file.call_count == 1
                 expected_filename = f'Report_{request_id}.csv'
-                mock_s3.upload_file.assert_called_with(f'/tmp/{expected_filename}', 'integration-tests-s3', expected_filename)
+                mock_s3_download_file.assert_called_with('integration-tests-s3', expected_filename, f'/tmp/{expected_filename}')
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 1
+                mock_ses.send_raw_email.assert_called_with(RawMessage={'Data': ANY})
+
+                mail_data = mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+
+                assert f'Results for {request_id} query to SRA-Collector' in mail_data
+                base64_attachment = re.search(fr'(?<=Content-Disposition: attachment; filename="{expected_filename}"\n\n)([\s\S]+?)(?=\n\n--)', mail_data).group(1)
+                binary_attachment = base64.b64decode(base64_attachment)
+                with open('/tmp/actual_report.csv', 'wb') as actual_file_write:
+                    actual_file_write.write(binary_attachment)
+
+                with open('/tmp/actual_report.csv') as actual_file_read:
+                    actual_content = actual_file_read.read()
+                    assert expected_content == actual_content
+
+
+def test_i_send_email_ko():
+    with patch.object(I_send_email, 's3') as mock_s3:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'NOT_EXTRACTED')
+                reason = 'an amazing reason'
+
+                mock_s3.download_file = Mock()
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'failure_reason': reason})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3.download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 1
+                mock_ses.send_raw_email.assert_called_with(RawMessage={'Data': ANY})
+                assert reason in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+                assert f'Results for {request_id} query to SRA-Collector' in mock_ses.send_raw_email.call_args.kwargs['RawMessage']['Data']
+
+
+def test_i_send_email_ok_skip_already_processed():
+    with patch.object(I_send_email.s3, 'download_file') as mock_s3_download_file:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'SENT')
+
+                fixture_file_path = 'tests/fixtures/Report.csv'
+                new_filename = f'Report_{request_id}.csv'
+                shutil.copy(fixture_file_path, f'/tmp/{new_filename}')
+
+                with open(fixture_file_path) as s3_report:
+                    mock_s3_download_file.return_value = s3_report
+
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'filename': f'Report_{request_id}.csv'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3_download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 0
+
+
+def test_i_send_email_ko_skip_already_processed():
+    with patch.object(I_send_email, 's3') as mock_s3:
+        with patch.object(I_send_email, 'ses') as mock_ses:
+            with H2ConnectionManager() as database_holder:
+                # GIVEN
+                request_id = provide_random_request_id()
+                store_test_request(database_holder, request_id, DEFAULT_FIXTURE['query_over_limit'], 'SENT')
+
+                mock_s3.download_file = Mock()
+                mock_ses.send_raw_email = Mock()
+
+                input_body = json.dumps({'request_id': request_id, 'failure_reason': 'an amazing reason'})
+
+                # WHEN
+                actual_result = I_send_email.handler(sqs_wrap([input_body]), Context('I_send_email'))
+
+                # THEN REGARDING LAMBDA
+                assert actual_result == {'batchItemFailures': []}
+
+                # THEN REGARDING S3
+                assert mock_s3.download_file.call_count == 0
+
+                # THEN REGARDING EMAIL
+                assert mock_ses.send_raw_email.call_count == 0

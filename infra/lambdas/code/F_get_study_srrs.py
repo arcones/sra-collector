@@ -76,8 +76,14 @@ def store_srrs_and_count(database_holder, srrs: [str], sra_project_id: int):
 
 def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
     try:
-        srr_and_sra_id_tuples = [(sra_project_id, srr) for srr in srrs]
-        return database_holder.execute_bulk_write_statement('insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;', srr_and_sra_id_tuples)
+        write_statement = 'insert into sra_run (sra_project_id, srr) values (%s, %s) on conflict do nothing returning id;'
+        parameters = [(sra_project_id, srr) for srr in srrs]
+        operation_result = database_holder.execute_bulk_write_statement(write_statement, parameters)
+        if operation_result:
+            return operation_result
+        else:
+            read_statement = 'select id from sra_run where sra_project_id=%s and srr=%s;'
+            return database_holder.execute_read_statement(read_statement, parameters)[0][0]
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srrs_in_db.__name__}: {str(exception)}')
         raise exception
@@ -85,7 +91,7 @@ def store_srrs_in_db(database_holder, srrs: [str], sra_project_id: int):
 
 def get_srp_sra_project(database_holder, sra_project_id: int) -> str:
     try:
-        statement = f'select srp from sra_project where id=%s'
+        statement = 'select srp from sra_project where id=%s'
         parameters = (sra_project_id,)
         return database_holder.execute_read_statement(statement, parameters)[0][0]
     except Exception as exception:

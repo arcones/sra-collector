@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<RunBundle request="SRR12345678">
+    <RUN alias="GSM6939191_r1" accession="SRR23100522" load_done="true" published="2023-04-19 16:20:48" is_public="true" cluster_name="public" static_data_available="1">
+        <IDENTIFIERS>
+            <PRIMARY_ID>SRR23100522</PRIMARY_ID>
+        </IDENTIFIERS>
+        <EXPERIMENT_REF accession="SRX19052539" refname="GSM6939191"/>
+        <SRAFiles>
+            <SRAFile cluster="public" filename="rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R1_001.fastq.gz" url="https://sra-pub-src-2.s3.amazonaws.com/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R1_001.fastq.gz.1" size="79858028429" date="2023-01-17 15:47:59" md5="abca386038e0791779da4068b8411771" version="1" semantic_name="fastq" supertype="Original" sratoolkit="0">
+                <Alternatives url="s3://sra-pub-src-9/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R1_001.fastq.gz.1" free_egress="-" access_type="Use Cloud Data Delivery" org="AWS"/>
+                <Alternatives url="https://sra-pub-src-2.s3.amazonaws.com/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R1_001.fastq.gz.1" free_egress="worldwide" access_type="anonymous" org="AWS"/>
+            </SRAFile>
+            <SRAFile cluster="public" filename="rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R2_001.fastq.gz" url="https://sra-pub-src-2.s3.amazonaws.com/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R2_001.fastq.gz.1" size="79602109046" date="2023-01-17 15:54:17" md5="96a7b59a7d8b4522a978ca2aa7f1a067" version="1" semantic_name="fastq" supertype="Original" sratoolkit="0">
+                <Alternatives url="s3://sra-pub-src-9/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R2_001.fastq.gz.1" free_egress="-" access_type="Use Cloud Data Delivery" org="AWS"/>
+                <Alternatives url="https://sra-pub-src-2.s3.amazonaws.com/SRR23100522/rk_RI3_CKDL200161765-1a-SI_GA_H3_HJVH2DSXY_S2_L002_R2_001.fastq.gz.1" free_egress="worldwide" access_type="anonymous" org="AWS"/>
+            </SRAFile>
+        </SRAFiles>
+        <CloudFiles>
+            <CloudFile filetype="source" provider="s3" location="s3.us-east-1"/>
+        </CloudFiles>
+    </RUN>
+    <EXPERIMENT alias="GSM6939191" accession="SRX19052539">
+        <IDENTIFIERS>
+            <PRIMARY_ID>SRX19052539</PRIMARY_ID>
+        </IDENTIFIERS>
+        <TITLE>GSM6939191: Patient 3 Repeat challenging mRNA; Homo sapiens; RNA-Seq</TITLE>
+        <STUDY_REF accession="SRP417917" refname="GSE223071">
+            <IDENTIFIERS>
+                <PRIMARY_ID>SRP417917</PRIMARY_ID>
+            </IDENTIFIERS>
+        </STUDY_REF>
+        <DESIGN>
+            <DESIGN_DESCRIPTION/>
+            <SAMPLE_DESCRIPTOR accession="SRS16468914">
+                <IDENTIFIERS>
+                    <PRIMARY_ID>SRS16468914</PRIMARY_ID>
+                    <EXTERNAL_ID namespace="GEO">GSM6939191</EXTERNAL_ID>
+                </IDENTIFIERS>
+            </SAMPLE_DESCRIPTOR>
+            <LIBRARY_DESCRIPTOR>
+                <LIBRARY_STRATEGY>RNA-Seq</LIBRARY_STRATEGY>
+                <LIBRARY_SOURCE>TRANSCRIPTOMIC SINGLE CELL</LIBRARY_SOURCE>
+                <LIBRARY_SELECTION>cDNA</LIBRARY_SELECTION>
+                <LIBRARY_LAYOUT>
+                    <PAIRED/>
+                </LIBRARY_LAYOUT>
+                <LIBRARY_CONSTRUCTION_PROTOCOL>Frozen cells were thawed  in water bath at 37 C for 3 minutes. Cells were centrifuged at 500 x g for 5 minutes, and washed in RPMI + 10 % Fetal Bovine Serum. Finally, cell pellets were resuspended in PBS + BSA 0.04% and processed with the 10x Genomics single cell 5' system according to manufacturer's instructions. scRNA-seq libraries were prepared with the Chromium Next GEM Single Cell V(D)J Reagent Kits v1.1 as described by the manufacturer's instructions. 10x Genomics scRNA-seq 5' library construction kit</LIBRARY_CONSTRUCTION_PROTOCOL>
+            </LIBRARY_DESCRIPTOR>
+        </DESIGN>
+        <PLATFORM>
+            <ILLUMINA>
+                <INSTRUMENT_MODEL>Illumina NovaSeq 6000</INSTRUMENT_MODEL>
+            </ILLUMINA>
+        </PLATFORM>
+        <EXPERIMENT_LINKS>
+            <EXPERIMENT_LINK>
+                <XREF_LINK>
+                    <DB>gds</DB>
+                    <ID>306939191</ID>
+                    <LABEL>GSM6939191</LABEL>
+                </XREF_LINK>
+            </EXPERIMENT_LINK>
+        </EXPERIMENT_LINKS>
+        <EXPERIMENT_ATTRIBUTES>
+            <EXPERIMENT_ATTRIBUTE>
+                <TAG>GEO Accession</TAG>
+                <VALUE>GSM6939191</VALUE>
+            </EXPERIMENT_ATTRIBUTE>
+        </EXPERIMENT_ATTRIBUTES>
+    </EXPERIMENT>
+    <SAMPLE alias="GSM6939191" accession="SRS16468914">
+        <IDENTIFIERS>
+            <PRIMARY_ID>SRS16468914</PRIMARY_ID>
+            <EXTERNAL_ID namespace="BioSample">SAMN32770511</EXTERNAL_ID>
+            <EXTERNAL_ID namespace="GEO">GSM6939191</EXTERNAL_ID>
+        </IDENTIFIERS>
+        <TITLE>Patient 3 Repeat challenging mRNA</TITLE>
+        <SAMPLE_NAME>
+            <TAXON_ID>9606</TAXON_ID>
+            <SCIENTIFIC_NAME>Homo sapiens</SCIENTIFIC_NAME>
+        </SAMPLE_NAME>
+        <SAMPLE_LINKS>
+            <SAMPLE_LINK>
+                <XREF_LINK>
+                    <DB>bioproject</DB>
+                    <ID>924798</ID>
+                    <LABEL>PRJNA924798</LABEL>
+                </XREF_LINK>
+            </SAMPLE_LINK>
+        </SAMPLE_LINKS>
+        <SAMPLE_ATTRIBUTES>
+            <SAMPLE_ATTRIBUTE>
+                <TAG>source_name</TAG>
+                <VALUE>NKTs</VALUE>
+            </SAMPLE_ATTRIBUTE>
+            <SAMPLE_ATTRIBUTE>
+                <TAG>cell type</TAG>
+                <VALUE>NKTs</VALUE>
+            </SAMPLE_ATTRIBUTE>
+            <SAMPLE_ATTRIBUTE>
+                <TAG>library type</TAG>
+                <VALUE>mRNA</VALUE>
+            </SAMPLE_ATTRIBUTE>
+        </SAMPLE_ATTRIBUTES>
+    </SAMPLE>
+    <STUDY center_name="GEO" alias="GSE223071" accession="SRP417917">
+        <IDENTIFIERS>
+            <PRIMARY_ID>SRP417917</PRIMARY_ID>
+            <EXTERNAL_ID namespace="BioProject" label="primary">PRJNA924798</EXTERNAL_ID>
+            <EXTERNAL_ID namespace="GEO">GSE223071</EXTERNAL_ID>
+        </IDENTIFIERS>
+        <DESCRIPTOR>
+            <STUDY_TITLE>Anti-GD2 CAR-NKT cells in relapsed or refractory neuroblastoma: updated phase 1 trial interim results</STUDY_TITLE>
+            <STUDY_TYPE existing_study_type="Transcriptome Analysis"/>
+            <STUDY_ABSTRACT>Va24-invariant natural killer T cells (NKTs) have antitumor properties that can be enhanced by transgenic expression of tumor-specific receptors. Here, we report the results of the first-in-human clinical evaluation of autologous NKTs co-expressing a GD2-specific chimeric antigen receptor with interleukin (IL)15 (GD2-CAR.15) in 12 children with neuroblastoma (NB) treated on four dose levels (NCT03294954). Objectives included assessing safety, antitumor activity, and immune response. No dose-limiting toxicities occurred, and one patient had grade 2 cytokine release syndrome resolved by tocilizumab. The overall response rate was 25% (3/12) and disease control rate was 58% (7/12) including four patients with stable disease, two partial responses, and one complete response. CD62L+ NKT frequency in infused products correlated with CAR-NKT expansion in patients and was higher in responders than non-responders (71% vs 35.3%, p=0.002). Singe-cell RNA sequencing analysis identified B cell translocation gene 1 (BTG1) as one of the top upregulated genes in GD2-CAR.15-NKTs after in vitro serial tumor challenge. Genetic gain- and loss-of-function experiments revealed that BTG1 is a key driver of hyporesponsiveness in exhausted NKT and T cells. Crucially, NKTs co-expressing GD2-CAR.15 and BTG1-specific shRNA eradicated metastatic NB in mice. These results indicate that CAR-NKTs are safe, produce objective responses in NB patients, and that targeting BTG1 can enhance their therapeutic potency. Overall design: Single-cell RNA sequencing analysis of differently regulated genes in GD2-CAR.15-NKTs between pre-infusion and post-infusion cells.</STUDY_ABSTRACT>
+            <CENTER_PROJECT_NAME>GSE223071</CENTER_PROJECT_NAME>
+        </DESCRIPTOR>
+        <STUDY_LINKS>
+            <STUDY_LINK>
+                <XREF_LINK>
+                    <DB>pubmed</DB>
+                    <ID>37188782</ID>
+                </XREF_LINK>
+            </STUDY_LINK>
+        </STUDY_LINKS>
+    </STUDY>
+</RunBundle>

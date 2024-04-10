@@ -65,4 +65,4 @@ components:
         ncbi_query:
           type: string
           description: Echoes the query that was submitted
-          example: multiple sclerosis AND Astrocyte-produced HB-EGF and WGBSmultiple sclerosis and rna seq
+          example: multiple sclerosis AND Astrocyte-produced HB-EGF and WGBS

@@ -61,3 +61,4 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 - Continuous Integration & Deployment
 - Git Ops
 - Don't Repeat Yourself
+- Single responsibility principle

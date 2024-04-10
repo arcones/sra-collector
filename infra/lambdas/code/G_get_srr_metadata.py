@@ -91,9 +91,7 @@ def handler(event, context):
 
 def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRRMetadata):
     try:
-        sra_run_metadata_id = database_holder.execute_write_statement('insert into sra_run_metadata (sra_run_id, spots, bases, organism) '
-                                                                      'values (%s, %s, %s, %s) on conflict do nothing returning id;',
-                                                                      (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism))[0][0]
+        sra_run_metadata_id = store_srr_metadata(database_holder, sra_run_id, srr_metadata)
         store_srr_metadata_phred(database_holder, sra_run_metadata_id, srr_metadata.phred)
         store_srr_statistic_reads(database_holder, sra_run_metadata_id, srr_metadata.statistic_read)
     except Exception as exception:
@@ -101,12 +99,43 @@ def store_srr_metadata_in_db(database_holder, sra_run_id: int, srr_metadata: SRR
         raise exception
 
 
+def store_srr_metadata(database_holder, sra_run_id: int, srr_metadata: SRRMetadata):
+    try:
+        write_statement = 'insert into sra_run_metadata (sra_run_id, spots, bases, organism) values (%s, %s, %s, %s) on conflict do nothing returning id;'
+        parameters = (sra_run_id, srr_metadata.spots, srr_metadata.bases, srr_metadata.organism)
+        operation_result = database_holder.execute_write_statement(write_statement, parameters)
+        if operation_result:
+            return operation_result[0][0]
+        else:
+            read_statement = 'select id from sra_run_metadata where sra_run_id=%s and spots=%s and bases=%s and organism=%s;'
+            return database_holder.execute_read_statement(read_statement, parameters)[0][0]
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_srr_metadata.__name__}: {str(exception)}')
+        raise exception
+
+
+def store_srr_metadata_base(database_holder, sra_run_id, spots, bases, organism):
+    try:
+        write_statement = 'insert into sra_run_metadata (sra_run_id, spots, bases, organism) values (%s, %s, %s, %s) on conflict do nothing returning id;'
+        parameters = (sra_run_id, spots, bases, organism)
+        operation_result = database_holder.execute_write_statement(write_statement, parameters)
+        if operation_result:
+            return operation_result[0][0]
+        else:
+            read_statement = 'select id from sra_run_metadata where sra_run_id=%s and spots=%s and bases=%s and organism=%s'
+            return database_holder.execute_read_statement(read_statement, parameters)[0][0]
+    except Exception as exception:
+        logging.error(f'An exception has occurred in {store_srr_metadata_base.__name__}: {str(exception)}')
+        raise exception
+
+
 def store_srr_metadata_phred(database_holder, sra_run_metadata_id: int, phred: dict):
     try:
-        phred_and_sra_run_metadata_id_tuples = [(sra_run_metadata_id, score, read_count) for score, read_count in phred.items()]
-        return database_holder.execute_bulk_write_statement('insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) '
-                                                            'values (%s, %s, %s) on conflict do nothing returning id;',
-                                                            phred_and_sra_run_metadata_id_tuples)
+        if phred is not None:
+            phred_and_sra_run_metadata_id_tuples = [(sra_run_metadata_id, score, read_count) for score, read_count in phred.items()]
+            database_holder.execute_bulk_write_statement('insert into sra_run_metadata_phred (sra_run_metadata_id, score, read_count) '
+                                                         'values (%s, %s, %s) on conflict do nothing returning id;',
+                                                         phred_and_sra_run_metadata_id_tuples)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srr_metadata_phred.__name__}: {str(exception)}')
         raise exception
@@ -114,12 +143,13 @@ def store_srr_metadata_phred(database_holder, sra_run_metadata_id: int, phred: d
 
 def store_srr_statistic_reads(database_holder, sra_run_metadata_id: int, statistic_read: StatisticRead):
     try:
-        statement = ('insert into sra_run_metadata_statistic_read '
-                     '(sra_run_metadata_id, nspots, layout, read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
-                     'values (%s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing returning id;')
-        parameters = (sra_run_metadata_id, statistic_read.nspots, statistic_read.layout, statistic_read.read_0_count, statistic_read.read_0_average,
-                      statistic_read.read_0_stdev, statistic_read.read_1_count, statistic_read.read_1_average, statistic_read.read_1_stdev)
-        sra_run_metadata_statistic_read_id = database_holder.execute_write_statement(statement, parameters)[0]
+        if statistic_read is not None:
+            statement = ('insert into sra_run_metadata_statistic_read '
+                         '(sra_run_metadata_id, nspots, layout, read_0_count, read_0_average, read_0_stdev, read_1_count, read_1_average, read_1_stdev) '
+                         'values (%s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict do nothing returning id;')
+            parameters = (sra_run_metadata_id, statistic_read.nspots, statistic_read.layout, statistic_read.read_0_count, statistic_read.read_0_average,
+                          statistic_read.read_0_stdev, statistic_read.read_1_count, statistic_read.read_1_average, statistic_read.read_1_stdev)
+            database_holder.execute_write_statement(statement, parameters)
     except Exception as exception:
         logging.error(f'An exception has occurred in {store_srr_statistic_reads.__name__}: {str(exception)}')
         raise exception
@@ -155,8 +185,12 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
             bases = run_element.get('total_bases')
             if spots is not None and spots.isdigit():
                 srr_metadata.set_spots(int(spots))
+            else:
+                srr_metadata.set_spots(0)
             if bases is not None and bases.isdigit():
                 srr_metadata.set_bases(int(bases))
+            else:
+                srr_metadata.set_bases(0)
 
         quality_count_node = root.findall('.//RUN/QualityCount')
         if len(quality_count_node) > 0:
@@ -196,7 +230,13 @@ def get_srr_metadata(srr: str) -> SRRMetadata:
         member_node = root.findall('.//RUN/Pool/Member')
         if len(member_node) > 0:
             member_element = member_node[0]
-            srr_metadata.set_organism(member_element.get('organism'))
+            organism = member_element.get('organism')
+            if organism is not None:
+                srr_metadata.set_organism(organism)
+            else:
+                srr_metadata.set_organism('-')
+        else:
+            srr_metadata.set_organism('-')
 
         return srr_metadata
     except Exception as exception:

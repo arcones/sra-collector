@@ -34,11 +34,12 @@ variable "queues" {
       G_srr_metadata_arn                = string
       G_srr_metadata_visibility_timeout = number
     })
-    G_to_S3_DLQ_arn = string,
+    G_to_H_DLQ_arn = string,
     H_user_feedback = object({
       H_user_feedback_arn                = string
       H_user_feedback_visibility_timeout = number
-    })
+    }),
+    H_to_mail_DLQ_arn = string,
   })
 }
 
@@ -72,4 +73,9 @@ variable "cognito_pool_id" {
 
 variable "cognito_client_id" {
   type = string
+}
+
+variable "webmaster_mail" {
+  default = null
+  type    = string
 }

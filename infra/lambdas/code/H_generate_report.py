@@ -6,8 +6,10 @@ import os
 import boto3
 from db_connection.db_connection import DBConnectionManager
 from s3_helper.s3_helper import S3Helper
+from sqs_helper.sqs_helper import SQSHelper
 
 s3 = boto3.client('s3', region_name='eu-central-1')
+sqs = boto3.client('sqs', region_name='eu-central-1')
 
 
 def handler(event, context):
@@ -34,13 +36,14 @@ def handler(event, context):
                         path = os.path.join('/tmp', filename)
                         with open(path, 'w', newline='') as csvfile:
                             csv_writer = csv.writer(csvfile)
-                            csv_writer.writerow(['REQUEST_ID', 'QUERY', 'NCBI_STUDY', 'GSE', 'SRP', 'SRR', 'SPOTS', 'BASES', 'ORGANISM',
-                                                 'NSPOTS', 'LAYOUT', 'PHRED_READ_OVER_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
+                            csv_writer.writerow(['QUERY', 'NCBI_STUDY', 'GSE', 'SRP', 'SRR', 'SPOTS', 'BASES', 'ORGANISM',
+                                                 'LAYOUT', 'PHRED_READ_FROM_30', 'PHRED_READ_FROM_37', 'READ_0_COUNT', 'READ_0_AVERAGE',
                                                  'READ_0_STDEV', 'READ_1_COUNT', 'READ_1_AVERAGE', 'READ_1_STDEV'])
                             csv_writer.writerows(report)
                         S3Helper(s3).upload_file(path, filename)
                         update_request_status(database_holder, request_id)
                         logging.info(f'Uploaded {filename} to S3')
+                        SQSHelper(sqs, context.function_name).send(message_body={'request_id': request_id, 'filename': filename})
                     elif request_status == 'COMPLETED':
                         logging.info(f'For {request_id} the CSV was already generated')
             except Exception as exception:
@@ -64,9 +67,10 @@ def get_request_status(database_holder, request_id: int) -> (str, str):
 
 def generate_report(database_holder, request_id: str) -> [[]]:
     try:
-        statement = ('SELECT R.ID, R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
-                     'SRM.BASES AS TOTAL_BASES, SRM.ORGANISM, SRMSR.NSPOTS, SRMSR.LAYOUT, '
-                     'SUM(CASE WHEN SRMP.SCORE >= 37 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_OVER_37, '
+        statement = ('SELECT R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS AS TOTAL_SPOTS, '
+                     'SRM.BASES AS TOTAL_BASES, SRM.ORGANISM, SRMSR.LAYOUT, '
+                     'SUM(CASE WHEN SRMP.SCORE >= 30 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_FROM_30, '
+                     'SUM(CASE WHEN SRMP.SCORE >= 37 THEN SRMP.READ_COUNT ELSE 0 END) / SRM.BASES AS PHRED_READ_COUNT_FROM_37, '
                      'SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, SRMSR.READ_0_STDEV, '
                      'SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV '
                      'FROM SRA_RUN_METADATA SRM '
@@ -78,8 +82,8 @@ def generate_report(database_holder, request_id: str) -> [[]]:
                      'JOIN NCBI_STUDY NS ON GS.NCBI_STUDY_ID = NS.ID '
                      'JOIN REQUEST R ON NS.REQUEST_ID = R.ID '
                      'WHERE R.ID =%s '
-                     'GROUP BY R.ID, R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS, SRM.BASES, '
-                     'SRM.ORGANISM, SRMSR.NSPOTS, SRMSR.LAYOUT, SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, '
+                     'GROUP BY R.QUERY, NS.NCBI_ID, GS.GSE, SP.SRP, SR.SRR, SRM.SPOTS, SRM.BASES, '
+                     'SRM.ORGANISM, SRMSR.LAYOUT, SRMSR.READ_0_COUNT, SRMSR.READ_0_AVERAGE, '
                      'SRMSR.READ_0_STDEV, SRMSR.READ_1_COUNT, SRMSR.READ_1_AVERAGE, SRMSR.READ_1_STDEV; ')
         return database_holder.execute_read_statement(statement, (request_id,))
     except Exception as exception:
@@ -89,8 +93,8 @@ def generate_report(database_holder, request_id: str) -> [[]]:
 
 def update_request_status(database_holder, request_id: str):
     try:
-        statement = "UPDATE REQUEST SET STATUS='COMPLETED' WHERE ID=%s"
-        database_holder.execute_write_statement(statement, (request_id,))
+        statement = 'update request set status=%s where id=%s;'
+        database_holder.execute_write_statement(statement, ('EXTRACTED', request_id))
     except Exception as exception:
         logging.error(f'An exception has occurred in {update_request_status.__name__}: {str(exception)}')
         raise exception

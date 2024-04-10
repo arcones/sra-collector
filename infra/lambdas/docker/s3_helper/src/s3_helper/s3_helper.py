@@ -17,3 +17,10 @@ class S3Helper:
         except Exception as exception:
             logging.error(f'An exception has occurred in {self.upload_file.__name__}: {str(exception)}')
             raise exception
+
+    def download_file(self, key: str):
+        try:
+            self.s3.download_file(self.bucket_name, key, f'/tmp/{key}')
+        except Exception as exception:
+            logging.error(f'An exception has occurred in {self.download_file.__name__}: {str(exception)}')
+            raise exception

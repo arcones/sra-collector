@@ -7,11 +7,11 @@ import urllib3
 http = urllib3.PoolManager()
 
 DEFAULT_FIXTURE = {
-    'query_+500': 'cancer AND mus musculus AND children',
-    'query_<20': 'rna seq and homo sapiens and myeloid and leukemia',
+    'query_+300': 'foo AND bar AND baz',
+    'query_<20': 'foobar',
     'query_over_limit': 'cancer',
     'mail': 'crispin@grijander.com',
-    'results': 687,
+    'results': 384,
     'ncbi_id': 200126815,
     'gse': 'GSE126815',
     'srp': 'SRP185522',
@@ -70,9 +70,10 @@ class H2ConnectionManager:
             self.database_connection.close()
 
 
-def store_test_request(database_holder, request_id, ncbi_query):
+def store_test_request(database_holder, request_id, ncbi_query, status=None):
     database_connection, database_cursor = database_holder
-    database_cursor.execute('insert into request (id, query, geo_count, mail) values (?, ?, ?, ?);', [request_id, ncbi_query, 1, DEFAULT_FIXTURE['mail']])
+    database_cursor.execute('insert into request (id, query, geo_count, mail, status) values (?, ?, ?, ?, ?);',
+                            [request_id, ncbi_query, 1, DEFAULT_FIXTURE['mail'], status if status is not None else 'PENDING'])
     database_connection.commit()
 
 
@@ -132,11 +133,11 @@ def store_test_metadata(database_holder, sra_run_ids):
             database_connection.commit()
 
 
-def mock_eutils(method, url, *args, **kwargs):
+def mock_eutils(method, url):
     eutils_base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 
     if method == 'GET':
-        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_+500']}&retmax=1":
+        if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_+300']}&retmax=1":
             with open('tests/fixtures/B_get_query_pages_mock_esearch.json') as response:
                 return Mock(data=response.read())
         if url == f"{eutils_base_url}/esearch.fcgi?db=gds&retmode=json&term={DEFAULT_FIXTURE['query_over_limit']}&retmax=1":
@@ -160,14 +161,31 @@ def mock_eutils(method, url, *args, **kwargs):
         elif url == f"https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc={DEFAULT_FIXTURE['srrs'][0]}":
             with open('tests/fixtures/G_get_srr_metadata.xml') as response:
                 return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR12345678':
+            with open('tests/fixtures/G_get_srr_metadata_missing_all_info.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000000':
+            with open('tests/fixtures/G_get_srr_metadata_pool_member_missing.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000001':
+            with open('tests/fixtures/G_get_srr_metadata_quality_count_empty.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000002':
+            with open('tests/fixtures/G_get_srr_metadata_quality_count_missing.xml') as response:
+                return Mock(data=response.read())
+        elif url == f'https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new?acc=SRR0000003':
+            with open('tests/fixtures/G_get_srr_metadata_statistics_missing.xml') as response:
+                return Mock(data=response.read())
         else:
             sys.exit(f'Cannot mock unexpected call to eutils with url {url}')
     else:
         sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
 
 
-def mock_pysradb(entity, *args, **kwargs):
-    if entity.startswith('GSE'):
+def mock_pysradb(entity):
+    if entity == 'GSE126183':
+        return {'study_accession': ['SRP184257']}
+    elif entity.startswith('GSE'):
         return {'study_accession': [DEFAULT_FIXTURE['srp']]}
     elif entity.startswith('SRP'):
         return {'run_accession': DEFAULT_FIXTURE['srrs']}

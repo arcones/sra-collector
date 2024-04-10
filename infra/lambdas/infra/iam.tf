@@ -119,7 +119,6 @@ resource "aws_iam_role_policy" "kms_policy" {
   })
 }
 
-
 resource "aws_iam_role_policy" "s3_policy" {
   count = var.s3_reports_bucket_arn == null ? 0 : 1
   name  = "s3_policy"
@@ -128,9 +127,25 @@ resource "aws_iam_role_policy" "s3_policy" {
     Version = "2008-10-17"
     Statement = [
       {
-        Action   = ["s3:PutObject"]
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:HeadObject"]
         Effect   = "Allow"
         Resource = "${var.s3_reports_bucket_arn}/*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ses_policy" {
+  count = var.webmaster_mail == null ? 0 : 1
+  name  = "ses_policy"
+  role  = aws_iam_role.lambda_role.name
+  policy = jsonencode({
+    Version = "2008-10-17"
+    Statement = [
+      {
+        Action   = ["ses:SendRawEmail"]
+        Effect   = "Allow"
+        Resource = "*"
       },
     ]
   })

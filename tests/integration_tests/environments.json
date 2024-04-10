@@ -22,5 +22,9 @@
   },
   "ModuleLambdasModuleHGenerateReportLambdaAwsLambdaFunctionFunctionC6933FDE": {
     "ENV": "integration-test"
+  },
+  "ModuleLambdasModuleISendEmailLambdaAwsLambdaFunctionFunction76D673C9": {
+    "ENV": "integration-test",
+    "WEBMASTER_MAIL": "doctoragrijander@martaarcones.net"
   }
 }

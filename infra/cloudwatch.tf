@@ -20,7 +20,8 @@ locals {
     (module.lambdas.get_study_srp_function_name)               = 10,
     (module.lambdas.get_study_srrs_function_name)              = 10,
     (module.lambdas.get_srr_metadata_function_name)            = 1,
-    (module.lambdas.generate_report_function_name)             = 1
+    (module.lambdas.generate_report_function_name)             = 1,
+    (module.lambdas.send_email_function_name)                  = 1,
   }
   dlqs = [
     aws_sqs_queue.A_to_B_DLQ.name,
@@ -29,7 +30,7 @@ locals {
     aws_sqs_queue.D_to_E_DLQ.name,
     aws_sqs_queue.E_to_F_DLQ.name,
     aws_sqs_queue.F_to_G_DLQ.name,
-    aws_sqs_queue.G_to_S3_DLQ.name,
+    aws_sqs_queue.G_to_H_DLQ.name,
   ]
 }
 
