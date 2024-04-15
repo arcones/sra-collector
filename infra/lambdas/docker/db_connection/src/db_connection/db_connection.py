@@ -58,11 +58,11 @@ class DBConnectionManager:
             except OperationalError as operationalError:
                 if self.connection_attempts == self.MAX_TRIES:
                     logger.error(f'Not able to connect with database after {self.connection_attempts} attempts')
-                    logger.error(str(operationalError))
+                    logger.debug(str(operationalError))
                     raise operationalError
                 else:
-                    logger.warning(f'Not able to connect with database in attempt #{self.connection_attempts}')
-                    logger.warning(str(operationalError))
+                    logger.debug(f'Not able to connect with database in attempt #{self.connection_attempts}')
+                    logger.debug(str(operationalError))
                     self.connection_attempts += 1
                     time.sleep(1)
         self.database_cursor = self.database_connection.cursor()

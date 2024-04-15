@@ -1,4 +1,4 @@
-# sra-collector
+ # sra-collector
 
 <p align="center">
   <img width="200" src="https://github.com/arcones/sra-collector/blob/main/bioinformaticsbyflaticon.png?raw=true" alt="SRA Collector Logo by Flaticon"/>
@@ -15,9 +15,9 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 >
 > Users will be able to check failure reports of each query.
 
-## Infra Diagram
+## General Product & Infra Diagram
 
-![alt text](./infra/diagram.png "Infrastructure diagram")
+![alt text](./generalDiagramWithFlaticonIcons.png "Product & Infra Diagram")
 
 ## Database Diagram
 

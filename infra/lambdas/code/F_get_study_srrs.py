@@ -36,18 +36,15 @@ def handler(event, context):
 
                     try:
                         srp = get_srp_sra_project(database_holder, sra_project_id)
-                        raw_pysradb_data_frame = SRAweb().srp_to_srr(srp)
+                        raw_pysradb_data_frame = SRAweb().srp_to_srr(srp, detailed=True)
                         srrs = list(raw_pysradb_data_frame['run_accession'])
                         srrs = [srr for srr in srrs if srr.startswith('SRR')]
 
                         if srrs:
                             logging.info(f'For {srp}, SRRs are {srrs}')
                             sra_run_ids = store_srrs_and_count(database_holder, srrs, sra_project_id)
-
                             message_bodies = [{'sra_run_id': sra_run_id} for sra_run_id in sra_run_ids]
-
                             SQSHelper(sqs, context.function_name).send(message_bodies=message_bodies)
-
                         else:
                             logging.info(f'No SRR for {srp} found via pysradb')
                             store_missing_srr_and_count(database_holder, sra_project_id, PysradbError.NOT_FOUND, 'No SRR found')

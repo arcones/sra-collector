@@ -3,7 +3,7 @@ resource "aws_kms_key" "db_kms_key" {
 }
 
 resource "aws_db_instance" "sra_collector_db" {
-  allocated_storage             = 5
+  allocated_storage             = 20
   db_name                       = "sracollector"
   engine                        = "postgres"
   engine_version                = "16.1"

@@ -14,7 +14,7 @@ sqs = boto3.client('sqs', region_name='eu-central-1')
 http = urllib3.PoolManager()
 page_size = 500
 
-QUERY_STUDY_LIMIT = 600
+QUERY_STUDY_LIMIT = 400
 
 
 def handler(event, context):
