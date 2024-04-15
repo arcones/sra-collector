@@ -6,14 +6,12 @@
 
 Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) **SRA** 🧬 metadata of several **GDS** studies in one search 🔮
 
-Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
+Ask for credentials by mail ✉️ to **marta.arcones@gmail.com** and then use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 
 > 📢 **Best Effort Design**
 >
 > NCBI data is sometimes not consistent, therefore, **sra-collector** implements _best effort_ approach, fetching all
 > possible SRA metadata but not giving any guarantees.
->
-> Users will be able to check failure reports of each query.
 
 ## General Product & Infra Diagram
 
@@ -62,3 +60,4 @@ Use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 - Git Ops
 - Don't Repeat Yourself
 - Single responsibility principle
+- Observability
