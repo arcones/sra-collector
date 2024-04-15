@@ -1,4 +1,4 @@
- # sra-collector
+# sra-collector
 
 <p align="center">
   <img width="200" src="https://github.com/arcones/sra-collector/blob/main/bioinformaticsbyflaticon.png?raw=true" alt="SRA Collector Logo by Flaticon"/>
