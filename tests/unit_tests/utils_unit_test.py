@@ -182,12 +182,12 @@ def mock_eutils(method, url):
         sys.exit(f'Cannot mock unexpected call to eutils with method {method}')
 
 
-def mock_pysradb(entity):
+def mock_pysradb(entity, detailed=False):
     if entity == 'GSE126183':
         return {'study_accession': ['SRP184257']}
     elif entity.startswith('GSE'):
         return {'study_accession': [DEFAULT_FIXTURE['srp']]}
-    elif entity.startswith('SRP'):
+    elif entity.startswith('SRP') and detailed:
         return {'run_accession': DEFAULT_FIXTURE['srrs']}
     else:
         sys.exit(f'Cannot mock unexpected call to pysradb with entity {entity}')
