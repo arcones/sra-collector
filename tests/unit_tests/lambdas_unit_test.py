@@ -199,7 +199,7 @@ def test_b_get_query_pages_stop_expensive_queries():
 
                 # THEN REGARDING MESSAGES
                 assert mock_sqs.send_message.call_count == 1
-                expected_reason = (f'Queries with more than 600 studies cannot be processed as costs are not affordable.\n'
+                expected_reason = (f'Queries with more than 400 studies cannot be processed as costs are not affordable.\n'
                                    f"Check how many studies has your query in https://www.ncbi.nlm.nih.gov/gds/?term={DEFAULT_FIXTURE['query_over_limit']}\n"
                                    f"Either do more specific queries or contact webmaster {os.environ.get('WEBMASTER_MAIL')} to see alternatives")
                 mock_sqs.send_message.assert_called_with(QueueUrl=ANY, MessageBody=json.dumps({'request_id': request_id, 'failure_reason': expected_reason}))
@@ -452,7 +452,7 @@ def test_e_get_study_srp_skip_unexpected_results():
 
 def test_f_get_study_srrs_ok():
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr', side_effect=mock_pysradb):
+        with patch.object(F_get_study_srrs.SRAweb, 'srp_to_srr', side_effect=mock_pysradb):
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = provide_random_request_id()
@@ -501,7 +501,7 @@ def test_f_get_study_srrs_ok():
 ])
 def test_f_get_study_srrs_ko(pysradb_exception, pysradb_exception_info, pysradb_exception_name):
     with patch.object(F_get_study_srrs, 'sqs') as mock_sqs:
-        with patch.object(E_get_study_srp.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
+        with patch.object(F_get_study_srrs.SRAweb, 'srp_to_srr') as mock_sra_web_srp_to_srr:
             with H2ConnectionManager() as database_holder:
                 # GIVEN
                 request_id = provide_random_request_id()

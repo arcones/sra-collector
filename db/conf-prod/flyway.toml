@@ -1,5 +1,5 @@
 [flyway]
-cleanDisabled = true
+cleanDisabled = false
 
 [environments.default]
 url = "jdbc:postgresql://sracollector.cgaqaljpdpat.eu-central-1.rds.amazonaws.com:5432/"
