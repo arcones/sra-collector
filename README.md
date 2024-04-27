@@ -1,10 +1,10 @@
-# sra-collector
+# SRA-Collector
 
 <p align="center">
   <img width="200" src="https://github.com/arcones/sra-collector/blob/main/bioinformaticsbyflaticon.png?raw=true" alt="SRA Collector Logo by Flaticon"/>
 </p>
 
-Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) **SRA** 🧬 metadata of several **GDS** studies in one search 🔮
+Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) **SRA** 🧬 metadata of several **GEO** studies in one search 🔮
 
 Ask for credentials by mail ✉️ to **marta.arcones@gmail.com** and then use the API directly 👉 [here](https://arcones.github.io/sra-collector/)
 
@@ -23,6 +23,7 @@ Ask for credentials by mail ✉️ to **marta.arcones@gmail.com** and then use t
 
 ## Tech Stack
 
+![Static Badge](https://img.shields.io/badge/Pycharm-yellow?logo=pycharm&logoColor=purple)
 ![Static Badge](https://img.shields.io/badge/AWS-orange?logo=amazonaws)
 ![Static Badge](https://img.shields.io/badge/Python-blue?logo=python&logoColor=yellow)
 ![Static Badge](https://img.shields.io/badge/Terraform-lavender?logo=terraform)
