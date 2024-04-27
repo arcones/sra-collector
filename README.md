@@ -23,7 +23,7 @@ Ask for credentials by mail ✉️ to **marta.arcones@gmail.com** and then use t
 
 ## Tech Stack
 
-![Static Badge](https://img.shields.io/badge/Pycharm-yellow?logo=pycharm&logoColor=purple)
+![Static Badge](https://img.shields.io/badge/Pycharm-yellow?logo=pycharm&logoColor=black)
 ![Static Badge](https://img.shields.io/badge/AWS-orange?logo=amazonaws)
 ![Static Badge](https://img.shields.io/badge/Python-blue?logo=python&logoColor=yellow)
 ![Static Badge](https://img.shields.io/badge/Terraform-lavender?logo=terraform)
