@@ -36,7 +36,8 @@ resource "aws_opensearch_domain_policy" "opensearch_access_policy" {
             "aws:SourceIp" : [
               "79.117.222.89/32", ## Home
               "79.117.64.0/18",    ## Hotspot
-              "79.116.183.0/24"    ## Work
+              "79.116.183.0/24",   ## Work
+              "138.4.231.86/24"    ## UPM
             ]
           }
         },

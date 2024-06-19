@@ -109,7 +109,7 @@ def update_ncbi_study_srr_count(database_holder, sra_project_id: int, srr_metada
     try:
         statement = ('update ncbi_study set srr_metadata_count=%s '
                      'where id=('
-                     'select ncbi_study_id from geo_study gs '
+                     'select ncbi_study_id from  geo_study gs '
                      'join sra_project sp on sp.geo_study_id = gs.id '
                      'where sp.id=%s)')
         database_holder.execute_write_statement(statement, (srr_metadata_count, sra_project_id))

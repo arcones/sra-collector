@@ -58,7 +58,6 @@ module "C_get_study_ids_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.B_query_pages_sqs.B_query_pages_sqs_visibility_timeout / 2
-  memory_size                           = 128
 }
 
 module "D_get_study_geo_lambda" {
@@ -77,7 +76,6 @@ module "D_get_study_geo_lambda" {
   ncbi_secret_arn                       = var.ncbi_api_key_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.C_study_ids_sqs.C_study_ids_sqs_visibility_timeout / 2
-  memory_size                           = 128
   batch_size                            = 50
   batch_size_window                     = 3
 }
@@ -135,7 +133,6 @@ module "G_get_srr_metadata_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.F_srrs_sqs.F_srrs_sqs_visibility_timeout / 2
-  memory_size                           = 128
   batch_size                            = 1
 }
 
@@ -155,7 +152,6 @@ module "H_generate_report_lambda" {
   rds_secret_arn                        = local.rds_secret_arn
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   timeout                               = var.queues.G_srr_metadata.G_srr_metadata_visibility_timeout / 2
-  memory_size                           = 128
 }
 
 module "I_send_email_lambda" {
@@ -175,5 +171,4 @@ module "I_send_email_lambda" {
   cloudwatch_to_opensearch_function_arn = var.cloudwatch_to_opensearch_function_arn
   webmaster_mail                        = var.webmaster_mail
   timeout                               = var.queues.H_user_feedback.H_user_feedback_visibility_timeout / 2
-  memory_size                           = 128
 }
