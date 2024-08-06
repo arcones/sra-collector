@@ -30,11 +30,11 @@ Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) 🧬 metadata of several **NCBI
 
 ## Use Case Example
 
-For the query:
+For the query `hypercholesterolemia and rna seq` that can be done in [NIH NCBI](https://www.ncbi.nlm.nih.gov) in their web:
 
 > https://www.ncbi.nlm.nih.gov/gds/?term=hypercholesterolemia+and+rna+seq
 
-which retrieves, at the moment of writing, 25 studies, the system will be able to generate a report like [this one](./docs/Report_bhBZZgrvliAEMcw=.csv) containing the statistics for all the experiments related to all the studies found by NCBI.
+The query retrieves, at the moment of writing, 25 studies. If the query instead is done in `sra-collector` system, it will be able to generate a CSV report like [this one](./docs/Report_bhBZZgrvliAEMcw=.csv) containing the statistics for all the experiments related to all the studies found by NCBI.
 
 ## Full Project Documentation
 
