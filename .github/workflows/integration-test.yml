@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   integration-tests:
+    if: false # Deactivated as the project is discontinued. More info in README
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

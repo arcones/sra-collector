@@ -9,13 +9,15 @@ concurrency:
   cancel-in-progress: true
 jobs:
   db-schema:
+    if: false # Deactivated as the project is discontinued. More info in README
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Flyway Migration
         run: make db-migrations-prod
   db-diagram:
-    if: github.ref == 'refs/heads/main'
+    if: false # Deactivated as the project is discontinued. More info in README
+    # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
