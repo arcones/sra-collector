@@ -1,4 +1,4 @@
-$${\color{red}📢 Deprecation Notice}$$
+$${\color{red}\textbf{📢 Deprecation Notice}}$$
 > Due to the lack of sponsors, the project is discontinued as its cloud expenses are not affordable.
 > An alternative in the form of a CLI is being considered.
 > Contact by mail ✉️ to **marta.arcones@gmail.com** in case you are interested in project continuity.
