@@ -6,7 +6,7 @@ $${\color{red}\textbf{📢 Deprecation Notice}}$$
 # SRA-Collector
 
 <p align="center">
-  <img width="200" src="https://github.com/arcones/sra-collector/blob/update-docs/docs/bioinformaticsbyflaticon.png?raw=true" alt="SRA Collector Logo by Flaticon"/>
+  <img width="200" src="https://github.com/arcones/sra-collector/blob/main/docs/bioinformaticsbyflaticon.png?raw=true?raw=true" alt="SRA Collector Logo by Flaticon"/>
 </p>
 
 Collect [NIH NCBI](https://www.ncbi.nlm.nih.gov) 🧬 metadata of several **NCBI** studies in one search 🔮. The system will provide the following stats in a CSV file of **all the experiments** related to **all the studies** fetched by the GEO search:
