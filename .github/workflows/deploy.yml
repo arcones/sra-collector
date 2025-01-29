@@ -18,6 +18,8 @@ jobs:
           cache: 'pip'
       - name: Run Unit Tests
         run: make build-unit-tests-dependencies && pytest tests/unit_tests
+      - name: Say Hello to the course members
+        run: echo "Hello DevWomen!"
   infra:
     if: false # Deactivated as the project is discontinued. More info in README
     needs:
