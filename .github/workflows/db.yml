@@ -12,7 +12,7 @@ jobs:
     if: false # Deactivated as the project is discontinued. More info in README
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Flyway Migration
         run: make db-migrations-prod
   db-diagram:
@@ -20,7 +20,7 @@ jobs:
     # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
           fetch-depth: 0
